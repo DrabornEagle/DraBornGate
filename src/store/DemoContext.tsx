@@ -8,7 +8,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import { LayoutAnimation, Platform, UIManager } from 'react-native';
+import { LayoutAnimation } from 'react-native';
 import { createInitialDemoState } from '../data/demo';
 import {
   CreatePassInput,
@@ -18,10 +18,6 @@ import {
 } from '../types';
 
 const STORAGE_KEY = '@draborngate/demo-state-v0.1';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 interface DemoContextValue extends DemoState {
   hydrated: boolean;
@@ -144,7 +140,10 @@ export function DemoProvider({ children }: PropsWithChildren) {
                   status,
                   approvalCode,
                   rejectionReason,
-                  etaMinutes: status === 'arrived' || status === 'completed' ? 0 : pass.etaMinutes,
+                  etaMinutes:
+                    status === 'arrived' || status === 'completed'
+                      ? 0
+                      : pass.etaMinutes,
                 }
               : pass,
           ),
