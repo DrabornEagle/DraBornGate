@@ -37,6 +37,22 @@ const makeApprovalCode = () => {
   return `${value.slice(0, 3)} ${value.slice(3)}`;
 };
 
+const migrateStoredState = (storedState: DemoState): DemoState => ({
+  ...storedState,
+  activities: storedState.activities.map((activity) =>
+    activity.icon === 'bicycle'
+      ? {
+          ...activity,
+          title:
+            activity.title === 'Yeni kurye yaklaşıyor'
+              ? 'Yeni motosikletli kurye yaklaşıyor'
+              : activity.title,
+          icon: 'speedometer',
+        }
+      : activity,
+  ),
+});
+
 export function DemoProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<DemoState>(createInitialDemoState);
   const [hydrated, setHydrated] = useState(false);
@@ -46,7 +62,7 @@ export function DemoProvider({ children }: PropsWithChildren) {
       try {
         const stored = await AsyncStorage.getItem(STORAGE_KEY);
         if (stored) {
-          setState(JSON.parse(stored) as DemoState);
+          setState(migrateStoredState(JSON.parse(stored) as DemoState));
         }
       } catch {
         setState(createInitialDemoState());
