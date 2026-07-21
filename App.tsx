@@ -1,8 +1,9 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { BottomDock, AppTab } from './src/components/BottomDock';
+import { AnimatedMotorcycle, FloatingView, PulseDot } from './src/components/Motion';
 import { AppBackground } from './src/components/UI';
 import { CourierHome } from './src/screens/CourierHome';
 import { CreatePassScreen } from './src/screens/CreatePassScreen';
@@ -26,11 +27,14 @@ function AppContent() {
     return (
       <AppBackground>
         <View style={styles.loading}>
-          <View style={styles.loadingLogo}>
-            <ActivityIndicator size="large" color={colors.cyan} />
-          </View>
+          <FloatingView style={styles.loadingLogo} distance={7} duration={1500}>
+            <AnimatedMotorcycle color={colors.cyan} size={48} />
+          </FloatingView>
           <Text style={styles.loadingTitle}>DraBornGate</Text>
-          <Text style={styles.loadingText}>Demo güvenlik sistemi hazırlanıyor</Text>
+          <View style={styles.loadingRow}>
+            <PulseDot color={colors.green} />
+            <Text style={styles.loadingText}>Demo güvenlik sistemi hazırlanıyor</Text>
+          </View>
         </View>
       </AppBackground>
     );
@@ -114,15 +118,30 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingLogo: {
-    width: 86,
-    height: 86,
-    borderRadius: 28,
+    width: 100,
+    height: 100,
+    borderRadius: 32,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  loadingTitle: { color: colors.text, fontSize: 25, fontWeight: '900', marginTop: 16 },
-  loadingText: { color: colors.textSoft, fontSize: 10, marginTop: 5 },
+  loadingTitle: {
+    color: colors.text,
+    fontSize: 30,
+    fontWeight: '900',
+    marginTop: 18,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  loadingText: {
+    color: colors.textSoft,
+    fontSize: 14,
+    fontWeight: '700',
+  },
 });
