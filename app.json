@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "DraBornGate",
+    "slug": "draborngate",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "draborngate",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#06101D"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.draborneagle.draborngate",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "DraBornGate, kurye sipariş ekran görüntüsünü demo olarak analiz etmek için galeri erişimi kullanır."
+      }
+    },
+    "android": {
+      "package": "com.draborneagle.draborngate",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#06101D",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": ["READ_MEDIA_IMAGES"],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "DraBornGate, sipariş ekran görüntüsünü demo olarak analiz etmek için fotoğraflarına erişir."
+        }
+      ]
+    ],
+    "extra": {
+      "demoMode": true,
+      "database": "none",
+      "releaseChannel": "v0.1-demo"
+    }
+  }
+}
