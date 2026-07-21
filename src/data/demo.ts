@@ -72,11 +72,11 @@ export const createInitialDemoState = (): DemoState => ({
     },
     {
       id: 'activity-2',
-      title: 'Yeni kurye yaklaşıyor',
+      title: 'Yeni motosikletli kurye yaklaşıyor',
       detail: 'Mert Aksoy • 3 dakika',
       time: '4 dk',
       tone: 'cyan',
-      icon: 'bicycle',
+      icon: 'speedometer',
     },
     {
       id: 'activity-3',
