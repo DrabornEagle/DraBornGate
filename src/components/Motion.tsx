@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { PropsWithChildren, useEffect, useRef } from 'react';
 import {
   Animated,
@@ -60,27 +61,40 @@ export function AnimatedPressable({
   ...props
 }: AnimatedPressableProps) {
   const scale = useRef(new Animated.Value(1)).current;
+  const lift = useRef(new Animated.Value(0)).current;
+
+  const animate = (pressed: boolean) => {
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: pressed ? 0.965 : 1,
+        damping: pressed ? 18 : 15,
+        stiffness: pressed ? 420 : 320,
+        useNativeDriver: true,
+      }),
+      Animated.spring(lift, {
+        toValue: pressed ? 2 : 0,
+        damping: 18,
+        stiffness: 320,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
 
   return (
-    <Animated.View style={[containerStyle, { transform: [{ scale }] }]}>
+    <Animated.View
+      style={[
+        containerStyle,
+        { transform: [{ scale }, { translateY: lift }] },
+      ]}
+    >
       <Pressable
         {...props}
         onPressIn={(event) => {
-          Animated.spring(scale, {
-            toValue: 0.97,
-            damping: 18,
-            stiffness: 420,
-            useNativeDriver: true,
-          }).start();
+          animate(true);
           onPressIn?.(event);
         }}
         onPressOut={(event) => {
-          Animated.spring(scale, {
-            toValue: 1,
-            damping: 15,
-            stiffness: 320,
-            useNativeDriver: true,
-          }).start();
+          animate(false);
           onPressOut?.(event);
         }}
       >
@@ -90,7 +104,7 @@ export function AnimatedPressable({
   );
 }
 
-export function PulseDot({ color }: { color: string }) {
+export function PulseDot({ color, size = 10 }: { color: string; size?: number }) {
   const pulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -115,9 +129,9 @@ export function PulseDot({ color }: { color: string }) {
   return (
     <Animated.View
       style={{
-        width: 10,
-        height: 10,
-        borderRadius: 10,
+        width: size,
+        height: size,
+        borderRadius: size,
         backgroundColor: color,
         opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }),
         transform: [
@@ -127,5 +141,115 @@ export function PulseDot({ color }: { color: string }) {
         ],
       }}
     />
+  );
+}
+
+export function FloatingView({
+  children,
+  style,
+  distance = 5,
+  duration = 1700,
+}: PropsWithChildren<{
+  style?: StyleProp<ViewStyle>;
+  distance?: number;
+  duration?: number;
+}>) {
+  const float = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(float, {
+          toValue: 1,
+          duration,
+          useNativeDriver: true,
+        }),
+        Animated.timing(float, {
+          toValue: 0,
+          duration,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [duration, float]);
+
+  return (
+    <Animated.View
+      style={[
+        style,
+        {
+          transform: [
+            {
+              translateY: float.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, -distance],
+              }),
+            },
+          ],
+        },
+      ]}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
+export function AnimatedMotorcycle({
+  color,
+  size = 29,
+}: {
+  color: string;
+  size?: number;
+}) {
+  const ride = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(ride, {
+          toValue: 1,
+          duration: 850,
+          useNativeDriver: true,
+        }),
+        Animated.timing(ride, {
+          toValue: 0,
+          duration: 850,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [ride]);
+
+  return (
+    <Animated.View
+      style={{
+        transform: [
+          {
+            translateX: ride.interpolate({
+              inputRange: [0, 1],
+              outputRange: [-2, 3],
+            }),
+          },
+          {
+            translateY: ride.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1, -2],
+            }),
+          },
+          {
+            rotate: ride.interpolate({
+              inputRange: [0, 1],
+              outputRange: ['-2deg', '3deg'],
+            }),
+          },
+        ],
+      }}
+    >
+      <MaterialCommunityIcons name="motorbike" size={size} color={color} />
+    </Animated.View>
   );
 }
