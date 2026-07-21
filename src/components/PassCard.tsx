@@ -4,7 +4,8 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing } from '../theme';
 import { CourierPass } from '../types';
-import { AnimatedMotorcycle, AnimatedPressable, FloatingView } from './Motion';
+import { AnimatedPressable, FloatingView } from './Motion';
+import { RacingMotorcycle } from './RacingMotorcycle';
 import { StatusPill } from './UI';
 
 const platformTone: Record<CourierPass['platform'], string> = {
@@ -59,7 +60,7 @@ export function PassCard({
                 },
               ]}
             >
-              <AnimatedMotorcycle color={tone} size={30} />
+              <RacingMotorcycle color={tone} size={49} />
             </View>
             <View style={styles.identityText}>
               <Text style={styles.name} numberOfLines={1}>
@@ -162,12 +163,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   avatar: {
-    width: 54,
-    height: 54,
+    width: 62,
+    height: 58,
     borderRadius: 18,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'visible',
   },
   identityText: {
     flex: 1,
