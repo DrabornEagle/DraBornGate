@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { FadeInView, FloatingView, PulseDot } from '../components/Motion';
+import { RacingMotorcycle } from '../components/RacingMotorcycle';
 import { Panel } from '../components/UI';
 import { useDemo } from '../store/DemoContext';
 import { colors, spacing } from '../theme';
@@ -57,6 +58,11 @@ export function HistoryScreen({ role }: { role: UserRole }) {
       <View style={styles.timeline}>
         {activities.map((activity, index) => {
           const tone = toneMap[activity.tone];
+          const isMotorcycleActivity =
+            activity.icon === 'speedometer' ||
+            activity.icon === 'bicycle' ||
+            activity.title.toLocaleLowerCase('tr-TR').includes('motosiklet');
+
           return (
             <FadeInView key={activity.id} delay={120 + index * 35} style={styles.item}>
               <View style={styles.rail}>
@@ -67,14 +73,22 @@ export function HistoryScreen({ role }: { role: UserRole }) {
               </View>
               <Panel style={[styles.card, { borderColor: `${tone}42` }]} gradient>
                 <FloatingView
-                  style={[styles.activityIcon, { backgroundColor: `${tone}1B` }]}
+                  style={[
+                    styles.activityIcon,
+                    isMotorcycleActivity && styles.motorcycleIcon,
+                    { backgroundColor: `${tone}1B` },
+                  ]}
                   duration={1450 + index * 110}
                 >
-                  <Ionicons
-                    name={activity.icon as keyof typeof Ionicons.glyphMap}
-                    size={22}
-                    color={tone}
-                  />
+                  {isMotorcycleActivity ? (
+                    <RacingMotorcycle color={tone} size={55} />
+                  ) : (
+                    <Ionicons
+                      name={activity.icon as keyof typeof Ionicons.glyphMap}
+                      size={22}
+                      color={tone}
+                    />
+                  )}
                 </FloatingView>
                 <View style={styles.copy}>
                   <Text style={styles.activityTitle}>{activity.title}</Text>
@@ -155,6 +169,10 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  motorcycleIcon: {
+    width: 62,
+    overflow: 'visible',
   },
   copy: { flex: 1 },
   activityTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
