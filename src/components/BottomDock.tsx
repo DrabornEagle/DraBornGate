@@ -22,19 +22,46 @@ const icons: Record<AppTab, keyof typeof Ionicons.glyphMap> = {
   profile: 'person',
 };
 
-export function BottomDock({ role, current, onChange }: { role: UserRole; current: AppTab; onChange: (tab: AppTab) => void }) {
-  const tabs: AppTab[] = role === 'management' ? ['home', 'passes', 'history', 'profile'] : ['home', 'passes', 'history', 'profile'];
+export function BottomDock({
+  role,
+  current,
+  onChange,
+}: {
+  role: UserRole;
+  current: AppTab;
+  onChange: (tab: AppTab) => void;
+}) {
+  const tabs: AppTab[] =
+    role === 'management'
+      ? ['home', 'passes', 'history', 'profile']
+      : ['home', 'passes', 'history', 'profile'];
+
   return (
     <View style={styles.wrapper}>
       <View style={styles.dock}>
         {tabs.map((tab) => {
           const active = tab === current;
           return (
-            <AnimatedPressable key={tab} containerStyle={styles.itemWrap} onPress={() => { void Haptics.selectionAsync(); onChange(tab); }}>
+            <AnimatedPressable
+              key={tab}
+              containerStyle={styles.itemWrap}
+              onPress={() => {
+                void Haptics.selectionAsync();
+                onChange(tab);
+              }}
+            >
               <View style={[styles.item, active && styles.itemActive]}>
-                <Ionicons name={icons[tab]} size={active ? 21 : 20} color={active ? colors.cyan : colors.textMuted} />
+                <Ionicons
+                  name={icons[tab]}
+                  size={active ? 21 : 20}
+                  color={active ? colors.cyan : colors.textMuted}
+                />
                 <Text style={[styles.label, active && styles.labelActive]}>
-                  {role === 'security' && tab === 'passes' ? 'Kuyruk' : role === 'management' && tab === 'passes' ? 'Kurallar' : labels[tab]}
+                  {role === 'security' && tab === 'passes'
+                    ? 'Kuyruk'
+                    : role === 'management' && tab === 'passes'
+                      ? 'Kurallar'
+                      : labels[tab]}
                 </Text>
               </View>
             </AnimatedPressable>
@@ -46,11 +73,39 @@ export function BottomDock({ role, current, onChange }: { role: UserRole; curren
 }
 
 const styles = StyleSheet.create({
-  wrapper: { position: 'absolute', left: 14, right: 14, bottom: 10 },
-  dock: { flexDirection: 'row', backgroundColor: 'rgba(9, 25, 41, 0.98)', borderRadius: radius.xl, padding: 7, borderWidth: 1, borderColor: colors.borderStrong },
-  itemWrap: { flex: 1 },
-  item: { height: 54, borderRadius: 21, alignItems: 'center', justifyContent: 'center', gap: 3 },
-  itemActive: { backgroundColor: 'rgba(55, 216, 255, 0.1)' },
-  label: { fontSize: 10, color: colors.textMuted, fontWeight: '700' },
-  labelActive: { color: colors.cyan },
+  wrapper: {
+    position: 'absolute',
+    left: 14,
+    right: 14,
+    bottom: 10,
+  },
+  dock: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(9, 25, 41, 0.98)',
+    borderRadius: radius.xl,
+    padding: 7,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+  },
+  itemWrap: {
+    flex: 1,
+  },
+  item: {
+    height: 54,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  itemActive: {
+    backgroundColor: 'rgba(55, 216, 255, 0.1)',
+  },
+  label: {
+    fontSize: 10,
+    color: colors.textMuted,
+    fontWeight: '700',
+  },
+  labelActive: {
+    color: colors.cyan,
+  },
 });

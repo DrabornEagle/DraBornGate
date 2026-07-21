@@ -109,7 +109,7 @@ export function CourierHome({
           {[
             ['scan', 'Siparişi tara', 'Ekran görüntüsünden teslimat bilgileri hazırlanır.'],
             ['paper-plane', 'Talebi gönder', 'Güvenlik paneline anlık geçiş talebi düşer.'],
-            ['key', 'Kodu göster', 'Onay sonrası 6 haneli kapı kodunu kullan/'],
+            ['key', 'Kodu göster', 'Onay sonrası 6 haneli kapı kodunu kullan.'],
           ].map(([icon, title, text], index) => (
             <View key={title} style={styles.flowRow}>
               <View style={styles.flowIndex}>
