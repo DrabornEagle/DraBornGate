@@ -11,13 +11,14 @@ import {
 } from 'react-native';
 import { colors, gradients, radius, spacing } from '../theme';
 import { PassStatus } from '../types';
-import { PulseDot } from './Motion';
+import { FloatingView, PulseDot } from './Motion';
 
 export function AppBackground({ children }: PropsWithChildren) {
   const drift = useRef(new Animated.Value(0)).current;
+  const breathe = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const animation = Animated.loop(
+    const driftAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(drift, {
           toValue: 1,
@@ -31,9 +32,32 @@ export function AppBackground({ children }: PropsWithChildren) {
         }),
       ]),
     );
-    animation.start();
-    return () => animation.stop();
-  }, [drift]);
+    const breatheAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(breathe, {
+          toValue: 1,
+          duration: 3200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(breathe, {
+          toValue: 0,
+          duration: 3200,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    driftAnimation.start();
+    breatheAnimation.start();
+    return () => {
+      driftAnimation.stop();
+      breatheAnimation.stop();
+    };
+  }, [breathe, drift]);
+
+  const orbScale = breathe.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.9, 1.08],
+  });
 
   return (
     <View style={styles.background}>
@@ -49,6 +73,7 @@ export function AppBackground({ children }: PropsWithChildren) {
                   outputRange: [-16, 20],
                 }),
               },
+              { scale: orbScale },
             ],
           },
         ]}
@@ -65,6 +90,27 @@ export function AppBackground({ children }: PropsWithChildren) {
                   outputRange: [12, -22],
                 }),
               },
+              { scale: orbScale },
+            ],
+          },
+        ]}
+      />
+      <Animated.View
+        style={[
+          styles.orb,
+          styles.orbOrange,
+          {
+            opacity: breathe.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.045, 0.11],
+            }),
+            transform: [
+              {
+                translateY: drift.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [18, -20],
+                }),
+              },
             ],
           },
         ]}
@@ -79,15 +125,51 @@ export function Panel({
   style,
   gradient = false,
 }: PropsWithChildren<{ style?: StyleProp<ViewStyle>; gradient?: boolean }>) {
-  if (gradient) {
-    return (
-      <LinearGradient colors={gradients.panel} style={[styles.panel, style]}>
-        {children}
-      </LinearGradient>
-    );
-  }
+  const entrance = useRef(new Animated.Value(0)).current;
 
-  return <View style={[styles.panel, style]}>{children}</View>;
+  useEffect(() => {
+    Animated.spring(entrance, {
+      toValue: 1,
+      damping: 18,
+      stiffness: 130,
+      mass: 0.75,
+      useNativeDriver: true,
+    }).start();
+  }, [entrance]);
+
+  const animatedStyle = {
+    opacity: entrance,
+    transform: [
+      {
+        translateY: entrance.interpolate({
+          inputRange: [0, 1],
+          outputRange: [8, 0],
+        }),
+      },
+      {
+        scale: entrance.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.985, 1],
+        }),
+      },
+    ],
+  };
+
+  return (
+    <Animated.View style={animatedStyle}>
+      {gradient ? (
+        <LinearGradient colors={gradients.panelColorful} style={[styles.panel, style]}>
+          <View style={styles.panelAccent} />
+          {children}
+        </LinearGradient>
+      ) : (
+        <View style={[styles.panel, style]}>
+          <View style={styles.panelAccent} />
+          {children}
+        </View>
+      )}
+    </Animated.View>
+  );
 }
 
 export function SectionTitle({
@@ -119,8 +201,17 @@ const statusMeta: Record<
 export function StatusPill({ status }: { status: PassStatus }) {
   const meta = statusMeta[status];
   return (
-    <View style={[styles.statusPill, { borderColor: `${meta.color}55` }]}>
-      <Ionicons name={meta.icon} size={14} color={meta.color} />
+    <View
+      style={[
+        styles.statusPill,
+        {
+          borderColor: `${meta.color}66`,
+          backgroundColor: `${meta.color}14`,
+        },
+      ]}
+    >
+      <PulseDot color={meta.color} size={7} />
+      <Ionicons name={meta.icon} size={15} color={meta.color} />
       <Text style={[styles.statusText, { color: meta.color }]}>{meta.label}</Text>
     </View>
   );
@@ -147,10 +238,14 @@ export function MetricCard({
   tone: string;
 }) {
   return (
-    <Panel style={styles.metricCard}>
-      <View style={[styles.metricIcon, { backgroundColor: `${tone}1F` }]}>
-        <Ionicons name={icon} size={19} color={tone} />
-      </View>
+    <Panel style={[styles.metricCard, { borderColor: `${tone}45` }]} gradient>
+      <FloatingView
+        distance={4}
+        duration={1500}
+        style={[styles.metricIcon, { backgroundColor: `${tone}25` }]}
+      >
+        <Ionicons name={icon} size={22} color={tone} />
+      </FloatingView>
       <Text style={styles.metricValue}>{value}</Text>
       <Text style={styles.metricLabel}>{label}</Text>
     </Panel>
@@ -167,10 +262,10 @@ export function EmptyState({
   description: string;
 }) {
   return (
-    <Panel style={styles.emptyState}>
-      <View style={styles.emptyIcon}>
-        <Ionicons name={icon} size={28} color={colors.cyan} />
-      </View>
+    <Panel style={styles.emptyState} gradient>
+      <FloatingView style={styles.emptyIcon}>
+        <Ionicons name={icon} size={31} color={colors.cyan} />
+      </FloatingView>
       <Text style={styles.emptyTitle}>{title}</Text>
       <Text style={styles.emptyDescription}>{description}</Text>
     </Panel>
@@ -185,9 +280,9 @@ const styles = StyleSheet.create({
   },
   orb: {
     position: 'absolute',
-    width: 260,
-    height: 260,
-    borderRadius: 260,
+    width: 270,
+    height: 270,
+    borderRadius: 270,
     opacity: 0.12,
   },
   orbCyan: {
@@ -200,12 +295,28 @@ const styles = StyleSheet.create({
     left: -180,
     bottom: 70,
   },
+  orbOrange: {
+    backgroundColor: colors.orange,
+    right: -180,
+    bottom: -90,
+  },
   panel: {
-    backgroundColor: 'rgba(13, 32, 51, 0.94)',
+    backgroundColor: 'rgba(13, 32, 51, 0.95)',
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     padding: spacing.md,
+    overflow: 'hidden',
+  },
+  panelAccent: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    top: 0,
+    height: 2,
+    borderBottomLeftRadius: 3,
+    borderBottomRightRadius: 3,
+    backgroundColor: 'rgba(55,216,255,0.34)',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -215,94 +326,94 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: colors.text,
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: -0.3,
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: -0.35,
   },
   sectionAction: {
     color: colors.cyan,
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
   },
   statusPill: {
-    minHeight: 30,
-    paddingHorizontal: 10,
+    minHeight: 34,
+    paddingHorizontal: 11,
     borderRadius: radius.pill,
     borderWidth: 1,
-    backgroundColor: 'rgba(255,255,255,0.035)',
     flexDirection: 'row',
     gap: 6,
     alignItems: 'center',
   },
   statusText: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '900',
   },
   liveBadge: {
-    paddingHorizontal: 10,
-    height: 32,
+    paddingHorizontal: 12,
+    height: 36,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(67, 231, 162, 0.1)',
+    backgroundColor: 'rgba(67, 231, 162, 0.13)',
     borderWidth: 1,
-    borderColor: 'rgba(67, 231, 162, 0.26)',
+    borderColor: 'rgba(67, 231, 162, 0.38)',
     flexDirection: 'row',
-    gap: 7,
+    gap: 8,
     alignItems: 'center',
   },
   liveText: {
     color: colors.green,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.7,
   },
   metricCard: {
     flex: 1,
-    minHeight: 116,
-    padding: 13,
+    minHeight: 126,
+    padding: 14,
   },
   metricIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
+    width: 39,
+    height: 39,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
   metricValue: {
     color: colors.text,
-    fontSize: 22,
+    fontSize: 25,
     fontWeight: '900',
   },
   metricLabel: {
     color: colors.textSoft,
-    fontSize: 11,
-    marginTop: 3,
-    fontWeight: '600',
+    fontSize: 13,
+    lineHeight: 17,
+    marginTop: 4,
+    fontWeight: '700',
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 28,
+    paddingVertical: 30,
   },
   emptyIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 20,
+    width: 62,
+    height: 62,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(55, 216, 255, 0.12)',
-    marginBottom: 14,
+    backgroundColor: 'rgba(55, 216, 255, 0.14)',
+    marginBottom: 15,
   },
   emptyTitle: {
     color: colors.text,
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: 19,
+    fontWeight: '900',
   },
   emptyDescription: {
     color: colors.textSoft,
-    fontSize: 13,
+    fontSize: 15,
     textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 19,
-    maxWidth: 260,
+    marginTop: 7,
+    lineHeight: 22,
+    maxWidth: 290,
   },
 });
