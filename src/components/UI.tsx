@@ -13,6 +13,8 @@ import { colors, gradients, radius, spacing } from '../theme';
 import { PassStatus } from '../types';
 import { FloatingView, PulseDot } from './Motion';
 
+const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
+
 export function AppBackground({ children }: PropsWithChildren) {
   const drift = useRef(new Animated.Value(0)).current;
   const breathe = useRef(new Animated.Value(0)).current;
@@ -155,19 +157,22 @@ export function Panel({
     ],
   };
 
+  if (gradient) {
+    return (
+      <AnimatedLinearGradient
+        colors={gradients.panelColorful}
+        style={[styles.panel, style, animatedStyle]}
+      >
+        <View style={styles.panelAccent} />
+        {children}
+      </AnimatedLinearGradient>
+    );
+  }
+
   return (
-    <Animated.View style={animatedStyle}>
-      {gradient ? (
-        <LinearGradient colors={gradients.panelColorful} style={[styles.panel, style]}>
-          <View style={styles.panelAccent} />
-          {children}
-        </LinearGradient>
-      ) : (
-        <View style={[styles.panel, style]}>
-          <View style={styles.panelAccent} />
-          {children}
-        </View>
-      )}
+    <Animated.View style={[styles.panel, style, animatedStyle]}>
+      <View style={styles.panelAccent} />
+      {children}
     </Animated.View>
   );
 }
