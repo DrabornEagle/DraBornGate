@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, radius } from '../theme';
+import { colors, gradients, radius } from '../theme';
 import { UserRole } from '../types';
-import { AnimatedPressable } from './Motion';
+import { AnimatedPressable, PulseDot } from './Motion';
 
 export type AppTab = 'home' | 'passes' | 'history' | 'profile';
 
@@ -31,16 +32,20 @@ export function BottomDock({
   current: AppTab;
   onChange: (tab: AppTab) => void;
 }) {
-  const tabs: AppTab[] =
-    role === 'management'
-      ? ['home', 'passes', 'history', 'profile']
-      : ['home', 'passes', 'history', 'profile'];
+  const tabs: AppTab[] = ['home', 'passes', 'history', 'profile'];
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.dock}>
+      <LinearGradient colors={gradients.panelColorful} style={styles.dock}>
         {tabs.map((tab) => {
           const active = tab === current;
+          const label =
+            role === 'security' && tab === 'passes'
+              ? 'Kuyruk'
+              : role === 'management' && tab === 'passes'
+                ? 'Kurallar'
+                : labels[tab];
+
           return (
             <AnimatedPressable
               key={tab}
@@ -51,23 +56,21 @@ export function BottomDock({
               }}
             >
               <View style={[styles.item, active && styles.itemActive]}>
+                {active ? <View style={styles.activeLine} /> : null}
                 <Ionicons
                   name={icons[tab]}
-                  size={active ? 21 : 20}
+                  size={active ? 23 : 21}
                   color={active ? colors.cyan : colors.textMuted}
                 />
-                <Text style={[styles.label, active && styles.labelActive]}>
-                  {role === 'security' && tab === 'passes'
-                    ? 'Kuyruk'
-                    : role === 'management' && tab === 'passes'
-                      ? 'Kurallar'
-                      : labels[tab]}
-                </Text>
+                <View style={styles.labelRow}>
+                  {active ? <PulseDot color={colors.cyan} size={5} /> : null}
+                  <Text style={[styles.label, active && styles.labelActive]}>{label}</Text>
+                </View>
               </View>
             </AnimatedPressable>
           );
         })}
-      </View>
+      </LinearGradient>
     </View>
   );
 }
@@ -75,37 +78,49 @@ export function BottomDock({
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    left: 14,
-    right: 14,
-    bottom: 10,
+    left: 12,
+    right: 12,
+    bottom: 9,
   },
   dock: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(9, 25, 41, 0.98)',
     borderRadius: radius.xl,
     padding: 7,
     borderWidth: 1,
     borderColor: colors.borderStrong,
+    overflow: 'hidden',
   },
-  itemWrap: {
-    flex: 1,
-  },
+  itemWrap: { flex: 1 },
   item: {
-    height: 54,
+    height: 61,
     borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
+    gap: 5,
+    overflow: 'hidden',
   },
   itemActive: {
-    backgroundColor: 'rgba(55, 216, 255, 0.1)',
+    backgroundColor: 'rgba(55, 216, 255, 0.13)',
+    borderWidth: 1,
+    borderColor: 'rgba(55,216,255,0.24)',
   },
+  activeLine: {
+    position: 'absolute',
+    top: 0,
+    width: 30,
+    height: 3,
+    borderBottomLeftRadius: 3,
+    borderBottomRightRadius: 3,
+    backgroundColor: colors.cyan,
+  },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   label: {
-    fontSize: 10,
+    fontSize: 12,
     color: colors.textMuted,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   labelActive: {
     color: colors.cyan,
+    fontWeight: '900',
   },
 });
