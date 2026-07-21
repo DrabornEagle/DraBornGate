@@ -9,6 +9,7 @@ import {
   FloatingView,
 } from '../components/Motion';
 import { PassCard } from '../components/PassCard';
+import { RacingMotorcycle } from '../components/RacingMotorcycle';
 import { LiveBadge, MetricCard, Panel, SectionTitle } from '../components/UI';
 import { useDemo } from '../store/DemoContext';
 import { colors, gradients, radius, spacing } from '../theme';
@@ -55,7 +56,7 @@ export function CourierHome({
           <View style={styles.heroOrb} />
           <View style={styles.heroTop}>
             <FloatingView distance={6} duration={1550} style={styles.heroIcon}>
-              <AnimatedMotorcycle color={colors.white} size={42} />
+              <AnimatedMotorcycle color={colors.white} size={54} />
             </FloatingView>
             <View style={styles.heroCopy}>
               <Text style={styles.heroKicker}>DraBorn CourierPass</Text>
@@ -103,7 +104,7 @@ export function CourierHome({
         ) : (
           <Panel style={styles.noPassCard} gradient>
             <FloatingView style={styles.noPassIcon}>
-              <AnimatedMotorcycle color={colors.cyan} size={34} />
+              <AnimatedMotorcycle color={colors.cyan} size={50} />
             </FloatingView>
             <View style={styles.noPassBody}>
               <Text style={styles.noPassTitle}>Aktif geçiş talebin yok</Text>
@@ -149,6 +150,11 @@ export function CourierHome({
         <Panel gradient>
           {activities.slice(0, 3).map((activity, index) => {
             const tone = index === 0 ? colors.cyan : index === 1 ? colors.green : colors.purple;
+            const isMotorcycleActivity =
+              activity.icon === 'speedometer' ||
+              activity.icon === 'bicycle' ||
+              activity.title.toLocaleLowerCase('tr-TR').includes('motosiklet');
+
             return (
               <View
                 key={activity.id}
@@ -157,13 +163,21 @@ export function CourierHome({
                 <FloatingView
                   distance={2}
                   duration={1550 + index * 120}
-                  style={[styles.activityIcon, { backgroundColor: `${tone}16` }]}
+                  style={[
+                    styles.activityIcon,
+                    isMotorcycleActivity && styles.motorcycleActivityIcon,
+                    { backgroundColor: `${tone}16` },
+                  ]}
                 >
-                  <Ionicons
-                    name={activity.icon as keyof typeof Ionicons.glyphMap}
-                    size={20}
-                    color={tone}
-                  />
+                  {isMotorcycleActivity ? (
+                    <RacingMotorcycle color={tone} size={52} />
+                  ) : (
+                    <Ionicons
+                      name={activity.icon as keyof typeof Ionicons.glyphMap}
+                      size={20}
+                      color={tone}
+                    />
+                  )}
                 </FloatingView>
                 <View style={styles.activityCopy}>
                   <Text style={styles.activityTitle}>{activity.title}</Text>
@@ -227,14 +241,15 @@ const styles = StyleSheet.create({
     gap: 15,
   },
   heroIcon: {
-    width: 62,
-    height: 62,
+    width: 70,
+    height: 66,
     borderRadius: 21,
     backgroundColor: 'rgba(255,255,255,0.17)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.24)',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'visible',
   },
   heroCopy: { flex: 1 },
   heroKicker: {
@@ -278,12 +293,13 @@ const styles = StyleSheet.create({
     gap: 13,
   },
   noPassIcon: {
-    width: 58,
+    width: 64,
     height: 58,
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(55,216,255,0.14)',
+    overflow: 'visible',
   },
   noPassBody: { flex: 1 },
   noPassTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
@@ -347,6 +363,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  motorcycleActivityIcon: {
+    width: 58,
+    overflow: 'visible',
   },
   activityCopy: { flex: 1 },
   activityTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
