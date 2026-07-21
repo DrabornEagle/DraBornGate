@@ -1,4 +1,3 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { PropsWithChildren, useEffect, useRef } from 'react';
 import {
   Animated,
@@ -7,6 +6,7 @@ import {
   StyleProp,
   ViewStyle,
 } from 'react-native';
+import { RacingMotorcycle } from './RacingMotorcycle';
 
 interface FadeInProps extends PropsWithChildren {
   delay?: number;
@@ -198,58 +198,10 @@ export function FloatingView({
 
 export function AnimatedMotorcycle({
   color,
-  size = 29,
+  size = 58,
 }: {
   color: string;
   size?: number;
 }) {
-  const ride = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(ride, {
-          toValue: 1,
-          duration: 850,
-          useNativeDriver: true,
-        }),
-        Animated.timing(ride, {
-          toValue: 0,
-          duration: 850,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [ride]);
-
-  return (
-    <Animated.View
-      style={{
-        transform: [
-          {
-            translateX: ride.interpolate({
-              inputRange: [0, 1],
-              outputRange: [-2, 3],
-            }),
-          },
-          {
-            translateY: ride.interpolate({
-              inputRange: [0, 1],
-              outputRange: [1, -2],
-            }),
-          },
-          {
-            rotate: ride.interpolate({
-              inputRange: [0, 1],
-              outputRange: ['-2deg', '3deg'],
-            }),
-          },
-        ],
-      }}
-    >
-      <MaterialCommunityIcons name="motorbike" size={size} color={color} />
-    </Animated.View>
-  );
+  return <RacingMotorcycle color={color} size={size} />;
 }
