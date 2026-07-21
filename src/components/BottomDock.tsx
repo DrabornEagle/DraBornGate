@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, gradients, radius } from '../theme';
 import { UserRole } from '../types';
-import { AnimatedPressable, PulseDot } from './Motion';
 
 export type AppTab = 'home' | 'passes' | 'history' | 'profile';
+
+const tabs: AppTab[] = ['home', 'passes', 'history', 'profile'];
 
 const labels: Record<AppTab, string> = {
   home: 'Ana Sayfa',
@@ -17,7 +18,7 @@ const labels: Record<AppTab, string> = {
 };
 
 const icons: Record<AppTab, keyof typeof Ionicons.glyphMap> = {
-  home: 'grid',
+  home: 'home',
   passes: 'shield-checkmark',
   history: 'time',
   profile: 'person',
@@ -32,13 +33,15 @@ export function BottomDock({
   current: AppTab;
   onChange: (tab: AppTab) => void;
 }) {
-  const tabs: AppTab[] = ['home', 'passes', 'history', 'profile'];
-
   return (
-    <View style={styles.wrapper}>
-      <LinearGradient colors={gradients.panelColorful} style={styles.dock}>
+    <View style={styles.wrapper} pointerEvents="box-none">
+      <LinearGradient
+        colors={gradients.panelColorful}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.dock}
+      >
         {tabs.map((tab) => {
-          const active = tab === current;
           const label =
             role === 'security' && tab === 'passes'
               ? 'Kuyruk'
@@ -47,30 +50,145 @@ export function BottomDock({
                 : labels[tab];
 
           return (
-            <AnimatedPressable
+            <DockItem
               key={tab}
-              containerStyle={styles.itemWrap}
+              tab={tab}
+              label={label}
+              active={tab === current}
               onPress={() => {
                 void Haptics.selectionAsync();
                 onChange(tab);
               }}
-            >
-              <View style={[styles.item, active && styles.itemActive]}>
-                {active ? <View style={styles.activeLine} /> : null}
-                <Ionicons
-                  name={icons[tab]}
-                  size={active ? 23 : 21}
-                  color={active ? colors.cyan : colors.textMuted}
-                />
-                <View style={styles.labelRow}>
-                  {active ? <PulseDot color={colors.cyan} size={5} /> : null}
-                  <Text style={[styles.label, active && styles.labelActive]}>{label}</Text>
-                </View>
-              </View>
-            </AnimatedPressable>
+            />
           );
         })}
       </LinearGradient>
+    </View>
+  );
+}
+
+function DockItem({
+  tab,
+  label,
+  active,
+  onPress,
+}: {
+  tab: AppTab;
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const progress = useRef(new Animated.Value(active ? 1 : 0)).current;
+  const pressScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.spring(progress, {
+      toValue: active ? 1 : 0,
+      damping: 18,
+      stiffness: 210,
+      mass: 0.72,
+      useNativeDriver: true,
+    }).start();
+  }, [active, progress]);
+
+  const animatePress = (pressed: boolean) => {
+    Animated.spring(pressScale, {
+      toValue: pressed ? 0.92 : 1,
+      damping: 16,
+      stiffness: 360,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <View style={styles.itemSlot}>
+      <Animated.View
+        style={[
+          styles.animatedItem,
+          {
+            transform: [
+              { scale: Animated.multiply(pressScale, progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.035] })) },
+              {
+                translateY: progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, -2],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <Pressable
+          onPress={onPress}
+          onPressIn={() => animatePress(true)}
+          onPressOut={() => animatePress(false)}
+          style={styles.pressable}
+          android_ripple={{ color: 'rgba(55,216,255,0.10)', borderless: false }}
+        >
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.activeSurface,
+              {
+                opacity: progress,
+                transform: [
+                  {
+                    scale: progress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.82, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.activeLine,
+              {
+                opacity: progress,
+                transform: [
+                  {
+                    scaleX: progress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.3, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+          <Ionicons
+            name={icons[tab]}
+            size={active ? 24 : 22}
+            color={active ? colors.cyan : colors.textMuted}
+          />
+          <Text
+            numberOfLines={1}
+            style={[styles.label, active && styles.labelActive]}
+          >
+            {label}
+          </Text>
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.activeDot,
+              {
+                opacity: progress,
+                transform: [
+                  {
+                    scale: progress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+        </Pressable>
+      </Animated.View>
     </View>
   );
 }
@@ -81,43 +199,72 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     bottom: 9,
+    zIndex: 50,
+    elevation: 20,
   },
   dock: {
+    width: '100%',
+    minHeight: 76,
     flexDirection: 'row',
+    alignItems: 'stretch',
     borderRadius: radius.xl,
     padding: 7,
     borderWidth: 1,
     borderColor: colors.borderStrong,
     overflow: 'hidden',
   },
-  itemWrap: { flex: 1 },
-  item: {
-    height: 61,
-    borderRadius: 21,
+  itemSlot: {
+    width: '25%',
+    flexBasis: '25%',
+    flexGrow: 0,
+    flexShrink: 0,
+    minWidth: 0,
+    paddingHorizontal: 2,
+  },
+  animatedItem: {
+    width: '100%',
+    height: 62,
+  },
+  pressable: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
+    gap: 4,
     overflow: 'hidden',
   },
-  itemActive: {
-    backgroundColor: 'rgba(55, 216, 255, 0.13)',
+  activeSurface: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 20,
+    backgroundColor: 'rgba(55,216,255,0.13)',
     borderWidth: 1,
-    borderColor: 'rgba(55,216,255,0.24)',
+    borderColor: 'rgba(55,216,255,0.29)',
   },
   activeLine: {
     position: 'absolute',
     top: 0,
-    width: 30,
+    width: 32,
     height: 3,
     borderBottomLeftRadius: 3,
     borderBottomRightRadius: 3,
     backgroundColor: colors.cyan,
   },
-  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  activeDot: {
+    position: 'absolute',
+    bottom: 6,
+    width: 5,
+    height: 5,
+    borderRadius: 5,
+    backgroundColor: colors.cyan,
+  },
   label: {
-    fontSize: 12,
+    maxWidth: '100%',
+    paddingHorizontal: 2,
+    fontSize: 11,
     color: colors.textMuted,
     fontWeight: '800',
+    textAlign: 'center',
   },
   labelActive: {
     color: colors.cyan,
