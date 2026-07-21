@@ -203,5 +203,5 @@ export function AnimatedMotorcycle({
   color: string;
   size?: number;
 }) {
-  return <RacingMotorcycle color={color} size={size} />;
+  return <RacingMotorcycle color={color} size={Math.max(size, 48)} />;
 }
