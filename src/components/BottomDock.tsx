@@ -102,92 +102,99 @@ function DockItem({
 
   return (
     <View style={styles.itemSlot}>
-      <Animated.View
-        style={[
-          styles.animatedItem,
-          {
-            transform: [
-              { scale: Animated.multiply(pressScale, progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.035] })) },
-              {
-                translateY: progress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, -2],
-                }),
-              },
-            ],
-          },
-        ]}
-      >
-        <Pressable
-          onPress={onPress}
-          onPressIn={() => animatePress(true)}
-          onPressOut={() => animatePress(false)}
-          style={styles.pressable}
-          android_ripple={{ color: 'rgba(55,216,255,0.10)', borderless: false }}
+      <Animated.View style={[styles.animatedItem, { transform: [{ scale: pressScale }] }]}>
+        <Animated.View
+          style={[
+            styles.activeMotion,
+            {
+              transform: [
+                {
+                  scale: progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 1.035],
+                  }),
+                },
+                {
+                  translateY: progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -2],
+                  }),
+                },
+              ],
+            },
+          ]}
         >
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.activeSurface,
-              {
-                opacity: progress,
-                transform: [
-                  {
-                    scale: progress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.82, 1],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          />
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.activeLine,
-              {
-                opacity: progress,
-                transform: [
-                  {
-                    scaleX: progress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.3, 1],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          />
-          <Ionicons
-            name={icons[tab]}
-            size={active ? 24 : 22}
-            color={active ? colors.cyan : colors.textMuted}
-          />
-          <Text
-            numberOfLines={1}
-            style={[styles.label, active && styles.labelActive]}
+          <Pressable
+            onPress={onPress}
+            onPressIn={() => animatePress(true)}
+            onPressOut={() => animatePress(false)}
+            style={styles.pressable}
+            android_ripple={{ color: 'rgba(55,216,255,0.10)', borderless: false }}
           >
-            {label}
-          </Text>
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.activeDot,
-              {
-                opacity: progress,
-                transform: [
-                  {
-                    scale: progress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 1],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          />
-        </Pressable>
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.activeSurface,
+                {
+                  opacity: progress,
+                  transform: [
+                    {
+                      scale: progress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.82, 1],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.activeLine,
+                {
+                  opacity: progress,
+                  transform: [
+                    {
+                      scaleX: progress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.3, 1],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+            <Ionicons
+              name={icons[tab]}
+              size={active ? 24 : 22}
+              color={active ? colors.cyan : colors.textMuted}
+            />
+            <Text
+              numberOfLines={1}
+              style={[styles.label, active && styles.labelActive]}
+            >
+              {label}
+            </Text>
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.activeDot,
+                {
+                  opacity: progress,
+                  transform: [
+                    {
+                      scale: progress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 1],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+          </Pressable>
+        </Animated.View>
       </Animated.View>
     </View>
   );
@@ -224,6 +231,10 @@ const styles = StyleSheet.create({
   animatedItem: {
     width: '100%',
     height: 62,
+  },
+  activeMotion: {
+    width: '100%',
+    height: '100%',
   },
   pressable: {
     width: '100%',
