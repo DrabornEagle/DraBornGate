@@ -2,7 +2,7 @@
   "expo": {
     "name": "DraBornGate",
     "slug": "draborngate",
-    "version": "0.0.2",
+    "version": "0.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "draborngate",
@@ -25,10 +25,34 @@
         "backgroundColor": "#06101D"
       }
     },
-    "plugins": ["expo-image-picker"],
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "DraBornGate sipariş ekran görüntüsü ve profil fotoğrafı seçebilmek için fotoğraflarınıza erişir.",
+          "cameraPermission": "DraBornGate teslimat görseli çekebilmek için kameraya erişir.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "DraBornGate AirPass için kapıya olan mesafenizi yalnızca uygulama açıkken kontrol eder.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isIosBackgroundLocationEnabled": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#37D8FF",
+          "defaultChannel": "draborngate-core"
+        }
+      ]
+    ],
     "extra": {
-      "appVersion": "0.0.2",
-      "demoDataVersion": "0.0.2",
+      "appVersion": "0.2.0",
+      "demoDataVersion": "0.2.0",
       "androidVersionCode": 1
     }
   }
