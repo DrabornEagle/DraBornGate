@@ -1,0 +1,50 @@
+name: DraBornGate v0.2 Validate
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: draborngate-v0-2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Expo dependency check
+        run: npx expo install --check
+
+      - name: TypeScript check
+        run: npm run typecheck
+
+      - name: Android export validation
+        env:
+          EXPO_NO_DEV_TOOLS: '1'
+          CI: '1'
+        run: npx expo export --platform android --output-dir dist --max-workers 2 --no-bytecode
+
+      - name: Verify version policy
+        run: |
+          node - <<'NODE'
+          const app = require('./app.json').expo;
+          const pkg = require('./package.json');
+          if (app.version !== '0.2.0' || pkg.version !== '0.2.0') throw new Error('DraBornGate version must be 0.2.0');
+          if (app.android.versionCode !== 1) throw new Error('Android versionCode must remain 1 before APK stage');
+          if (app.extra.demoDataVersion !== '0.2.0') throw new Error('Demo data version must match 0.2.0');
+          console.log('Version policy verified.');
+          NODE
