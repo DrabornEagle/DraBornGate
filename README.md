@@ -1,85 +1,34 @@
-# DraBornGate v0.1 — CourierPass Demo
+# DraBornGate v0.0.2
 
-DraBornGate, site/rezidans girişlerinde kurye ile güvenlik görevlisini aynı hızlı geçiş akışında buluşturan Expo tabanlı mobil demo uygulamasıdır.
+DraBornGate, DraBornGo ile aynı Supabase kimliğini (`auth.users`) kullanan; ürün verilerini tamamen ayrı `draborngate` şemasında saklayan Expo/React Native kurye–güvenlik uygulamasıdır.
 
-> Bu sürümde Supabase veya başka bir veritabanı yoktur. Tüm demo verileri cihaz içindeki `AsyncStorage` alanında saklanır.
+## Veri ayrımı
 
-## v0.1 içinde neler var?
+- Ortak kimlik: `auth.users`
+- DraBornGate şeması: `draborngate`
+- Tablo öneki: `dkd_gate_*`
+- RPC öneki: `public.dkd_gate_*`
+- Uygulama sürümü: `0.0.2`
+- Android `versionCode`: `1`
+- Demo veri sürümü: `0.0.2`
 
-### Kurye deneyimi
-- Kurye rolü ve modern kontrol paneli
-- Galeriden sipariş ekran görüntüsü seçme
-- Animasyonlu demo OCR / sipariş analizi
-- Site, kapı, blok, daire ve sipariş numarası doğrulama
-- CourierPass geçiş talebi oluşturma
-- Onay durumunu ve 6 haneli geçiş kodunu görüntüleme
-- Geçmiş teslimat ve hareket kayıtları
+Demo varsayılan olarak yüklenmez. Profil/Ayarlar ekranından yüklenebilir, yeni sürüme güncellenebilir veya yalnızca demo kayıtları silinebilir.
 
-### Güvenlik deneyimi
-- Canlı yaklaşan kurye kuyruğu
-- Bekleyen / onaylı / tümü filtreleri
-- Talebi onaylama ve otomatik 6 haneli kod üretme
-- Talebi reddetme ve ret nedenini kaydetme
-- Girişi tamamlandı olarak işaretleme
-- Kapı yoğunluğu, vardiya ve hızlı güvenlik işlemleri
-
-### Site yönetimi deneyimi
-- Operasyon skoru
-- Saatlik kapı yoğunluğu grafiği
-- Kapı bazlı performans görünümü
-- Sistem durumu kartları
-- Geçiş kural ve politika ekranı
-
-### Teknik özellikler
-- Expo SDK 57 + React Native
-- TypeScript strict mode
-- Tamamen yerel demo veri deposu
-- Akıcı mikro animasyonlar ve haptic geri bildirim
-- Android için GitHub Actions üzerinden otomatik debug APK üretimi
-- Supabase entegrasyonuna hazır katmanlı veri yapısı
-
-## Telefonda Expo Go ile çalıştırma
-
-Termux içinde:
+## Termux: önce yedek, sonra güncelle
 
 ```bash
-pkg update -y && pkg upgrade -y
-pkg install nodejs-lts git -y
-git clone https://github.com/DrabornEagle/DraBornGate.git
-cd DraBornGate
+pkg install git nodejs-lts zip -y
+cd ~
+termux-setup-storage
+rm -f /sdcard/Download/DraBornGate_v0.1.0_before_v0.0.2.zip
+zip -r /sdcard/Download/DraBornGate_v0.1.0_before_v0.0.2.zip DraBornGate \
+  -x 'DraBornGate/node_modules/*' 'DraBornGate/.expo/*' 'DraBornGate/dist/*'
+cd ~/DraBornGate
+git fetch origin
+git reset --hard origin/main
+rm -rf node_modules .expo dist
 npm install
-npx expo start --tunnel
+EXPO_NO_DEV_TOOLS=1 npx expo start -c
 ```
 
-Expo Go uygulamasından terminalde çıkan QR kodu okut.
-
-## GitHub Actions ile APK
-
-1. GitHub reposunda **Actions** sekmesini aç.
-2. **Android Demo APK** iş akışını seç.
-3. **Run workflow** düğmesine bas.
-4. İşlem tamamlanınca `DraBornGate-v0.1-demo` artifact dosyasını indir.
-
-## Demo akışını test et
-
-1. **Kurye Girişi** → **Yeni Geçiş Talebi** → **Demo Tara** → **Güvenliğe Gönder**.
-2. Profil ekranından **Rol değiştir** → **Güvenlik Paneli**.
-3. Yeni kurye talebini **Onayla ve Kod Üret**.
-4. Tekrar kurye rolüne geç; 6 haneli kod aktif CourierPass kartında görünür.
-5. Güvenlik rolünden **Girişi Tamamla** ile akışı bitir.
-
-## Sonraki aşama: gerçek Supabase
-
-Demo onaylandıktan sonra aşağıdaki katmanlar gerçek zamanlı Supabase sistemine taşınabilir:
-- Kimlik doğrulama ve roller
-- Kurye profilleri ve plaka doğrulama
-- CourierPass talepleri
-- Realtime güvenlik kuyruğu
-- Push bildirimleri
-- Site, blok, kapı ve daire yönetimi
-- Zaman sınırlı geçiş kodları
-- Denetim kayıtları ve raporlar
-
-## Sürüm
-
-`DraBornGate v0.1.0 — local demo / database-free`
+GitHub yedeği: `backup/draborngate-v0.1.0-before-v0.0.2`

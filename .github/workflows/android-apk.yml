@@ -1,5 +1,4 @@
 name: Android Demo APK
-
 on:
   workflow_dispatch:
   push:
@@ -10,42 +9,27 @@ on:
       - "assets/**"
       - "app.json"
       - "package.json"
-      - "package-lock.json"
+      - "supabase/**"
       - ".github/workflows/android-apk.yml"
-
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
-
+    timeout-minutes: 40
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: TypeScript check
-        run: npm run typecheck
-
-      - name: Generate Android project
-        run: npx expo prebuild --platform android --clean --non-interactive
-
+      - run: npm install
+      - run: npm run typecheck
+      - run: npx expo prebuild --platform android --clean --non-interactive
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug
-
       - name: Rename APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk DraBornGate-v0.1-demo.apk
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk DraBornGate-v0.0.2.apk
+      - uses: actions/upload-artifact@v4
         with:
-          name: DraBornGate-v0.1-demo
-          path: DraBornGate-v0.1-demo.apk
+          name: DraBornGate-v0.0.2
+          path: DraBornGate-v0.0.2.apk
           retention-days: 14

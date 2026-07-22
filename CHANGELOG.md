@@ -1,11 +1,11 @@
 # Changelog
 
-## 0.1.0
+## 0.0.2
 
-- İlk DraBornGate CourierPass demo sürümü.
-- Kurye, güvenlik ve site yönetimi rolleri eklendi.
-- Yerel AsyncStorage demo veri katmanı eklendi.
-- Sipariş ekran görüntüsü seçimi ve demo OCR akışı eklendi.
-- Güvenlik onay/red ve 6 haneli kod üretimi eklendi.
-- Geçmiş, rapor, kural ve profil ekranları eklendi.
-- GitHub Actions Android APK ve kalite kontrol iş akışları eklendi.
+- DraBornGo Supabase projesinde izole `draborngate` şeması kuruldu.
+- `dkd_gate_*` tabloları, RLS, indeksler, triggerlar ve `dkd_gate_*` RPC'leri eklendi.
+- DraBornGo ve DraBornGate ortak `auth.users` hesabına geçirildi.
+- Otomatik yerel demo deposu kaldırıldı.
+- Ayarlara sürüme bağlı Demo Yükle/Güncelle/Sil işlemleri eklendi.
+- Gerçek zamanlı geçiş ve olay yenilemesi eklendi.
+- Uygulama sürümü 0.0.2 oldu; Android versionCode 1 olarak korundu.

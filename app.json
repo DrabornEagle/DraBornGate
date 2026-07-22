@@ -2,7 +2,7 @@
   "expo": {
     "name": "DraBornGate",
     "slug": "draborngate",
-    "version": "0.1.0",
+    "version": "0.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "draborngate",
@@ -15,37 +15,21 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.draborneagle.draborngate",
-      "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "DraBornGate, kurye sipariş ekran görüntüsünü demo olarak analiz etmek için galeri erişimi kullanır."
-      }
+      "bundleIdentifier": "com.draborneagle.draborngate"
     },
     "android": {
       "package": "com.draborneagle.draborngate",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#06101D",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
-      },
-      "permissions": ["READ_MEDIA_IMAGES"],
-      "predictiveBackGestureEnabled": false
+        "backgroundColor": "#06101D"
+      }
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "DraBornGate, sipariş ekran görüntüsünü demo olarak analiz etmek için fotoğraflarına erişir."
-        }
-      ]
-    ],
+    "plugins": ["expo-image-picker"],
     "extra": {
-      "demoMode": true,
-      "database": "none",
-      "releaseChannel": "v0.1-demo"
+      "appVersion": "0.0.2",
+      "demoDataVersion": "0.0.2",
+      "androidVersionCode": 1
     }
   }
 }

@@ -1,25 +1,9 @@
 {
   "name": "draborngate",
-  "version": "0.1.0",
+  "version": "0.0.2",
+  "private": true,
   "main": "index.ts",
-  "dependencies": {
-    "@expo/vector-icons": "^15.0.2",
-    "@react-native-async-storage/async-storage": "2.2.0",
-    "expo": "~57.0.7",
-    "expo-blur": "~57.0.2",
-    "expo-haptics": "~57.0.1",
-    "expo-image-picker": "~57.0.5",
-    "expo-linear-gradient": "~57.0.1",
-    "expo-status-bar": "~57.0.1",
-    "react": "19.2.3",
-    "react-native": "0.86.0",
-    "react-native-safe-area-context": "~5.7.0",
-    "react-native-svg": "15.15.4"
-  },
-  "devDependencies": {
-    "@types/react": "~19.2.2",
-    "typescript": "~6.0.3"
-  },
+  "description": "DraBornGate courier and residential security app",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
@@ -28,6 +12,23 @@
     "typecheck": "tsc --noEmit",
     "validate": "npm run typecheck && npx expo export --platform android --output-dir dist --max-workers 2 --no-bytecode"
   },
-  "private": true,
-  "description": "DraBornGate courier and residential security demo"
+  "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@supabase/supabase-js": "^2.57.4",
+    "expo": "~57.0.7",
+    "expo-haptics": "~57.0.1",
+    "expo-image-picker": "~57.0.5",
+    "expo-linear-gradient": "~57.0.1",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.0",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-svg": "15.15.4",
+    "react-native-url-polyfill": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  }
 }

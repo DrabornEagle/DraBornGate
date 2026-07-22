@@ -4,54 +4,31 @@ export const colors = {
   surface: '#0D2033',
   surfaceRaised: '#12283E',
   surfaceMuted: '#173047',
-  border: 'rgba(151, 205, 255, 0.20)',
-  borderStrong: 'rgba(116, 222, 255, 0.44)',
-  text: '#F8FCFF',
-  textSoft: '#C0CFDB',
-  textMuted: '#8BA0B2',
+  border: 'rgba(151, 205, 255, 0.16)',
+  borderStrong: 'rgba(116, 222, 255, 0.34)',
+  text: '#F5FAFF',
+  textSoft: '#B7C8D6',
+  textMuted: '#8298AA',
   cyan: '#37D8FF',
   cyanDeep: '#1689FF',
-  blue: '#468CFF',
-  purple: '#9A76FF',
-  magenta: '#FF67CF',
+  purple: '#8B6BFF',
+  magenta: '#E46DFF',
   green: '#43E7A2',
   orange: '#FFB35C',
-  yellow: '#FFD166',
   red: '#FF657D',
   white: '#FFFFFF',
   black: '#000000',
 };
-
 export const gradients = {
   primary: [colors.cyanDeep, colors.purple] as const,
+  courier: ['#0A82AF', '#5548B5', '#132A43'] as const,
+  security: ['#087C69', '#175C72', '#132A43'] as const,
+  management: ['#7447A2', '#54386F', '#132A43'] as const,
   success: ['#1CCB8A', '#45E5B1'] as const,
   warning: ['#FF9657', '#FFD166'] as const,
   danger: ['#FF506F', '#FF8398'] as const,
-  panel: ['rgba(22, 55, 82, 0.98)', 'rgba(10, 29, 47, 0.98)'] as const,
-  panelColorful: [
-    'rgba(24, 64, 94, 0.98)',
-    'rgba(18, 43, 72, 0.98)',
-    'rgba(24, 31, 63, 0.98)',
-  ] as const,
-  courier: ['#087BD8', '#6B5CFF', '#B65CFF'] as const,
-  security: ['#117D69', '#19B887', '#32C7D4'] as const,
-  management: ['#6F52D9', '#A15DE0', '#E05EA8'] as const,
-  dark: ['#0A1B2C', '#06101D'] as const,
+  panel: ['rgba(22,55,82,.98)', 'rgba(10,29,47,.98)'] as const,
+  panelColorful: ['rgba(19,71,99,.98)', 'rgba(42,45,92,.98)', 'rgba(11,29,47,.98)'] as const,
 };
-
-export const radius = {
-  sm: 12,
-  md: 18,
-  lg: 24,
-  xl: 32,
-  pill: 999,
-};
-
-export const spacing = {
-  xs: 6,
-  sm: 10,
-  md: 16,
-  lg: 22,
-  xl: 30,
-  xxl: 40,
-};
+export const radius = { sm: 12, md: 18, lg: 24, xl: 32, pill: 999 };
+export const spacing = { xs: 6, sm: 10, md: 16, lg: 22, xl: 30, xxl: 40 };
