@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, Image, ImageStyle, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { createPrivateImageUrl } from '../lib/gateMedia';
 import { colors } from '../theme';
 
-export function PrivateImage({ path, style }: { path?: string; style?: StyleProp<ViewStyle> }) {
+export function PrivateImage({ path, style }: { path?: string; style?: StyleProp<ImageStyle> }) {
   const [url, setUrl] = useState<string>();
   const [failed, setFailed] = useState(false);
 
@@ -21,8 +21,9 @@ export function PrivateImage({ path, style }: { path?: string; style?: StyleProp
   }, [path]);
 
   if (!path) return null;
-  if (failed) return <View style={[styles.fallback, style]}><Text style={styles.text}>Görsel açılamadı</Text></View>;
-  if (!url) return <View style={[styles.fallback, style]}><ActivityIndicator color={colors.cyan} /></View>;
+  const fallbackStyle = style as StyleProp<ViewStyle>;
+  if (failed) return <View style={[styles.fallback, fallbackStyle]}><Text style={styles.text}>Görsel açılamadı</Text></View>;
+  if (!url) return <View style={[styles.fallback, fallbackStyle]}><ActivityIndicator color={colors.cyan} /></View>;
   return <Image source={{ uri: url }} style={[styles.image, style]} resizeMode="cover" />;
 }
 
