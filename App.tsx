@@ -11,6 +11,7 @@ import { HistoryScreen } from './src/screens/HistoryScreen';
 import { ManagementHome } from './src/screens/ManagementHome';
 import { PassesScreen } from './src/screens/PassesScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
+import { ResidentHome } from './src/screens/ResidentHome';
 import { SecurityHome } from './src/screens/SecurityHome';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { GateProvider, useGate } from './src/store/GateContext';
@@ -18,17 +19,19 @@ import { colors } from './src/theme';
 import { UserRole } from './src/types';
 
 function AppContent() {
-  const { initialized, session, profile, refreshing } = useGate();
+  const { initialized, session, profile, refreshing, error } = useGate();
   const [role, setRole] = useState<UserRole | null>(null);
   const [tab, setTab] = useState<AppTab>('home');
   const [showCreatePass, setShowCreatePass] = useState(false);
   const [roleInitialized, setRoleInitialized] = useState(false);
+
   useEffect(() => {
     if (session && profile && !roleInitialized) {
       setRole(profile.preferredRole);
       setRoleInitialized(true);
     }
   }, [profile, roleInitialized, session]);
+
   useEffect(() => {
     if (!session) {
       setRole(null);
@@ -37,9 +40,13 @@ function AppContent() {
       setShowCreatePass(false);
     }
   }, [session]);
-  if (!initialized || (session && !profile && refreshing)) return <AppBackground><View style={styles.loading}><ActivityIndicator size="large" color={colors.cyan} /><Text style={styles.loadingTitle}>DraBornGate</Text><Text style={styles.loadingText}>Supabase güvenlik sistemi hazırlanıyor</Text></View></AppBackground>;
+
+  if (!initialized || (session && !profile && refreshing)) {
+    return <AppBackground><View style={styles.loading}><ActivityIndicator size="large" color={colors.cyan} /><Text style={styles.loadingTitle}>DraBornGate v0.2</Text><Text style={styles.loadingText}>CourierPass, AirPass ve site sistemi hazırlanıyor</Text></View></AppBackground>;
+  }
   if (!session) return <AuthScreen />;
   if (!role) return <WelcomeScreen onSelectRole={(selected) => { setRole(selected); setRoleInitialized(true); setTab('home'); }} />;
+
   const render = () => {
     if (showCreatePass && role === 'courier') return <CreatePassScreen onBack={() => setShowCreatePass(false)} onCreated={() => { setShowCreatePass(false); setTab('passes'); }} />;
     if (tab === 'passes') return <PassesScreen role={role} />;
@@ -47,9 +54,22 @@ function AppContent() {
     if (tab === 'profile') return <ProfileScreen role={role} onSwitchRole={() => { setRole(null); setTab('home'); }} />;
     if (role === 'courier') return <CourierHome onCreatePass={() => setShowCreatePass(true)} onOpenPasses={() => setTab('passes')} onOpenSettings={() => setTab('profile')} />;
     if (role === 'security') return <SecurityHome />;
+    if (role === 'resident') return <ResidentHome onOpenProfile={() => setTab('profile')} />;
     return <ManagementHome />;
   };
-  return <AppBackground><SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}><View style={styles.screen}>{render()}</View>{!showCreatePass ? <BottomDock role={role} current={tab} onChange={setTab} /> : null}</SafeAreaView></AppBackground>;
+
+  return <AppBackground><SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}><View style={styles.screen}>{error ? <View style={styles.error}><Text style={styles.errorText}>{error}</Text></View> : null}{render()}</View>{!showCreatePass ? <BottomDock role={role} current={tab} onChange={setTab} /> : null}</SafeAreaView></AppBackground>;
 }
-export default function App() { return <SafeAreaProvider><GateProvider><StatusBar style="light" /><AppContent /></GateProvider></SafeAreaProvider>; }
-const styles = StyleSheet.create({ safe: { flex: 1 }, screen: { flex: 1 }, loading: { flex: 1, alignItems: 'center', justifyContent: 'center' }, loadingTitle: { color: colors.text, fontSize: 27, fontWeight: '900', marginTop: 16 }, loadingText: { color: colors.textSoft, fontSize: 13, marginTop: 6 } });
+
+export default function App() {
+  return <SafeAreaProvider><GateProvider><StatusBar style="light" /><AppContent /></GateProvider></SafeAreaProvider>;
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1 }, screen: { flex: 1 },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  loadingTitle: { color: colors.text, fontSize: 28, fontWeight: '900', marginTop: 16 },
+  loadingText: { color: colors.textSoft, fontSize: 13, marginTop: 7, textAlign: 'center' },
+  error: { marginHorizontal: 16, marginTop: 6, borderWidth: 1, borderColor: 'rgba(255,101,125,.45)', backgroundColor: 'rgba(255,101,125,.10)', borderRadius: 14, padding: 9 },
+  errorText: { color: colors.red, fontSize: 11, fontWeight: '800', textAlign: 'center' },
+});
