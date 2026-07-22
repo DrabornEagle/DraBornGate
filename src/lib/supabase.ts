@@ -10,10 +10,10 @@ export const supabase = createClient(SUPABASE_PROJECT_URL, SUPABASE_PUBLISHABLE_
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
-    storageKey: 'dkd.draborngate.auth.v0.0.2',
+    storageKey: 'dkd.draborngate.auth.shared.v0.2',
   },
   realtime: {
-    params: { eventsPerSecond: 5 },
+    params: { eventsPerSecond: 10 },
   },
 });
 
