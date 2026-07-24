@@ -1,0 +1,78 @@
+name: DraBornGate v0.3 UI Finalization
+
+on:
+  push:
+    branches: [release-v0.3.0-20260724]
+    paths:
+      - .github/dkd_v0_3_ui_finalize_trigger.txt
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release-v0.3.0-20260724
+          fetch-depth: 0
+
+      - name: Rapor ve Admin ödeme ekranlarını tamamla
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          home = Path('src/screens/ManagementHomeV030.tsx')
+          text = home.read_text(encoding='utf-8')
+          if "import { AdminBillingSettings } from '../components/AdminBillingSettings';" not in text:
+              text = text.replace(
+                  "import { AdminSubscriptionCenter } from '../components/AdminSubscriptionCenter';",
+                  "import { AdminBillingSettings } from '../components/AdminBillingSettings';\nimport { AdminSubscriptionCenter } from '../components/AdminSubscriptionCenter';"
+              )
+          marker = '          <SectionTitle title="Platform yönetimi" />'
+          if '<AdminBillingSettings />' not in text:
+              text = text.replace(marker, '          <AdminBillingSettings />\n          ' + marker.strip())
+          home.write_text(text, encoding='utf-8')
+
+          report = Path('src/screens/ManagementReportsV030.tsx')
+          text = report.read_text(encoding='utf-8')
+          text = text.replace(
+              "import { getSiteReport, logReportExport, SiteReport } from '../lib/v030Api';",
+              "import { getSiteReport, prepareReportExport, SiteReport } from '../lib/v030Api';"
+          )
+          text, count = re.subn(
+              r"\n  const createCsv = \(\) => \{.*?\n  \};\n\n  const shareCsv",
+              "\n  const shareCsv",
+              text,
+              flags=re.S,
+          )
+          if count not in (0, 1):
+              raise SystemExit(f'Beklenmeyen createCsv eşleşme sayısı: {count}')
+          old = """      await logReportExport(siteId, report.date_from, report.date_to, 'operations', report.daily.length);
+      await Share.share({
+        title: `${siteName} DraBornGate Raporu`,
+        message: createCsv(),
+      });"""
+          new = """      const exported = await prepareReportExport(siteId, report.date_from, report.date_to);
+      await Share.share({
+        title: `${siteName} DraBornGate Raporu`,
+        message: `${exported.csv}\\n\\nDraBornGate v0.3 • ${exported.row_count} kayıt`,
+      });"""
+          if old in text:
+              text = text.replace(old, new)
+          elif 'prepareReportExport(siteId' not in text:
+              raise SystemExit('Rapor paylaşım bloğu bulunamadı')
+          report.write_text(text, encoding='utf-8')
+          PY
+
+          git config user.name "DraBornGate Otomasyon"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/screens/ManagementHomeV030.tsx src/screens/ManagementReportsV030.tsx
+          if git diff --cached --quiet; then
+            echo "Düzeltme gerekmiyor."
+          else
+            git commit -m "Finalize v0.3 reporting and Admin billing UI"
+            git push origin HEAD:release-v0.3.0-20260724
+          fi
