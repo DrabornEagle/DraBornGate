@@ -10,6 +10,7 @@ import { CourierHome } from './src/screens/CourierHome';
 import { CreatePassScreen } from './src/screens/CreatePassScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { ManagementAccessGate } from './src/screens/ManagementAccessGate';
+import { ManagementProCenter } from './src/screens/ManagementProCenter';
 import { PassesScreen } from './src/screens/PassesScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { ResidentHome } from './src/screens/ResidentHome';
@@ -48,7 +49,7 @@ function AppContent() {
         <View style={styles.loading}>
           <ActivityIndicator size="large" color={colors.cyan} />
           <Text style={styles.loadingTitle}>DraBornGate v{APP_VERSION}</Text>
-          <Text style={styles.loadingText}>Kurye geçişi, akıllı geçiş ve site sistemi hazırlanıyor</Text>
+          <Text style={styles.loadingText}>Kurye geçişi, raporlar ve profesyonel site sistemi hazırlanıyor</Text>
         </View>
       </AppBackground>
     );
@@ -78,7 +79,7 @@ function AppContent() {
         />
       );
     }
-    if (tab === 'passes') return <PassesScreen role={role} />;
+    if (tab === 'passes') return role === 'management' ? <ManagementProCenter /> : <PassesScreen role={role} />;
     if (tab === 'history') return <HistoryScreen role={role} />;
     if (tab === 'profile') {
       return (
