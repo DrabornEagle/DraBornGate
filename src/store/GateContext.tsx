@@ -294,7 +294,7 @@ export function GateProvider({ children }: PropsWithChildren) {
       setDuesCharges((payload.duesCharges ?? []).map(mapDuesCharge));
       setFinanceTransactions((payload.financeTransactions ?? []).map(mapFinance));
       setSettings(payload.settings ? { demoDataVersion: optionalString(payload.settings.demo_data_version), demoLoadedAt: optionalString(payload.settings.demo_loaded_at), airpassEnabled: booleanValue(payload.settings.airpass_enabled, true), notificationsEnabled: booleanValue(payload.settings.notifications_enabled, true), financeNotificationsEnabled: booleanValue(payload.settings.finance_notifications_enabled, true) } : undefined);
-      setRelease(payload.release ? { version: stringValue(payload.release.version, '0.2.0'), androidVersionCode: numberValue(payload.release.android_version_code, 1), demoDataVersion: stringValue(payload.release.demo_data_version, '0.2.0'), notes: stringValue(payload.release.notes) } : undefined);
+      setRelease(payload.release ? { version: stringValue(payload.release.version, '0.3.0'), androidVersionCode: numberValue(payload.release.android_version_code, 1), demoDataVersion: stringValue(payload.release.demo_data_version, '0.3.0'), notes: stringValue(payload.release.notes) } : undefined);
       setError(undefined);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Supabase verileri alınamadı.');
@@ -321,7 +321,7 @@ export function GateProvider({ children }: PropsWithChildren) {
     void prepareGateNotifications().catch(() => undefined);
     void refresh();
     const refreshTables = ['dkd_gate_courier_passes', 'dkd_gate_pass_events', 'dkd_gate_visitor_passes', 'dkd_gate_notifications', 'dkd_gate_dues_charges', 'dkd_gate_dues_periods', 'dkd_gate_finance_transactions', 'dkd_gate_site_rules'];
-    let channel = supabase.channel(`dkd-gate-v02-${session.user.id}`);
+    let channel = supabase.channel(`dkd-gate-v03-${session.user.id}`);
     refreshTables.forEach((table) => { channel = channel.on('postgres_changes', { event: '*', schema: 'draborngate', table }, () => void refresh()); });
     channel.subscribe();
     return () => { void supabase.removeChannel(channel); };
@@ -359,7 +359,7 @@ export function GateProvider({ children }: PropsWithChildren) {
   const addFinanceTransaction = useCallback((input: CreateFinanceInput) => rpcRefresh<string>('dkd_gate_add_finance_transaction', { p_site_id: input.siteId, p_type: input.type, p_category: input.category, p_description: input.description, p_amount: input.amount, p_date: input.date, p_visible: input.visible }), [rpcRefresh]);
   const setFinanceVisibility = useCallback((siteId: string, visible: boolean) => rpcRefresh<void>('dkd_gate_set_finance_visibility', { p_site_id: siteId, p_visible: visible }), [rpcRefresh]);
   const markNotificationRead = useCallback((id: string) => rpcRefresh<void>('dkd_gate_mark_notification_read', { p_notification_id: id }), [rpcRefresh]);
-  const loadDemoData = useCallback(async () => stringValue(await rpcRefresh<string>('dkd_gate_load_demo_data'), '0.2.0'), [rpcRefresh]);
+  const loadDemoData = useCallback(async () => stringValue(await rpcRefresh<string>('dkd_gate_load_demo_data'), '0.3.0'), [rpcRefresh]);
   const deleteDemoData = useCallback(() => rpcRefresh<void>('dkd_gate_delete_demo_data'), [rpcRefresh]);
 
   const value = useMemo<GateContextValue>(() => ({ session, user: session?.user ?? null, initialized, loading, refreshing, error, profile, courierProfile, residentProfiles, sites, gates, passes, activities, rules, ruleAcceptances, visitors, notifications, duesPeriods, duesCharges, financeTransactions, settings, release, signIn, signUp, signOut, refresh, updateProfile, upsertResidentProfile, createPass, updatePassStatus, retryPass, updateAirPass, acceptRule, upsertRule, createVisitor, decideVisitor, createDuesPeriod, markDuePaid, addFinanceTransaction, setFinanceVisibility, markNotificationRead, loadDemoData, deleteDemoData }), [session, initialized, loading, refreshing, error, profile, courierProfile, residentProfiles, sites, gates, passes, activities, rules, ruleAcceptances, visitors, notifications, duesPeriods, duesCharges, financeTransactions, settings, release, signIn, signUp, signOut, refresh, updateProfile, upsertResidentProfile, createPass, updatePassStatus, retryPass, updateAirPass, acceptRule, upsertRule, createVisitor, decideVisitor, createDuesPeriod, markDuePaid, addFinanceTransaction, setFinanceVisibility, markNotificationRead, loadDemoData, deleteDemoData]);
