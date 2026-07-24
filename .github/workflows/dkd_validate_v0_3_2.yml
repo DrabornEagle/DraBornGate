@@ -2,7 +2,7 @@ name: DraBornGate v0.3.2 Validate
 
 on:
   push:
-    branches: [main, release/v0.3.2]
+    branches: [main, release/v0.3.2, hotfix/v0.3.2-payment-purge]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -21,6 +21,24 @@ jobs:
     steps:
       - name: Kaynak kodu al
         uses: actions/checkout@v4
+
+      - name: Alternatif ödeme kalıntılarını tara
+        shell: bash
+        run: |
+          set +e
+          grep -RInE '(^|[^[:alnum:]_])(iban|dekont)([^[:alnum:]_]|$)|bank_reference|receipt_path|subscription_payment|billing_settings|subscriptionMedia|Havale/EFT/FAST' \
+            src App.tsx app.json app.config.js supabase 2>/dev/null > dkd_payment_residue_v0_3_2.log
+          cat dkd_payment_residue_v0_3_2.log
+          exit 0
+
+      - name: Alternatif ödeme tarama raporunu yükle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dkd-payment-residue-v0-3-2
+          path: dkd_payment_residue_v0_3_2.log
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Node.js 22 kur
         uses: actions/setup-node@v4
