@@ -2,7 +2,7 @@
   "expo": {
     "name": "DraBornGate",
     "slug": "draborngate",
-    "version": "0.3.2",
+    "version": "0.3.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "draborngate",
@@ -21,12 +21,14 @@
       "package": "com.draborneagle.draborngate",
       "versionCode": 1,
       "softwareKeyboardLayoutMode": "resize",
+      "permissions": ["CAMERA", "ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "POST_NOTIFICATIONS"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#06101D"
       }
     },
     "plugins": [
+      "expo-iap",
       [
         "expo-image-picker",
         {
@@ -52,9 +54,13 @@
       ]
     ],
     "extra": {
-      "appVersion": "0.3.2",
-      "demoDataVersion": "0.3.2",
-      "androidVersionCode": 1
+      "appVersion": "0.3.3",
+      "demoDataVersion": "0.3.3",
+      "androidVersionCode": 1,
+      "privacyPolicyUrl": "https://www.draborneagle.com/DraBornGate/privacy/",
+      "accountDeletionUrl": "https://www.draborneagle.com/DraBornGate/account-deletion/",
+      "termsUrl": "https://www.draborneagle.com/DraBornGate/terms/",
+      "supportEmail": "support@draborneagle.com"
     }
   }
 }
