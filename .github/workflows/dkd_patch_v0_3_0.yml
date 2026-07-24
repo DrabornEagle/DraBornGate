@@ -1,0 +1,40 @@
+name: DraBornGate v0.3 Source Patch
+
+on:
+  push:
+    branches: [release-v0.3.0-20260724]
+    paths:
+      - .github/dkd_v0_3_patch_trigger.txt
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release-v0.3.0-20260724
+          fetch-depth: 0
+      - name: v0.3 kaynak sürüm etiketlerini düzelt
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('src/store/GateContext.tsx')
+          text=path.read_text(encoding='utf-8')
+          text=text.replace("stringValue(payload.release.version, '0.2.0')", "stringValue(payload.release.version, '0.3.0')")
+          text=text.replace("stringValue(payload.release.demo_data_version, '0.2.0')", "stringValue(payload.release.demo_data_version, '0.3.0')")
+          text=text.replace("dkd-gate-v02-", "dkd-gate-v03-")
+          text=text.replace("stringValue(await rpcRefresh<string>('dkd_gate_load_demo_data'), '0.2.0')", "stringValue(await rpcRefresh<string>('dkd_gate_load_demo_data'), '0.3.0')")
+          path.write_text(text,encoding='utf-8')
+          PY
+          git config user.name "DraBornGate Otomasyon"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/store/GateContext.tsx
+          if git diff --cached --quiet; then
+            echo "Değişiklik gerekmiyor."
+          else
+            git commit -m "Update GateContext fallbacks for v0.3.0"
+            git push origin HEAD:release-v0.3.0-20260724
+          fi
