@@ -4,11 +4,12 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AppTab, BottomDock } from './src/components/BottomDock';
 import { AppBackground } from './src/components/UI';
+import { APP_VERSION } from './src/config/version';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { CourierHome } from './src/screens/CourierHome';
 import { CreatePassScreen } from './src/screens/CreatePassScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
-import { ManagementHome } from './src/screens/ManagementHome';
+import { ManagementAccessGate } from './src/screens/ManagementAccessGate';
 import { PassesScreen } from './src/screens/PassesScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { ResidentHome } from './src/screens/ResidentHome';
@@ -42,34 +43,98 @@ function AppContent() {
   }, [session]);
 
   if (!initialized || (session && !profile && refreshing)) {
-    return <AppBackground><View style={styles.loading}><ActivityIndicator size="large" color={colors.cyan} /><Text style={styles.loadingTitle}>DraBornGate v0.2</Text><Text style={styles.loadingText}>CourierPass, AirPass ve site sistemi hazırlanıyor</Text></View></AppBackground>;
+    return (
+      <AppBackground>
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color={colors.cyan} />
+          <Text style={styles.loadingTitle}>DraBornGate v{APP_VERSION}</Text>
+          <Text style={styles.loadingText}>Kurye geçişi, akıllı geçiş ve site sistemi hazırlanıyor</Text>
+        </View>
+      </AppBackground>
+    );
   }
   if (!session) return <AuthScreen />;
-  if (!role) return <WelcomeScreen onSelectRole={(selected) => { setRole(selected); setRoleInitialized(true); setTab('home'); }} />;
+  if (!role) {
+    return (
+      <WelcomeScreen
+        onSelectRole={(selected) => {
+          setRole(selected);
+          setRoleInitialized(true);
+          setTab('home');
+        }}
+      />
+    );
+  }
 
   const render = () => {
-    if (showCreatePass && role === 'courier') return <CreatePassScreen onBack={() => setShowCreatePass(false)} onCreated={() => { setShowCreatePass(false); setTab('passes'); }} />;
+    if (showCreatePass && role === 'courier') {
+      return (
+        <CreatePassScreen
+          onBack={() => setShowCreatePass(false)}
+          onCreated={() => {
+            setShowCreatePass(false);
+            setTab('passes');
+          }}
+        />
+      );
+    }
     if (tab === 'passes') return <PassesScreen role={role} />;
     if (tab === 'history') return <HistoryScreen role={role} />;
-    if (tab === 'profile') return <ProfileScreen role={role} onSwitchRole={() => { setRole(null); setTab('home'); }} />;
-    if (role === 'courier') return <CourierHome onCreatePass={() => setShowCreatePass(true)} onOpenPasses={() => setTab('passes')} onOpenSettings={() => setTab('profile')} />;
+    if (tab === 'profile') {
+      return (
+        <ProfileScreen
+          role={role}
+          onSwitchRole={() => {
+            setRole(null);
+            setTab('home');
+          }}
+        />
+      );
+    }
+    if (role === 'courier') {
+      return (
+        <CourierHome
+          onCreatePass={() => setShowCreatePass(true)}
+          onOpenPasses={() => setTab('passes')}
+          onOpenSettings={() => setTab('profile')}
+        />
+      );
+    }
     if (role === 'security') return <SecurityHome />;
     if (role === 'resident') return <ResidentHome onOpenProfile={() => setTab('profile')} />;
-    return <ManagementHome />;
+    return <ManagementAccessGate />;
   };
 
-  return <AppBackground><SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}><View style={styles.screen}>{error ? <View style={styles.error}><Text style={styles.errorText}>{error}</Text></View> : null}{render()}</View>{!showCreatePass ? <BottomDock role={role} current={tab} onChange={setTab} /> : null}</SafeAreaView></AppBackground>;
+  return (
+    <AppBackground>
+      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+        <View style={styles.screen}>
+          {error ? <View style={styles.error}><Text style={styles.errorText}>{error}</Text></View> : null}
+          {render()}
+        </View>
+        {!showCreatePass ? <BottomDock role={role} current={tab} onChange={setTab} /> : null}
+      </SafeAreaView>
+    </AppBackground>
+  );
 }
 
 export default function App() {
-  return <SafeAreaProvider><GateProvider><StatusBar style="light" /><AppContent /></GateProvider></SafeAreaProvider>;
+  return (
+    <SafeAreaProvider>
+      <GateProvider>
+        <StatusBar style="light" />
+        <AppContent />
+      </GateProvider>
+    </SafeAreaProvider>
+  );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 }, screen: { flex: 1 },
+  safe: { flex: 1 },
+  screen: { flex: 1 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   loadingTitle: { color: colors.text, fontSize: 28, fontWeight: '900', marginTop: 16 },
-  loadingText: { color: colors.textSoft, fontSize: 13, marginTop: 7, textAlign: 'center' },
+  loadingText: { color: colors.textSoft, fontSize: 14, marginTop: 7, textAlign: 'center' },
   error: { marginHorizontal: 16, marginTop: 6, borderWidth: 1, borderColor: 'rgba(255,101,125,.45)', backgroundColor: 'rgba(255,101,125,.10)', borderRadius: 14, padding: 9 },
-  errorText: { color: colors.red, fontSize: 11, fontWeight: '800', textAlign: 'center' },
+  errorText: { color: colors.red, fontSize: 12, fontWeight: '800', textAlign: 'center' },
 });
