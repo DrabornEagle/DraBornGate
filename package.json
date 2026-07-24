@@ -1,9 +1,9 @@
 {
   "name": "draborngate",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "main": "index.ts",
-  "description": "DraBornGate CourierPass, AirPass, VisitorPass, resident and site finance platform",
+  "description": "DraBornGate kurye geçişi, akıllı geçiş, ziyaretçi, site sakini ve site finans platformu",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
