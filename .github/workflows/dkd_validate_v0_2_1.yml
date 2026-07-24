@@ -26,13 +26,33 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - name: Bağımlılıkları kur
         run: npm install --no-audit --no-fund
 
-      - name: TypeScript kontrolü
-        run: npm run typecheck
+      - name: TypeScript tanılaması
+        id: typecheck
+        shell: bash
+        run: |
+          set +e
+          npm run typecheck 2>&1 | tee dkd_typecheck_v0_2_1.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: TypeScript raporunu yükle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dkd-typecheck-v0-2-1
+          path: dkd_typecheck_v0_2_1.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: TypeScript sonucunu doğrula
+        run: |
+          cat dkd_typecheck_v0_2_1.log
+          test "${{ steps.typecheck.outputs.exit_code }}" = "0"
 
       - name: Android Expo dışa aktarma testi
         run: npx expo export --platform android --output-dir dist --max-workers 2 --no-bytecode
