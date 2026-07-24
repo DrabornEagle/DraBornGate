@@ -132,18 +132,6 @@ begin
  return new;
 end; $$;
 
-drop function if exists public.dkd_gate_admin_decide_subscription_payment(uuid,text,text);
-drop function if exists public.dkd_gate_admin_decide_subscription_payment_request(uuid,text,text);
-drop function if exists public.dkd_gate_admin_get_billing_settings();
-drop function if exists public.dkd_gate_admin_list_subscription_payment_requests();
-drop function if exists public.dkd_gate_admin_update_billing_settings(text,text,text,text,boolean);
-drop function if exists public.dkd_gate_cancel_subscription_payment(uuid);
-drop function if exists public.dkd_gate_cancel_subscription_payment_request(uuid);
-drop function if exists public.dkd_gate_create_subscription_payment_request(uuid,text,text,text,text);
-drop function if exists public.dkd_gate_submit_subscription_payment(uuid,text,text,text,text);
-drop table if exists draborngate.dkd_gate_subscription_invoices cascade;
-drop table if exists draborngate.dkd_gate_subscription_payment_requests cascade;
-drop table if exists draborngate.dkd_gate_billing_settings cascade;
 
 create table if not exists draborngate.dkd_gate_courier_subscription_plans(code text primary key,name text not null,description text not null,monthly_price numeric(12,2) not null default 0,yearly_price numeric(12,2) not null default 0,currency text not null default 'TRY',monthly_pass_limit integer not null default 0,priority_site_search boolean not null default false,advanced_history boolean not null default false,priority_support boolean not null default false,is_public boolean not null default true,is_active boolean not null default true,sort_order integer not null default 10,created_at timestamptz not null default now(),updated_at timestamptz not null default now());
 create table if not exists draborngate.dkd_gate_courier_subscriptions(id uuid primary key default gen_random_uuid(),user_id uuid not null unique references auth.users(id) on delete cascade,plan_code text not null references draborngate.dkd_gate_courier_subscription_plans(code),status text not null default 'free' check(status in ('free','trialing','active','past_due','cancelled','expired')),billing_cycle text not null default 'monthly' check(billing_cycle in ('monthly','yearly')),current_period_start timestamptz not null default now(),current_period_end timestamptz,source text not null default 'system',notes text,created_at timestamptz not null default now(),updated_at timestamptz not null default now());
