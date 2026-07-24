@@ -5,6 +5,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AppTab, BottomDock } from './src/components/BottomDock';
 import { AppBackground } from './src/components/UI';
 import { APP_VERSION } from './src/config/version';
+import { useGateRoles } from './src/hooks/useGateRoles';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { CourierHome } from './src/screens/CourierHome';
 import { CreatePassScreen } from './src/screens/CreatePassScreen';
@@ -22,17 +23,25 @@ import { UserRole } from './src/types';
 
 function AppContent() {
   const { initialized, session, profile, refreshing, error } = useGate();
+  const { roles, loading: rolesLoading, selectRole } = useGateRoles();
   const [role, setRole] = useState<UserRole | null>(null);
   const [tab, setTab] = useState<AppTab>('home');
   const [showCreatePass, setShowCreatePass] = useState(false);
   const [roleInitialized, setRoleInitialized] = useState(false);
 
   useEffect(() => {
-    if (session && profile && !roleInitialized) {
-      setRole(profile.preferredRole);
-      setRoleInitialized(true);
+    if (!session || !profile || rolesLoading || roleInitialized) return;
+    const preferred = roles.includes(profile.preferredRole) ? profile.preferredRole : roles[0] ?? 'courier';
+    setRole(preferred);
+    setRoleInitialized(true);
+  }, [profile, roleInitialized, roles, rolesLoading, session]);
+
+  useEffect(() => {
+    if (role && roles.length && !roles.includes(role)) {
+      setRole(roles[0] ?? 'courier');
+      setTab('home');
     }
-  }, [profile, roleInitialized, session]);
+  }, [role, roles]);
 
   useEffect(() => {
     if (!session) {
@@ -43,29 +52,27 @@ function AppContent() {
     }
   }, [session]);
 
-  if (!initialized || (session && !profile && refreshing)) {
+  const changeRole = async (selected: UserRole) => {
+    await selectRole(selected);
+    setRole(selected);
+    setRoleInitialized(true);
+    setTab('home');
+    setShowCreatePass(false);
+  };
+
+  if (!initialized || (session && (!profile || rolesLoading) && refreshing)) {
     return (
       <AppBackground>
         <View style={styles.loading}>
           <ActivityIndicator size="large" color={colors.cyan} />
           <Text style={styles.loadingTitle}>DraBornGate v{APP_VERSION}</Text>
-          <Text style={styles.loadingText}>Kurye geçişi, raporlar ve profesyonel site sistemi hazırlanıyor</Text>
+          <Text style={styles.loadingText}>Yetkili rollerin, site kayıtların ve geçiş merkezi hazırlanıyor</Text>
         </View>
       </AppBackground>
     );
   }
   if (!session) return <AuthScreen />;
-  if (!role) {
-    return (
-      <WelcomeScreen
-        onSelectRole={(selected) => {
-          setRole(selected);
-          setRoleInitialized(true);
-          setTab('home');
-        }}
-      />
-    );
-  }
+  if (!role) return <WelcomeScreen roles={roles} onSelectRole={(selected) => void changeRole(selected)} />;
 
   const render = () => {
     if (showCreatePass && role === 'courier') {
@@ -81,17 +88,7 @@ function AppContent() {
     }
     if (tab === 'passes') return role === 'management' ? <ManagementProCenter /> : <PassesScreen role={role} />;
     if (tab === 'history') return <HistoryScreen role={role} />;
-    if (tab === 'profile') {
-      return (
-        <ProfileScreen
-          role={role}
-          onSwitchRole={() => {
-            setRole(null);
-            setTab('home');
-          }}
-        />
-      );
-    }
+    if (tab === 'profile') return <ProfileScreen role={role} onSelectRole={(selected) => void changeRole(selected)} />;
     if (role === 'courier') {
       return (
         <CourierHome
