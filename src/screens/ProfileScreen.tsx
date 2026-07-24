@@ -71,8 +71,8 @@ export function ProfileScreen({ role, onSwitchRole }: { role: UserRole; onSwitch
   };
 
   const loadDemo = () => Alert.alert(
-    gate.settings?.demoDataVersion ? 'Demo verilerini güncelle' : 'Demo verilerini yükle',
-    `Mevcut demo kayıtları silinip v${DEMO_DATA_VERSION} Kurye Geçişi, Akıllı Geçiş, Ziyaretçi Geçişi, sakin, kural ve finans örnekleri kurulacak. Gerçek kayıtlar korunur.`,
+    gate.settings?.demoDataVersion ? 'Örnek verileri güncelle' : 'Örnek verileri yükle',
+    `Mevcut örnek kayıtlar silinip v${DEMO_DATA_VERSION} Kurye Geçişi, Akıllı Geçiş, Ziyaretçi Geçişi, sakin, kural ve finans örnekleri kurulacak. Gerçek kayıtlar korunur.`,
     [
       { text: 'Vazgeç', style: 'cancel' },
       {
@@ -80,7 +80,7 @@ export function ProfileScreen({ role, onSwitchRole }: { role: UserRole; onSwitch
         onPress: async () => {
           try {
             const version = await gate.loadDemoData();
-            Alert.alert('Demo hazır', `Demo veri sürümü ${version} yüklendi.`);
+            Alert.alert('Örnek veriler hazır', `Örnek veri sürümü ${version} yüklendi.`);
           } catch (error) {
             Alert.alert('Yüklenemedi', error instanceof Error ? error.message : 'Tekrar dene.');
           }
@@ -90,8 +90,8 @@ export function ProfileScreen({ role, onSwitchRole }: { role: UserRole; onSwitch
   );
 
   const removeDemo = () => Alert.alert(
-    'Demo verilerini sil',
-    'Yalnızca size ait demo site, kapı, kurye, misafir, aidat ve finans kayıtları silinir. Gerçek kayıtlar korunur.',
+    'Örnek verileri sil',
+    'Yalnızca size ait örnek site, kapı, kurye, misafir, aidat ve finans kayıtları silinir. Gerçek kayıtlar korunur.',
     [
       { text: 'Vazgeç', style: 'cancel' },
       {
@@ -100,7 +100,7 @@ export function ProfileScreen({ role, onSwitchRole }: { role: UserRole; onSwitch
         onPress: async () => {
           try {
             await gate.deleteDemoData();
-            Alert.alert('Silindi', `v${APP_VERSION} demo kayıtları kaldırıldı.`);
+            Alert.alert('Silindi', `v${APP_VERSION} örnek kayıtları kaldırıldı.`);
           } catch (error) {
             Alert.alert('Silinemedi', error instanceof Error ? error.message : 'Tekrar dene.');
           }
@@ -191,13 +191,13 @@ export function ProfileScreen({ role, onSwitchRole }: { role: UserRole; onSwitch
       ) : null}
 
       <FadeInView delay={150}>
-        <SectionTitle title="Demo veri yönetimi" />
+        <SectionTitle title="Örnek veri yönetimi" />
         <Panel style={s.demoPanel} gradient>
           <View style={s.demoTop}>
             <View style={s.demoIcon}><Ionicons name="flask" size={26} color={colors.orange} /></View>
             <View style={s.copy}>
-              <Text style={s.demoTitle}>{gate.settings?.demoDataVersion ? `Demo v${gate.settings.demoDataVersion} yüklü` : 'Demo verileri yüklü değil'}</Text>
-              <Text style={s.demoText}>Her yeni uygulama sürümünde demo paketi aynı sürüme güncellenir. Gerçek kayıtlar etkilenmez.</Text>
+              <Text style={s.demoTitle}>{gate.settings?.demoDataVersion ? `Örnek veri v${gate.settings.demoDataVersion} yüklü` : 'Örnek veriler yüklü değil'}</Text>
+              <Text style={s.demoText}>Her yeni uygulama sürümünde örnek veri paketi aynı sürüme güncellenir. Gerçek kayıtlar etkilenmez.</Text>
             </View>
           </View>
           <AnimatedPressable onPress={loadDemo}>
@@ -205,10 +205,10 @@ export function ProfileScreen({ role, onSwitchRole }: { role: UserRole; onSwitch
               <Ionicons name={gate.settings?.demoDataVersion === DEMO_DATA_VERSION ? 'refresh' : 'download'} size={20} color={colors.cyan} />
               <Text style={s.demoButtonText}>
                 {gate.settings?.demoDataVersion === DEMO_DATA_VERSION
-                  ? 'Demo verilerini yeniden yükle'
+                  ? 'Örnek verileri yeniden yükle'
                   : gate.settings?.demoDataVersion
-                    ? `Demo verilerini v${DEMO_DATA_VERSION} sürümüne güncelle`
-                    : 'Demo verilerini yükle'}
+                    ? `Örnek verileri v${DEMO_DATA_VERSION} sürümüne güncelle`
+                    : 'Örnek verileri yükle'}
               </Text>
             </View>
           </AnimatedPressable>
@@ -216,7 +216,7 @@ export function ProfileScreen({ role, onSwitchRole }: { role: UserRole; onSwitch
             <AnimatedPressable onPress={removeDemo}>
               <View style={s.deleteButton}>
                 <Ionicons name="trash" size={20} color={colors.red} />
-                <Text style={s.deleteText}>Demo verilerini sil</Text>
+                <Text style={s.deleteText}>Örnek verileri sil</Text>
               </View>
             </AnimatedPressable>
           ) : null}
@@ -244,8 +244,8 @@ export function ProfileScreen({ role, onSwitchRole }: { role: UserRole; onSwitch
               />
               <Menu
                 icon="server"
-                title="Supabase ayrımı"
-                text="DraBornGate veritabanı mimarisi ve sürüm bilgileri"
+                title="Veritabanı ayrımı"
+                text="DraBornGate veri mimarisi ve sürüm bilgileri"
                 tone={colors.purple}
                 onPress={() => setShowSupabaseInfo((value) => !value)}
               />
@@ -267,8 +267,8 @@ export function ProfileScreen({ role, onSwitchRole }: { role: UserRole; onSwitch
             <Text style={s.adminInfoTitle}>DraBornGate veri ayrımı</Text>
             <Text style={s.adminInfoText}>Şema: draborngate</Text>
             <Text style={s.adminInfoText}>Tablo standardı: dkd_gate_*</Text>
-            <Text style={s.adminInfoText}>Ortak bölüm: yalnızca Supabase Auth kullanıcı kimliği</Text>
-            <Text style={s.adminInfoText}>DraBornGo public.dkd_* tablolarına dokunulmaz.</Text>
+            <Text style={s.adminInfoText}>Ortak bölüm: yalnızca kullanıcı kimliği</Text>
+            <Text style={s.adminInfoText}>DraBornGo ana tablolarına dokunulmaz.</Text>
           </Panel>
         </FadeInView>
       ) : null}
@@ -276,7 +276,7 @@ export function ProfileScreen({ role, onSwitchRole }: { role: UserRole; onSwitch
       {!checkingAdmin ? (
         <FadeInView delay={270} style={s.version}>
           <Text style={s.versionTitle}>DraBornGate v{APP_VERSION}</Text>
-          <Text style={s.versionText}>Android sürüm kodu {ANDROID_VERSION_CODE} • Demo sürümü {gate.release?.demoDataVersion ?? DEMO_DATA_VERSION}</Text>
+          <Text style={s.versionText}>Android sürüm kodu {ANDROID_VERSION_CODE} • Örnek veri sürümü {gate.release?.demoDataVersion ?? DEMO_DATA_VERSION}</Text>
         </FadeInView>
       ) : null}
     </ScrollView>
@@ -312,7 +312,7 @@ const s = StyleSheet.create({
   hero: { borderRadius: radius.xl, alignItems: 'center', padding: 26, borderWidth: 1, borderColor: 'rgba(255,255,255,.22)' },
   avatar: { width: 88, height: 88, borderRadius: 29, backgroundColor: 'rgba(255,255,255,.16)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   avatarImage: { width: 88, height: 88, borderRadius: 29 },
-  uploading: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(6,16,29,.65)', alignItems: 'center', justifyContent: 'center' },
+  uploading: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(6,16,29,.65)', alignItems: 'center', justifyContent: 'center' },
   uploadingText: { color: colors.white, fontSize: 9, fontWeight: '900' },
   name: { color: colors.white, fontSize: 27, fontWeight: '900', marginTop: 13 },
   role: { color: 'rgba(255,255,255,.87)', fontSize: 15, marginTop: 5, fontWeight: '700' },
