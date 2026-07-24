@@ -1,0 +1,37 @@
+name: DraBornGate Direct Payment Purge
+
+on:
+  push:
+    branches: [hotfix/v0.3.2-payment-purge]
+    paths:
+      - scripts/dkd_purge_direct_payment.mjs
+      - .github/workflows/dkd_apply_direct_payment_purge.yml
+
+permissions:
+  contents: write
+
+jobs:
+  purge:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/v0.3.2-payment-purge
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Eski doğrudan ödeme kodunu temizle
+        run: node scripts/dkd_purge_direct_payment.mjs
+      - name: Temizliği dala kaydet
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase
+          if git diff --cached --quiet; then
+            echo "Temizlenecek kalıntı bulunmadı"
+          else
+            git commit -m "Purge obsolete direct payment code [skip ci]"
+            git push origin HEAD:hotfix/v0.3.2-payment-purge
+          fi
