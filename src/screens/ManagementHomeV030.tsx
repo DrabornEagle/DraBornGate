@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AdminSubscriptionCenter } from '../components/AdminSubscriptionCenter';
 import { AnimatedPressable } from '../components/Motion';
-import { Panel } from '../components/UI';
+import { Panel, SectionTitle } from '../components/UI';
+import { useGateAdmin } from '../hooks/useGateAdmin';
 import { supabase } from '../lib/supabase';
 import { useGate } from '../store/GateContext';
 import { colors, radius, spacing } from '../theme';
@@ -10,10 +12,11 @@ import { ManagementHomeV021 } from './ManagementHomeV021';
 import { ManagementReportsV030 } from './ManagementReportsV030';
 import { ManagementSubscriptionV030 } from './ManagementSubscriptionV030';
 
-type CenterTab = 'management' | 'reports' | 'subscription';
+type CenterTab = 'management' | 'reports' | 'subscription' | 'admin';
 
 export function ManagementHomeV030() {
   const gate = useGate();
+  const { isAdmin } = useGateAdmin();
   const [tab, setTab] = useState<CenterTab>('management');
   const [managedSiteIds, setManagedSiteIds] = useState<string[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState('');
@@ -36,6 +39,10 @@ export function ManagementHomeV030() {
     void loadManagedSites().catch(() => undefined);
   }, [gate.sites.length, loadManagedSites]);
 
+  useEffect(() => {
+    if (!isAdmin && tab === 'admin') setTab('management');
+  }, [isAdmin, tab]);
+
   const sites = useMemo(() => gate.sites.filter((site) => managedSiteIds.includes(site.id)), [gate.sites, managedSiteIds]);
   const selectedSite = sites.find((site) => site.id === selectedSiteId) ?? sites[0];
 
@@ -43,7 +50,27 @@ export function ManagementHomeV030() {
     return (
       <View style={styles.screen}>
         <ManagementHomeV021 />
-        <CenterDock current={tab} onChange={setTab} />
+        <CenterDock current={tab} onChange={setTab} isAdmin={isAdmin} />
+      </View>
+    );
+  }
+
+  if (tab === 'admin' && isAdmin) {
+    return (
+      <View style={styles.screen}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.adminContent} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
+          <View style={styles.adminHeader}>
+            <View style={styles.adminIcon}><Ionicons name="shield-checkmark" size={31} color={colors.magenta} /></View>
+            <View style={styles.adminCopy}>
+              <Text style={styles.adminEyebrow}>DRABORNGATE V0.3 ADMIN</Text>
+              <Text style={styles.adminTitle}>Abonelik ve Gelir Merkezi</Text>
+              <Text style={styles.adminText}>Paket fiyatlarını ve limitlerini yönet, ödeme bildirimlerini onayla, gelirleri takip et.</Text>
+            </View>
+          </View>
+          <SectionTitle title="Platform yönetimi" />
+          <AdminSubscriptionCenter />
+        </ScrollView>
+        <CenterDock current={tab} onChange={setTab} isAdmin={isAdmin} />
       </View>
     );
   }
@@ -80,16 +107,17 @@ export function ManagementHomeV030() {
           <ManagementSubscriptionV030 siteId={selectedSite?.id ?? ''} siteName={selectedSite?.name ?? 'Site'} />
         )}
       </View>
-      <CenterDock current={tab} onChange={setTab} />
+      <CenterDock current={tab} onChange={setTab} isAdmin={isAdmin} />
     </View>
   );
 }
 
-function CenterDock({ current, onChange }: { current: CenterTab; onChange: (tab: CenterTab) => void }) {
+function CenterDock({ current, onChange, isAdmin }: { current: CenterTab; onChange: (tab: CenterTab) => void; isAdmin: boolean }) {
   const tabs: Array<{ id: CenterTab; label: string; icon: keyof typeof Ionicons.glyphMap; tone: string }> = [
     { id: 'management', label: 'Yönetim', icon: 'business', tone: colors.magenta },
     { id: 'reports', label: 'Raporlar', icon: 'analytics', tone: colors.cyan },
     { id: 'subscription', label: 'Paket', icon: 'diamond', tone: colors.purple },
+    ...(isAdmin ? [{ id: 'admin' as CenterTab, label: 'Admin', icon: 'shield-checkmark' as keyof typeof Ionicons.glyphMap, tone: colors.orange }] : []),
   ];
   return (
     <View style={styles.dockWrap} pointerEvents="box-none">
@@ -122,6 +150,13 @@ const styles = StyleSheet.create({
   siteCity: { color: colors.textMuted, fontSize: 9, marginTop: 2 },
   siteLoading: { minHeight: 55, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 8 },
   siteLoadingText: { color: colors.textSoft, fontSize: 12, fontWeight: '700' },
+  adminContent: { padding: spacing.md, paddingTop: 15, paddingBottom: 170, gap: 18 },
+  adminHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  adminIcon: { width: 62, height: 62, borderRadius: 20, backgroundColor: 'rgba(228,109,255,.12)', borderWidth: 1, borderColor: 'rgba(228,109,255,.38)', alignItems: 'center', justifyContent: 'center' },
+  adminCopy: { flex: 1 },
+  adminEyebrow: { color: colors.magenta, fontSize: 11, fontWeight: '900', letterSpacing: .7 },
+  adminTitle: { color: colors.text, fontSize: 23, fontWeight: '900', marginTop: 4 },
+  adminText: { color: colors.textSoft, fontSize: 12, lineHeight: 18, marginTop: 4 },
   dockWrap: { position: 'absolute', left: 20, right: 20, bottom: 90, zIndex: 60, elevation: 25 },
   dock: { minHeight: 64, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: 'rgba(8,23,38,.97)', padding: 5, flexDirection: 'row', gap: 5 },
   tabWrap: { flex: 1 },
