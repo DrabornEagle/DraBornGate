@@ -1,0 +1,101 @@
+name: DraBornGate v0.3.1 Validate
+
+on:
+  push:
+    branches: [main, release/v0.3.1]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: draborngate-v0-3-1-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      - name: Node.js 22 kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Bağımlılıkları kur
+        run: npm install --no-audit --no-fund
+
+      - name: TypeScript tanılaması
+        id: typecheck
+        shell: bash
+        run: |
+          set +e
+          npm run typecheck 2>&1 | tee dkd_typecheck_v0_3_1.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: TypeScript raporunu yükle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dkd-typecheck-v0-3-1
+          path: dkd_typecheck_v0_3_1.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: TypeScript sonucunu doğrula
+        run: |
+          cat dkd_typecheck_v0_3_1.log
+          test "${{ steps.typecheck.outputs.exit_code }}" = "0"
+
+      - name: Android Expo dışa aktarma testi
+        run: npx expo export --platform android --output-dir dist --max-workers 2 --no-bytecode
+
+      - name: Sürüm ve v0.3.1 kapsam doğrulaması
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const pkg = require('./package.json');
+          const app = require('./app.json').expo;
+          const versionFile = fs.readFileSync('./src/config/version.ts', 'utf8');
+          const expected = '0.3.1';
+          if (pkg.version !== expected) throw new Error(`package.json sürümü ${pkg.version}`);
+          if (app.version !== expected) throw new Error(`app.json sürümü ${app.version}`);
+          if (app.extra?.appVersion !== expected) throw new Error('extra.appVersion eşleşmiyor');
+          if (app.extra?.demoDataVersion !== expected) throw new Error('demoDataVersion eşleşmiyor');
+          if (app.android.versionCode !== 1) throw new Error(`Android versionCode ${app.android.versionCode}`);
+          if (!versionFile.includes(`APP_VERSION = '${expected}'`)) throw new Error('APP_VERSION eşleşmiyor');
+          if (!versionFile.includes(`DEMO_DATA_VERSION = '${expected}'`)) throw new Error('DEMO_DATA_VERSION eşleşmiyor');
+          if (!versionFile.includes('ANDROID_VERSION_CODE = 1')) throw new Error('ANDROID_VERSION_CODE eşleşmiyor');
+
+          const migrations = fs.readdirSync('./supabase/migrations').filter(x => x.includes('draborngate_v0_3_1'));
+          if (!migrations.length) throw new Error('v0.3.1 migration dosyası yok');
+
+          const auth = fs.readFileSync('./src/screens/AuthScreen.tsx', 'utf8');
+          for (const token of ['pickProfilePhoto', 'Profil resmi eklemeyeceğim', 'Trendyol / Uber Eats']) {
+            if (!auth.includes(token)) throw new Error(`Kayıt ekranı tokenı eksik: ${token}`);
+          }
+
+          const management = fs.readFileSync('./src/screens/ManagementHomeV031.tsx', 'utf8');
+          for (const token of ['SiteLocationPicker', 'DateField', 'SİTEYİ GÜNCELLE']) {
+            if (!management.includes(token)) throw new Error(`Yönetim ekranı tokenı eksik: ${token}`);
+          }
+
+          const profile = fs.readFileSync('./src/screens/ProfileScreen.tsx', 'utf8');
+          for (const token of ['useGateRoles', 'AdminSitesManager', 'AdminManagementApplications']) {
+            if (!profile.includes(token)) throw new Error(`Profil/Admin tokenı eksik: ${token}`);
+          }
+
+          const proScreen = fs.readFileSync('./src/screens/ManagementProCenter.tsx', 'utf8');
+          for (const token of ['dkd_gate_get_site_report','dkd_gate_get_subscription_center','dkd_gate_admin_get_monetization_center']) {
+            if (!proScreen.includes(token)) throw new Error(`${token} mobil arayüz bağlantısı eksik`);
+          }
+
+          console.log('DraBornGate v0.3.1, Android versionCode 1, rol/site/tarih/harita düzeltmeleri doğrulandı.');
+          NODE
