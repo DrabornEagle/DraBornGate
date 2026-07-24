@@ -2,7 +2,7 @@ name: DraBornGate v0.3.2 Validate
 
 on:
   push:
-    branches: [main, release/v0.3.2, hotfix/v0.3.2-payment-purge]
+    branches: [main, release/v0.3.2]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -39,6 +39,9 @@ jobs:
           path: dkd_payment_residue_v0_3_2.log
           if-no-files-found: error
           retention-days: 7
+
+      - name: Alternatif ödeme kalıntısı olmadığını doğrula
+        run: test ! -s dkd_payment_residue_v0_3_2.log
 
       - name: Node.js 22 kur
         uses: actions/setup-node@v4
