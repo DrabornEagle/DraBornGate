@@ -8,28 +8,35 @@ import { UserRole } from '../types';
 
 export type AppTab = 'home' | 'passes' | 'history' | 'profile';
 const tabs: AppTab[] = ['home', 'passes', 'history', 'profile'];
-const icons: Record<AppTab, keyof typeof Ionicons.glyphMap> = { home: 'home', passes: 'shield-checkmark', history: 'time', profile: 'person' };
+
+function icon(role: UserRole, tab: AppTab): keyof typeof Ionicons.glyphMap {
+  if (tab === 'passes' && role === 'management') return 'analytics';
+  if (tab === 'home') return 'home';
+  if (tab === 'passes') return 'shield-checkmark';
+  if (tab === 'history') return 'time';
+  return 'person';
+}
 
 function label(role: UserRole, tab: AppTab) {
   if (tab === 'home') return 'Ana Sayfa';
   if (tab === 'history') return role === 'resident' ? 'Bildirimler' : 'Kayıtlar';
   if (tab === 'profile') return 'Profil';
   if (role === 'security') return 'Kuyruk';
-  if (role === 'management') return 'Kurallar';
+  if (role === 'management') return 'Rapor/Paket';
   if (role === 'resident') return 'Misafir/Aidat';
   return 'Geçişler';
 }
 
 export function BottomDock({ role, current, onChange }: { role: UserRole; current: AppTab; onChange: (tab: AppTab) => void }) {
-  return <View style={s.wrapper} pointerEvents="box-none"><LinearGradient colors={gradients.panelColorful} style={s.dock}>{tabs.map((tab) => <DockItem key={tab} tab={tab} label={label(role, tab)} active={current === tab} onPress={() => { void Haptics.selectionAsync(); onChange(tab); }} />)}</LinearGradient></View>;
+  return <View style={s.wrapper} pointerEvents="box-none"><LinearGradient colors={gradients.panelColorful} style={s.dock}>{tabs.map((tab) => <DockItem key={tab} tab={tab} icon={icon(role, tab)} label={label(role, tab)} active={current === tab} onPress={() => { void Haptics.selectionAsync(); onChange(tab); }} />)}</LinearGradient></View>;
 }
 
-function DockItem({ tab, label: text, active, onPress }: { tab: AppTab; label: string; active: boolean; onPress: () => void }) {
+function DockItem({ icon: iconName, label: text, active, onPress }: { tab: AppTab; icon: keyof typeof Ionicons.glyphMap; label: string; active: boolean; onPress: () => void }) {
   const progress = useRef(new Animated.Value(active ? 1 : 0)).current;
   const press = useRef(new Animated.Value(1)).current;
   useEffect(() => { Animated.spring(progress, { toValue: active ? 1 : 0, damping: 18, stiffness: 210, mass: .72, useNativeDriver: true }).start(); }, [active, progress]);
   const scalePress = (value: number) => Animated.spring(press, { toValue: value, damping: 16, stiffness: 360, useNativeDriver: true }).start();
-  return <View style={s.slot}><Animated.View style={[s.item, { transform: [{ scale: press }, { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [0, -2] }) }] }]}><Pressable onPress={onPress} onPressIn={() => scalePress(.92)} onPressOut={() => scalePress(1)} style={s.pressable}><Animated.View pointerEvents="none" style={[s.surface, { opacity: progress, transform: [{ scale: progress.interpolate({ inputRange: [0, 1], outputRange: [.84, 1] }) }] }]} /><Animated.View pointerEvents="none" style={[s.line, { opacity: progress }]} /><Ionicons name={icons[tab]} size={active ? 24 : 22} color={active ? colors.cyan : colors.textMuted} /><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={.75} style={[s.label, active && s.activeLabel]}>{text}</Text><Animated.View pointerEvents="none" style={[s.dot, { opacity: progress }]} /></Pressable></Animated.View></View>;
+  return <View style={s.slot}><Animated.View style={[s.item, { transform: [{ scale: press }, { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [0, -2] }) }] }]}><Pressable onPress={onPress} onPressIn={() => scalePress(.92)} onPressOut={() => scalePress(1)} style={s.pressable}><Animated.View pointerEvents="none" style={[s.surface, { opacity: progress, transform: [{ scale: progress.interpolate({ inputRange: [0, 1], outputRange: [.84, 1] }) }] }]} /><Animated.View pointerEvents="none" style={[s.line, { opacity: progress }]} /><Ionicons name={iconName} size={active ? 24 : 22} color={active ? colors.cyan : colors.textMuted} /><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={.68} style={[s.label, active && s.activeLabel]}>{text}</Text><Animated.View pointerEvents="none" style={[s.dot, { opacity: progress }]} /></Pressable></Animated.View></View>;
 }
 
 const s = StyleSheet.create({
