@@ -2,7 +2,7 @@
   "expo": {
     "name": "DraBornGate",
     "slug": "draborngate",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "draborngate",
@@ -30,7 +30,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "DraBornGate profil fotoğrafı, teslimat görseli ve ödeme dekontu seçebilmek için fotoğraflarınıza erişir.",
+          "photosPermission": "DraBornGate profil fotoğrafı ve teslimat görseli seçebilmek için fotoğraflarınıza erişir.",
           "cameraPermission": "DraBornGate selfie veya teslimat görseli çekebilmek için kameraya erişir.",
           "microphonePermission": false
         }
@@ -52,8 +52,8 @@
       ]
     ],
     "extra": {
-      "appVersion": "0.3.1",
-      "demoDataVersion": "0.3.1",
+      "appVersion": "0.3.2",
+      "demoDataVersion": "0.3.2",
       "androidVersionCode": 1
     }
   }
