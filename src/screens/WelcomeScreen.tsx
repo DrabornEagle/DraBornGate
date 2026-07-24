@@ -17,70 +17,31 @@ const cards: Array<{
   tone: string;
   gradient: readonly [string, string, string];
 }> = [
-  {
-    role: 'courier',
-    title: 'Kurye Girişi',
-    text: 'Görsel okuma, kurye geçişi ve akıllı geçiş taleplerini yönet.',
-    icon: 'navigate',
-    tone: colors.cyan,
-    gradient: ['rgba(13,83,121,.98)', 'rgba(43,48,112,.98)', 'rgba(16,32,55,.98)'],
-  },
-  {
-    role: 'security',
-    title: 'Güvenlik Paneli',
-    text: 'Kurye ve misafir geçiş kodlarını kapı bazında doğrula.',
-    icon: 'shield-checkmark',
-    tone: colors.green,
-    gradient: ['rgba(18,91,76,.98)', 'rgba(20,67,77,.98)', 'rgba(16,32,55,.98)'],
-  },
-  {
-    role: 'resident',
-    title: 'Site Sakini',
-    text: 'Kuryelerini gör, misafir geçişi oluştur ve aidatlarını takip et.',
-    icon: 'home',
-    tone: colors.orange,
-    gradient: ['rgba(112,70,27,.98)', 'rgba(79,53,45,.98)', 'rgba(16,32,55,.98)'],
-  },
-  {
-    role: 'management',
-    title: 'Site Yönetimi',
-    text: 'Kurallar, aidat, gelir-gider ve günlük geçişleri yönet.',
-    icon: 'business',
-    tone: colors.magenta,
-    gradient: ['rgba(92,54,133,.98)', 'rgba(72,43,99,.98)', 'rgba(16,32,55,.98)'],
-  },
+  { role: 'courier', title: 'Kurye Girişi', text: 'Görsel okuma, kurye geçişi ve akıllı geçiş taleplerini yönet.', icon: 'navigate', tone: colors.cyan, gradient: ['rgba(13,83,121,.98)', 'rgba(43,48,112,.98)', 'rgba(16,32,55,.98)'] },
+  { role: 'security', title: 'Güvenlik Paneli', text: 'Kurye ve misafir geçiş kodlarını kapı bazında doğrula.', icon: 'shield-checkmark', tone: colors.green, gradient: ['rgba(18,91,76,.98)', 'rgba(20,67,77,.98)', 'rgba(16,32,55,.98)'] },
+  { role: 'resident', title: 'Site Sakini', text: 'Kuryelerini gör, misafir geçişi oluştur ve aidatlarını takip et.', icon: 'home', tone: colors.orange, gradient: ['rgba(112,70,27,.98)', 'rgba(79,53,45,.98)', 'rgba(16,32,55,.98)'] },
+  { role: 'management', title: 'Site Yönetimi', text: 'Kurallar, aidat, gelir-gider ve günlük geçişleri yönet.', icon: 'business', tone: colors.magenta, gradient: ['rgba(92,54,133,.98)', 'rgba(72,43,99,.98)', 'rgba(16,32,55,.98)'] },
 ];
 
-export function WelcomeScreen({ onSelectRole }: { onSelectRole: (role: UserRole) => void }) {
+export function WelcomeScreen({ roles, onSelectRole }: { roles: UserRole[]; onSelectRole: (role: UserRole) => void }) {
+  const visibleCards = cards.filter((item) => roles.includes(item.role));
   return (
     <AppBackground>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <FadeInView style={styles.badge}>
-          <PulseDot color={colors.green} />
-          <Text style={styles.badgeText}>ORTAK HESAP OTURUMU AÇIK</Text>
-        </FadeInView>
+        <FadeInView style={styles.badge}><PulseDot color={colors.green} /><Text style={styles.badgeText}>ORTAK HESAP OTURUMU AÇIK</Text></FadeInView>
         <FadeInView delay={60} style={styles.hero}>
-          <LinearGradient colors={gradients.courier} style={styles.logo}>
-            <RacingMotorcycle color={colors.cyan} accentColor={colors.white} size={90} />
-          </LinearGradient>
-          <Text style={styles.title}>Rolünü seç</Text>
+          <LinearGradient colors={gradients.courier} style={styles.logo}><RacingMotorcycle color={colors.cyan} accentColor={colors.white} size={90} /></LinearGradient>
+          <Text style={styles.title}>Aktif rolünü seç</Text>
           <Text style={styles.version}>DraBornGate v{APP_VERSION}</Text>
-          <Text style={styles.sub}>Bu yönetim aracı yalnızca Admin hesabında görünür. Gerçek işlem yetkileri site üyeliği ve veritabanı güvenlik kurallarıyla doğrulanır.</Text>
+          <Text style={styles.sub}>Yalnızca hesabına tanımlı roller gösterilir. Profil bölümünden bu roller arasında istediğin zaman geçiş yapabilirsin.</Text>
         </FadeInView>
         <View style={styles.cards}>
-          {cards.map((item, index) => (
+          {visibleCards.map((item, index) => (
             <FadeInView key={item.role} delay={130 + index * 60}>
               <AnimatedPressable onPress={() => onSelectRole(item.role)}>
                 <LinearGradient colors={item.gradient} style={[styles.card, { borderColor: `${item.tone}70` }]}>
-                  <View style={[styles.icon, { backgroundColor: `${item.tone}20` }]}>
-                    {item.role === 'courier'
-                      ? <RacingMotorcycle color={item.tone} size={56} />
-                      : <Ionicons name={item.icon} size={30} color={item.tone} />}
-                  </View>
-                  <View style={styles.copy}>
-                    <Text style={styles.cardTitle}>{item.title}</Text>
-                    <Text style={styles.cardText}>{item.text}</Text>
-                  </View>
+                  <View style={[styles.icon, { backgroundColor: `${item.tone}20` }]}>{item.role === 'courier' ? <RacingMotorcycle color={item.tone} size={56} /> : <Ionicons name={item.icon} size={30} color={item.tone} />}</View>
+                  <View style={styles.copy}><Text style={styles.cardTitle}>{item.title}</Text><Text style={styles.cardText}>{item.text}</Text></View>
                   <Ionicons name="arrow-forward" size={21} color={item.tone} />
                 </LinearGradient>
               </AnimatedPressable>
