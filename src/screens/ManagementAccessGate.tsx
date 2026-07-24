@@ -6,7 +6,7 @@ import { Panel, SectionTitle } from '../components/UI';
 import { useGateAdmin } from '../hooks/useGateAdmin';
 import { supabase } from '../lib/supabase';
 import { colors, radius, spacing } from '../theme';
-import { ManagementHome } from './ManagementHome';
+import { ManagementHomeV021 } from './ManagementHomeV021';
 
 type ManagementApplication = {
   id: string;
@@ -51,7 +51,7 @@ export function ManagementAccessGate() {
     );
   }
 
-  if (isAdmin || application?.status === 'approved') return <ManagementHome />;
+  if (isAdmin || application?.status === 'approved') return <ManagementHomeV021 />;
 
   const rejected = application?.status === 'rejected';
   return (
