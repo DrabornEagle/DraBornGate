@@ -6,7 +6,7 @@ import { Panel, SectionTitle } from '../components/UI';
 import { useGateAdmin } from '../hooks/useGateAdmin';
 import { supabase } from '../lib/supabase';
 import { colors, radius, spacing } from '../theme';
-import { ManagementHomeV021 } from './ManagementHomeV021';
+import { ManagementHomeV030 } from './ManagementHomeV030';
 
 type ManagementApplication = {
   id: string;
@@ -46,12 +46,12 @@ export function ManagementAccessGate() {
       <View style={styles.loading}>
         <ActivityIndicator size="large" color={colors.magenta} />
         <Text style={styles.loadingTitle}>Yönetim yetkisi kontrol ediliyor</Text>
-        <Text style={styles.loadingText}>Başvuru ve onay bilgilerin hazırlanıyor.</Text>
+        <Text style={styles.loadingText}>Başvuru, paket ve site bilgilerin hazırlanıyor.</Text>
       </View>
     );
   }
 
-  if (isAdmin || application?.status === 'approved') return <ManagementHomeV021 />;
+  if (isAdmin || application?.status === 'approved') return <ManagementHomeV030 />;
 
   const rejected = application?.status === 'rejected';
   return (
@@ -99,7 +99,7 @@ export function ManagementAccessGate() {
       <Panel style={styles.note}>
         <Ionicons name="shield-checkmark" size={24} color={colors.green} />
         <Text style={styles.noteText}>
-          Onay sonrasında site kaydı otomatik açılır. Ardından kendi güvenlik personelini, yöneticilerini ve site sakinlerini Site Yönetim Panelinden ekleyip güncelleyebilirsin.
+          Onay sonrasında site kaydı ve Profesyonel deneme paketi otomatik açılır. Güvenlik personelini, yöneticilerini ve site sakinlerini panelden ekleyebilir; v0.3 raporlarını kullanabilirsin.
         </Text>
       </Panel>
     </ScrollView>
