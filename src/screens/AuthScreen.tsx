@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,6 +19,13 @@ import { AnimatedPressable, FadeInView, FloatingView, PulseDot } from '../compon
 import { RacingMotorcycle } from '../components/RacingMotorcycle';
 import { AppBackground, Panel } from '../components/UI';
 import { APP_VERSION } from '../config/version';
+import {
+  pickProfilePhoto,
+  ProfilePhotoAsset,
+  storePendingProfilePhoto,
+  uploadPendingProfilePhoto,
+  uploadProfilePhotoAsset,
+} from '../lib/gateMedia';
 import { supabase } from '../lib/supabase';
 import { useGate } from '../store/GateContext';
 import { colors, gradients, radius, spacing } from '../theme';
@@ -39,8 +48,45 @@ export function AuthScreen() {
   const [siteName, setSiteName] = useState('');
   const [siteAddress, setSiteAddress] = useState('');
   const [city, setCity] = useState('Antalya');
+  const [photo, setPhoto] = useState<ProfilePhotoAsset>();
+  const [skipPhoto, setSkipPhoto] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const halo = useRef(new Animated.Value(0)).current;
 
-  const busy = loading || submitting;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(halo, { toValue: 1, duration: 2400, useNativeDriver: true }),
+      Animated.timing(halo, { toValue: 0, duration: 2400, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [halo]);
+
+  const busy = loading || submitting || photoBusy;
+
+  const choosePhoto = async (source: 'camera' | 'library') => {
+    setPhotoBusy(true);
+    try {
+      const selected = await pickProfilePhoto(source);
+      if (selected) {
+        setPhoto(selected);
+        setSkipPhoto(false);
+        void Haptics.selectionAsync();
+      }
+    } catch (caught) {
+      Alert.alert('Fotoğraf seçilemedi', caught instanceof Error ? caught.message : 'Tekrar dene.');
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  const finishPendingAvatar = async (userId: string, accountEmail: string) => {
+    try {
+      await uploadPendingProfilePhoto(userId, accountEmail);
+    } catch (caught) {
+      Alert.alert('Profil fotoğrafı bekliyor', caught instanceof Error ? caught.message : 'Profil bölümünden tekrar ekleyebilirsin.');
+    }
+  };
 
   const submit = async () => {
     const normalizedEmail = email.trim().toLowerCase();
@@ -53,8 +99,9 @@ export function AuthScreen() {
       const missing: string[] = [];
       if (!fullName.trim()) missing.push('Ad Soyad');
       if (!phone.trim()) missing.push('Telefon');
+      if (!photo && !skipPhoto) missing.push('Profil fotoğrafı veya “eklemeyeceğim” seçimi');
       if (registrationRole === 'courier' && !plate.trim()) missing.push('Motosiklet plakası');
-      if (registrationRole === 'management' && !siteName.trim()) missing.push('Site adı');
+      if (registrationRole === 'management' && !siteName.trim()) missing.push('Site / Apartman adı');
       if (registrationRole === 'management' && !siteAddress.trim()) missing.push('Site adresi');
       if (registrationRole === 'management' && !city.trim()) missing.push('Şehir');
       if (missing.length) {
@@ -67,6 +114,8 @@ export function AuthScreen() {
     try {
       if (mode === 'login') {
         await signIn(normalizedEmail, password);
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.user) await finishPendingAvatar(data.session.user.id, normalizedEmail);
       } else {
         const metadata = registrationRole === 'courier'
           ? {
@@ -76,6 +125,7 @@ export function AuthScreen() {
               signup_role: 'courier',
               delivery_platform: platform,
               motorcycle_plate: plate.trim().toUpperCase(),
+              profile_photo_selected: Boolean(photo),
             }
           : {
               full_name: fullName.trim(),
@@ -85,6 +135,7 @@ export function AuthScreen() {
               site_name: siteName.trim(),
               site_address: siteAddress.trim(),
               city: city.trim(),
+              profile_photo_selected: Boolean(photo),
             };
 
         const { data, error: signUpError } = await supabase.auth.signUp({
@@ -93,6 +144,16 @@ export function AuthScreen() {
           options: { data: metadata },
         });
         if (signUpError) throw signUpError;
+
+        if (photo && data.user) {
+          if (data.session) {
+            const path = await uploadProfilePhotoAsset(data.user.id, photo);
+            const { error: avatarError } = await supabase.rpc('dkd_gate_set_avatar', { p_avatar_url: path });
+            if (avatarError) throw avatarError;
+          } else {
+            await storePendingProfilePhoto(normalizedEmail, photo);
+          }
+        }
 
         if (data.session && registrationRole === 'management') {
           const { error: applicationError } = await supabase.rpc('dkd_gate_submit_management_application', {
@@ -109,11 +170,11 @@ export function AuthScreen() {
           Alert.alert(
             'E-postanı doğrula',
             registrationRole === 'management'
-              ? 'Hesabın ve Site Yönetimi başvurun oluşturuldu. E-posta doğrulamasından sonra giriş yapabilirsin; panel Admin onayından sonra açılır.'
-              : 'Hesabın oluşturuldu. E-posta doğrulamasından sonra DraBornGate veya DraBornGo üzerinden giriş yapabilirsin.',
+              ? 'Hesabın ve Site Yönetimi başvurun oluşturuldu. Onaylandığında girdiğin bilgilerle siten otomatik kurulacak. Seçtiğin profil fotoğrafı ilk girişinde güvenli alana yüklenecek.'
+              : 'Hesabın oluşturuldu. E-postanı doğrulayıp giriş yaptığında seçtiğin profil fotoğrafı otomatik yüklenecek.',
           );
         } else if (registrationRole === 'management') {
-          Alert.alert('Başvuru alındı', 'Site Yönetim Panelin, DraBornGate Admin onayından sonra otomatik açılacak.');
+          Alert.alert('Başvuru alındı', 'Admin onayından sonra site kaydın verdiğin ad ve adresle otomatik oluşturulacak.');
         }
       }
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -126,11 +187,7 @@ export function AuthScreen() {
 
   return (
     <AppBackground>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'android' ? 20 : 0}
-      >
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'android' ? 20 : 0}>
         <ScrollView
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
@@ -144,16 +201,24 @@ export function AuthScreen() {
           </FadeInView>
 
           <FadeInView delay={60} style={styles.hero}>
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.halo,
+                {
+                  opacity: halo.interpolate({ inputRange: [0, 1], outputRange: [.28, .64] }),
+                  transform: [{ scale: halo.interpolate({ inputRange: [0, 1], outputRange: [.88, 1.08] }) }],
+                },
+              ]}
+            />
             <FloatingView>
               <LinearGradient colors={gradients.courier} style={styles.logo}>
-                <RacingMotorcycle color={colors.cyan} accentColor={colors.white} size={92} />
+                <RacingMotorcycle color={colors.cyan} accentColor={colors.white} size={98} />
               </LinearGradient>
             </FloatingView>
             <Text style={styles.title}>DraBornGate</Text>
             <Text style={styles.version}>KURYE × GÜVENLİK • v{APP_VERSION}</Text>
-            <Text style={styles.subtitle}>
-              DraBornGo’da kullandığın hesapla giriş yapabilir, burada oluşturduğun hesabı DraBornGo’da kullanabilirsin.
-            </Text>
+            <Text style={styles.subtitle}>Tek hesapla geçiş, site yönetimi, ziyaretçi ve finans işlemlerini güvenli biçimde yönet.</Text>
           </FadeInView>
 
           <FadeInView delay={130}>
@@ -161,11 +226,10 @@ export function AuthScreen() {
               <View style={styles.tabs}>
                 {(['login', 'register'] as Mode[]).map((item) => (
                   <AnimatedPressable key={item} containerStyle={styles.tabWrap} onPress={() => setMode(item)}>
-                    <View style={[styles.tab, mode === item && styles.tabActive]}>
-                      <Text style={[styles.tabText, mode === item && styles.tabTextActive]}>
-                        {item === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}
-                      </Text>
-                    </View>
+                    <LinearGradient colors={mode === item ? gradients.primary : ['rgba(255,255,255,.025)', 'rgba(255,255,255,.012)']} style={[styles.tab, mode === item && styles.tabActive]}>
+                      <Ionicons name={item === 'login' ? 'log-in' : 'person-add'} size={18} color={mode === item ? colors.white : colors.textMuted} />
+                      <Text style={[styles.tabText, mode === item && styles.tabTextActive]}>{item === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}</Text>
+                    </LinearGradient>
                   </AnimatedPressable>
                 ))}
               </View>
@@ -174,25 +238,36 @@ export function AuthScreen() {
                 <>
                   <Text style={styles.groupLabel}>HESAP TÜRÜ</Text>
                   <View style={styles.roleGrid}>
-                    <RoleChoice
-                      active={registrationRole === 'courier'}
-                      icon="bicycle"
-                      title="Kurye"
-                      text="Geçiş talebi oluştur"
-                      tone={colors.cyan}
-                      onPress={() => setRegistrationRole('courier')}
-                    />
-                    <RoleChoice
-                      active={registrationRole === 'management'}
-                      icon="business"
-                      title="Site Yönetimi"
-                      text="Admin onayı gerekir"
-                      tone={colors.magenta}
-                      onPress={() => setRegistrationRole('management')}
-                    />
+                    <RoleChoice active={registrationRole === 'courier'} motorcycle title="Kurye" text="Geçiş talebi oluştur" tone={colors.cyan} onPress={() => setRegistrationRole('courier')} />
+                    <RoleChoice active={registrationRole === 'management'} icon="business" title="Site Yönetimi" text="Admin onayı gerekir" tone={colors.magenta} onPress={() => setRegistrationRole('management')} />
                   </View>
                   <Field icon="person" label="Ad Soyad" value={fullName} onChangeText={setFullName} autoCapitalize="words" />
                   <Field icon="call" label="Telefon" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+
+                  <Text style={styles.groupLabel}>PROFİL FOTOĞRAFI</Text>
+                  <LinearGradient colors={['rgba(55,216,255,.10)', 'rgba(228,109,255,.08)']} style={styles.photoCard}>
+                    <View style={styles.photoPreview}>
+                      {photo ? <Image source={{ uri: photo.uri }} style={styles.photoImage} /> : <Ionicons name="person" size={38} color={colors.cyan} />}
+                    </View>
+                    <View style={styles.photoCopy}>
+                      <Text style={styles.photoTitle}>{photo ? 'Fotoğraf hazır' : 'Selfie çek veya cihazdan seç'}</Text>
+                      <Text style={styles.photoText}>Kare kırpılır ve yalnızca özel profil alanında tutulur.</Text>
+                      <View style={styles.photoActions}>
+                        <AnimatedPressable onPress={() => void choosePhoto('camera')} disabled={busy}>
+                          <View style={styles.photoButton}><Ionicons name="camera" size={18} color={colors.green} /><Text style={styles.photoButtonText}>SELFIE</Text></View>
+                        </AnimatedPressable>
+                        <AnimatedPressable onPress={() => void choosePhoto('library')} disabled={busy}>
+                          <View style={styles.photoButton}><Ionicons name="images" size={18} color={colors.cyan} /><Text style={styles.photoButtonText}>CİHAZDAN SEÇ</Text></View>
+                        </AnimatedPressable>
+                      </View>
+                    </View>
+                  </LinearGradient>
+                  <AnimatedPressable onPress={() => { setSkipPhoto((current) => !current); if (!skipPhoto) setPhoto(undefined); }}>
+                    <View style={[styles.skipRow, skipPhoto && styles.skipRowActive]}>
+                      <Ionicons name={skipPhoto ? 'checkbox' : 'square-outline'} size={22} color={skipPhoto ? colors.orange : colors.textMuted} />
+                      <Text style={[styles.skipText, skipPhoto && { color: colors.orange }]}>Profil resmi eklemeyeceğim</Text>
+                    </View>
+                  </AnimatedPressable>
                 </>
               ) : null}
 
@@ -211,7 +286,7 @@ export function AuthScreen() {
                 <View style={styles.managementFields}>
                   <View style={styles.approvalNote}>
                     <Ionicons name="shield-checkmark" size={21} color={colors.orange} />
-                    <Text style={styles.approvalText}>Site bilgileri Admin tarafından incelenir. Onaydan sonra yönetim paneli ve site kaydı otomatik açılır.</Text>
+                    <Text style={styles.approvalText}>Başvuru onaylandığında aşağıdaki bilgilerle site otomatik oluşturulur. Yönetim panelinde tekrar “Site oluştur” işlemi yapılmaz.</Text>
                   </View>
                   <Field icon="business" label="Site / Apartman adı" value={siteName} onChangeText={setSiteName} autoCapitalize="words" />
                   <Field icon="location" label="Site adresi" value={siteAddress} onChangeText={setSiteAddress} multiline />
@@ -219,12 +294,7 @@ export function AuthScreen() {
                 </View>
               ) : null}
 
-              {error ? (
-                <View style={styles.error}>
-                  <Ionicons name="warning" size={18} color={colors.red} />
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              ) : null}
+              {error ? <View style={styles.error}><Ionicons name="warning" size={18} color={colors.red} /><Text style={styles.errorText}>{error}</Text></View> : null}
 
               <AnimatedPressable onPress={() => void submit()} disabled={busy}>
                 <LinearGradient colors={busy ? ['#395064', '#263A4B'] : gradients.primary} style={styles.button}>
@@ -252,27 +322,21 @@ function Field(props: React.ComponentProps<typeof TextInput> & { icon: keyof typ
       <Text style={styles.label}>{label}</Text>
       <View style={[styles.inputWrap, multiline && styles.inputWrapMultiline]}>
         <Ionicons name={icon} size={21} color={colors.cyan} />
-        <TextInput
-          {...inputProps}
-          multiline={multiline}
-          style={[styles.input, multiline && styles.inputMultiline]}
-          placeholderTextColor={colors.textMuted}
-          selectionColor={colors.cyan}
-        />
+        <TextInput {...inputProps} multiline={multiline} style={[styles.input, multiline && styles.inputMultiline]} placeholderTextColor={colors.textMuted} selectionColor={colors.cyan} />
       </View>
     </View>
   );
 }
 
-function RoleChoice({ active, icon, title, text, tone, onPress }: { active: boolean; icon: keyof typeof Ionicons.glyphMap; title: string; text: string; tone: string; onPress: () => void }) {
+function RoleChoice({ active, icon, motorcycle, title, text, tone, onPress }: { active: boolean; icon?: keyof typeof Ionicons.glyphMap; motorcycle?: boolean; title: string; text: string; tone: string; onPress: () => void }) {
   return (
     <AnimatedPressable containerStyle={styles.roleWrap} onPress={onPress}>
-      <View style={[styles.roleCard, active && { borderColor: tone, backgroundColor: `${tone}12` }]}>
-        <View style={[styles.roleIcon, { backgroundColor: `${tone}1C` }]}><Ionicons name={icon} size={25} color={tone} /></View>
+      <LinearGradient colors={active ? [`${tone}26`, 'rgba(17,36,58,.92)'] : ['rgba(255,255,255,.025)', 'rgba(255,255,255,.012)']} style={[styles.roleCard, active && { borderColor: tone }]}>
+        <View style={[styles.roleIcon, { backgroundColor: `${tone}1C` }]}>{motorcycle ? <RacingMotorcycle color={tone} size={48} /> : <Ionicons name={icon ?? 'person'} size={25} color={tone} />}</View>
         <Text style={styles.roleTitle}>{title}</Text>
         <Text style={styles.roleText}>{text}</Text>
         <Ionicons name={active ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={active ? tone : colors.textMuted} />
-      </View>
+      </LinearGradient>
     </AnimatedPressable>
   );
 }
@@ -283,22 +347,23 @@ const styles = StyleSheet.create({
   status: { alignSelf: 'center', minHeight: 38, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, borderColor: 'rgba(67,231,162,.35)', backgroundColor: 'rgba(67,231,162,.10)', flexDirection: 'row', alignItems: 'center', gap: 8 },
   statusText: { color: colors.green, fontSize: 11, fontWeight: '900', letterSpacing: .6 },
   hero: { alignItems: 'center' },
-  logo: { width: 116, height: 102, borderRadius: 34, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,.24)' },
+  halo: { position: 'absolute', top: 0, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(55,216,255,.20)' },
+  logo: { width: 126, height: 108, borderRadius: 36, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,.24)' },
   title: { color: colors.text, fontSize: 39, fontWeight: '900', marginTop: 15, letterSpacing: -1.2 },
   version: { color: colors.cyan, fontSize: 13, fontWeight: '900', marginTop: 4, letterSpacing: 1 },
   subtitle: { color: colors.textSoft, textAlign: 'center', fontSize: 15, lineHeight: 23, maxWidth: 360, marginTop: 10, fontWeight: '600' },
   form: { gap: 15 },
   tabs: { flexDirection: 'row', gap: 8 },
   tabWrap: { flex: 1 },
-  tab: { height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
-  tabActive: { backgroundColor: 'rgba(55,216,255,.13)', borderColor: colors.borderStrong },
+  tab: { height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, flexDirection: 'row', gap: 7 },
+  tabActive: { borderColor: colors.borderStrong },
   tabText: { color: colors.textMuted, fontSize: 14, fontWeight: '800' },
-  tabTextActive: { color: colors.cyan },
+  tabTextActive: { color: colors.white },
   groupLabel: { color: colors.textSoft, fontSize: 12, fontWeight: '900', letterSpacing: .6, marginTop: 2 },
   roleGrid: { flexDirection: 'row', gap: 9 },
   roleWrap: { flex: 1 },
-  roleCard: { minHeight: 132, borderRadius: 17, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', padding: 10 },
-  roleIcon: { width: 47, height: 47, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  roleCard: { minHeight: 142, borderRadius: 18, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', padding: 10 },
+  roleIcon: { width: 54, height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   roleTitle: { color: colors.text, fontSize: 15, fontWeight: '900', marginTop: 8 },
   roleText: { color: colors.textSoft, fontSize: 10, textAlign: 'center', marginTop: 3, marginBottom: 7 },
   label: { color: colors.textSoft, fontSize: 13, fontWeight: '900', marginBottom: 7 },
@@ -306,6 +371,18 @@ const styles = StyleSheet.create({
   inputWrapMultiline: { minHeight: 92, alignItems: 'flex-start', paddingTop: 16 },
   input: { flex: 1, minHeight: 56, color: colors.text, fontSize: 16, fontWeight: '700' },
   inputMultiline: { minHeight: 75, textAlignVertical: 'top', paddingTop: 0 },
+  photoCard: { borderRadius: 19, borderWidth: 1, borderColor: colors.borderStrong, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  photoPreview: { width: 82, height: 82, borderRadius: 26, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: 'rgba(55,216,255,.10)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  photoImage: { width: '100%', height: '100%' },
+  photoCopy: { flex: 1 },
+  photoTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  photoText: { color: colors.textSoft, fontSize: 10, lineHeight: 15, marginTop: 3 },
+  photoActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 9 },
+  photoButton: { minHeight: 38, borderRadius: 12, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  photoButtonText: { color: colors.text, fontSize: 9, fontWeight: '900' },
+  skipRow: { minHeight: 48, borderRadius: 15, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  skipRowActive: { borderColor: 'rgba(255,179,92,.48)', backgroundColor: 'rgba(255,179,92,.08)' },
+  skipText: { color: colors.textSoft, fontSize: 12, fontWeight: '800' },
   managementFields: { gap: 15 },
   approvalNote: { borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255,179,92,.36)', backgroundColor: 'rgba(255,179,92,.08)', padding: 11, flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
   approvalText: { flex: 1, color: colors.textSoft, fontSize: 12, lineHeight: 18 },
