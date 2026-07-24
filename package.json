@@ -1,6 +1,6 @@
 {
   "name": "draborngate",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "main": "index.ts",
   "description": "DraBornGate kurye ve ziyaretçi geçişi, site finansı, profesyonel raporlama, paket ve abonelik platformu",
