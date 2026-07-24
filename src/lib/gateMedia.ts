@@ -92,11 +92,13 @@ export async function selectAndUploadProfilePhoto(userId: string) {
     quality: 0.72,
     base64: true,
   });
-  if (result.canceled || !result.assets?.[0]?.base64) return null;
+  if (result.canceled || !result.assets?.[0]) return null;
   const asset = result.assets[0];
+  const base64 = asset.base64;
+  if (!base64) return null;
   const mimeType = asset.mimeType || 'image/jpeg';
   const path = `${userId}/profile/avatar.${extensionFor(mimeType)}`;
-  const upload = await supabase.storage.from('draborngate-private').upload(path, decode(asset.base64), {
+  const upload = await supabase.storage.from('draborngate-private').upload(path, decode(base64), {
     contentType: mimeType,
     upsert: true,
   });
