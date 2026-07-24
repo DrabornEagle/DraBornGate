@@ -78,8 +78,13 @@ jobs:
           if (!migrations.length) throw new Error('v0.3.1 migration dosyası yok');
 
           const auth = fs.readFileSync('./src/screens/AuthScreen.tsx', 'utf8');
-          for (const token of ['pickProfilePhoto', 'Profil resmi eklemeyeceğim', 'Trendyol / Uber Eats']) {
+          for (const token of ['pickProfilePhoto', 'Profil resmi eklemeyeceğim', 'Hesap Oluştur']) {
             if (!auth.includes(token)) throw new Error(`Kayıt ekranı tokenı eksik: ${token}`);
+          }
+
+          const platform = fs.readFileSync('./src/components/DeliveryPlatformPicker.tsx', 'utf8');
+          for (const token of ['Trendyol / Uber Eats', 'UBER', 'EATS', 'RacingMotorcycle']) {
+            if (!platform.includes(token)) throw new Error(`Teslimat platformu tokenı eksik: ${token}`);
           }
 
           const management = fs.readFileSync('./src/screens/ManagementHomeV031.tsx', 'utf8');
