@@ -262,7 +262,7 @@ export function GateProvider({ children }: PropsWithChildren) {
   const [release, setRelease] = useState<GateRelease>();
   const sessionRef = useRef<Session | null>(null);
   const firstNotificationLoad = useRef(true);
-  const latestNotificationId = useRef<string>();
+  const latestNotificationId = useRef<string | undefined>(undefined);
 
   const clearData = useCallback(() => {
     setProfile(undefined); setCourierProfile(undefined); setResidentProfiles([]); setSites([]); setGates([]); setPasses([]); setActivities([]); setRules([]); setRuleAcceptances([]); setVisitors([]); setNotifications([]); setDuesPeriods([]); setDuesCharges([]); setFinanceTransactions([]); setSettings(undefined); setRelease(undefined); setError(undefined);
