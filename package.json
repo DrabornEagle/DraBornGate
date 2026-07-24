@@ -1,6 +1,6 @@
 {
   "name": "draborngate",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "main": "index.ts",
   "description": "DraBornGate kurye ve ziyaretçi geçişi, site finansı, profesyonel raporlama, paket ve abonelik platformu",
@@ -21,6 +21,7 @@
     "expo": "~57.0.7",
     "expo-constants": "~57.0.5",
     "expo-haptics": "~57.0.1",
+    "expo-iap": "^4.7.0",
     "expo-image-picker": "~57.0.6",
     "expo-linear-gradient": "~57.0.1",
     "expo-location": "~57.0.6",
