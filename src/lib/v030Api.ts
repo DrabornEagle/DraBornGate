@@ -62,6 +62,10 @@ export interface SubscriptionPaymentRequest {
   admin_note?: string | null;
   reviewed_at?: string | null;
   created_at: string;
+  invoice_number?: string | null;
+  invoice_status?: string | null;
+  period_start?: string | null;
+  period_end?: string | null;
 }
 
 export interface SubscriptionInvoice {
@@ -76,6 +80,16 @@ export interface SubscriptionInvoice {
   period_start: string;
   period_end: string;
   issued_at: string;
+}
+
+export interface BillingSettings {
+  singleton: boolean;
+  bank_name?: string | null;
+  account_holder?: string | null;
+  iban?: string | null;
+  instructions?: string | null;
+  is_active: boolean;
+  updated_at?: string | null;
 }
 
 export interface SubscriptionUsage {
@@ -95,6 +109,8 @@ export interface SiteSubscriptionDashboard {
   pending_request?: SubscriptionPaymentRequest | null;
   latest_invoice?: SubscriptionInvoice | null;
   invoices: SubscriptionInvoice[];
+  payments: SubscriptionPaymentRequest[];
+  billing: BillingSettings;
   usage: SubscriptionUsage;
 }
 
@@ -147,6 +163,14 @@ export interface SiteReport {
   usage: Record<string, { used: number; limit: number }>;
 }
 
+export interface ReportExport {
+  id: string;
+  date_from: string;
+  date_to: string;
+  row_count: number;
+  csv: string;
+}
+
 export interface AdminSubscriptionDashboard {
   total_revenue: number;
   revenue_this_month: number;
@@ -190,6 +214,37 @@ function normalizePlan(raw: Record<string, unknown>): SubscriptionPlan {
   };
 }
 
+function normalizeBilling(raw: unknown): BillingSettings {
+  const value = (raw ?? {}) as Record<string, unknown>;
+  return {
+    singleton: value.singleton !== false,
+    bank_name: value.bank_name == null ? null : String(value.bank_name),
+    account_holder: value.account_holder == null ? null : String(value.account_holder),
+    iban: value.iban == null ? null : String(value.iban),
+    instructions: value.instructions == null ? null : String(value.instructions),
+    is_active: value.is_active === true,
+    updated_at: value.updated_at == null ? null : String(value.updated_at),
+  };
+}
+
+function normalizeUsage(raw: unknown): SubscriptionUsage {
+  const value = (raw ?? {}) as Record<string, unknown>;
+  const nested = (key: string) => {
+    const item = value[key];
+    if (typeof item === 'object' && item !== null) return numberValue((item as Record<string, unknown>).used);
+    return numberValue(item);
+  };
+  return {
+    sites: nested('sites'),
+    gates: nested('gates'),
+    staff: nested('staff'),
+    residents: nested('residents'),
+    monthly_courier_passes: nested('monthly_courier_passes') || nested('courier_passes_month'),
+    monthly_visitor_passes: nested('monthly_visitor_passes') || nested('visitor_passes_month'),
+    monthly_report_exports: nested('monthly_report_exports'),
+  };
+}
+
 export async function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
   const { data, error } = await supabase.rpc('dkd_gate_get_subscription_plans');
   if (error) throw error;
@@ -197,17 +252,26 @@ export async function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
 }
 
 export async function getSiteSubscriptionDashboard(siteId: string): Promise<SiteSubscriptionDashboard> {
-  const { data, error } = await supabase.rpc('dkd_gate_get_site_subscription_dashboard', { p_site_id: siteId });
-  if (error) throw error;
-  const raw = (data ?? {}) as Record<string, unknown>;
+  const [centerResult, dashboardResult] = await Promise.all([
+    supabase.rpc('dkd_gate_get_subscription_center', { p_site_id: siteId }),
+    supabase.rpc('dkd_gate_get_site_subscription_dashboard', { p_site_id: siteId }),
+  ]);
+  if (centerResult.error) throw centerResult.error;
+  if (dashboardResult.error) throw dashboardResult.error;
+  const center = (centerResult.data ?? {}) as Record<string, unknown>;
+  const dashboard = (dashboardResult.data ?? {}) as Record<string, unknown>;
+  const payments = Array.isArray(center.payments) ? center.payments as SubscriptionPaymentRequest[] : [];
+  const invoices = Array.isArray(dashboard.invoices) ? dashboard.invoices as SubscriptionInvoice[] : [];
   return {
-    site_id: String(raw.site_id ?? siteId),
-    subscription: (raw.subscription ?? {}) as SiteSubscription,
-    plan: normalizePlan((raw.plan ?? {}) as Record<string, unknown>),
-    pending_request: (raw.pending_request ?? null) as SubscriptionPaymentRequest | null,
-    latest_invoice: (raw.latest_invoice ?? null) as SubscriptionInvoice | null,
-    invoices: Array.isArray(raw.invoices) ? raw.invoices as SubscriptionInvoice[] : [],
-    usage: (raw.usage ?? {}) as SubscriptionUsage,
+    site_id: String(center.site_id ?? dashboard.site_id ?? siteId),
+    subscription: (center.subscription ?? dashboard.subscription ?? {}) as SiteSubscription,
+    plan: normalizePlan((center.effective_plan ?? dashboard.plan ?? {}) as Record<string, unknown>),
+    pending_request: payments.find((item) => item.status === 'pending') ?? (dashboard.pending_request ?? null) as SubscriptionPaymentRequest | null,
+    latest_invoice: (dashboard.latest_invoice ?? invoices[0] ?? null) as SubscriptionInvoice | null,
+    invoices,
+    payments,
+    billing: normalizeBilling(center.billing),
+    usage: normalizeUsage(center.usage ?? dashboard.usage),
   };
 }
 
@@ -216,22 +280,40 @@ export async function createSubscriptionPaymentRequest(input: {
   planCode: string;
   billingCycle: BillingCycle;
   bankReference?: string;
-  receiptPath?: string;
+  receiptPath: string;
 }) {
-  const { data, error } = await supabase.rpc('dkd_gate_create_subscription_payment_request', {
+  const { data, error } = await supabase.rpc('dkd_gate_submit_subscription_payment', {
     p_site_id: input.siteId,
     p_plan_code: input.planCode,
     p_billing_cycle: input.billingCycle,
     p_bank_reference: input.bankReference?.trim() || null,
-    p_receipt_path: input.receiptPath?.trim() || null,
+    p_receipt_path: input.receiptPath.trim(),
   });
   if (error) throw error;
   return String(data);
 }
 
 export async function cancelSubscriptionPaymentRequest(requestId: string) {
-  const { error } = await supabase.rpc('dkd_gate_cancel_subscription_payment_request', { p_request_id: requestId });
+  const { error } = await supabase.rpc('dkd_gate_cancel_subscription_payment', { p_request_id: requestId });
   if (error) throw error;
+}
+
+export async function setSubscriptionCancellation(siteId: string, cancel: boolean) {
+  const { data, error } = await supabase.rpc('dkd_gate_set_subscription_cancellation', {
+    p_site_id: siteId,
+    p_cancel: cancel,
+  });
+  if (error) throw error;
+  return data as SiteSubscription;
+}
+
+export async function startSiteTrial(siteId: string, planCode = 'professional') {
+  const { data, error } = await supabase.rpc('dkd_gate_start_site_trial', {
+    p_site_id: siteId,
+    p_plan_code: planCode,
+  });
+  if (error) throw error;
+  return data as SiteSubscription;
 }
 
 export async function getSiteReport(siteId: string, dateFrom: string, dateTo: string): Promise<SiteReport> {
@@ -246,16 +328,21 @@ export async function getSiteReport(siteId: string, dateFrom: string, dateTo: st
   return raw;
 }
 
-export async function logReportExport(siteId: string, dateFrom: string, dateTo: string, reportType: string, rowCount: number) {
-  const { data, error } = await supabase.rpc('dkd_gate_log_report_export', {
+export async function prepareReportExport(siteId: string, dateFrom: string, dateTo: string): Promise<ReportExport> {
+  const { data, error } = await supabase.rpc('dkd_gate_prepare_report_export', {
     p_site_id: siteId,
     p_date_from: dateFrom,
     p_date_to: dateTo,
-    p_report_type: reportType,
-    p_row_count: rowCount,
   });
   if (error) throw error;
-  return String(data);
+  const raw = (data ?? {}) as Record<string, unknown>;
+  return {
+    id: String(raw.id ?? ''),
+    date_from: String(raw.date_from ?? dateFrom),
+    date_to: String(raw.date_to ?? dateTo),
+    row_count: numberValue(raw.row_count),
+    csv: String(raw.csv ?? ''),
+  };
 }
 
 export async function getAdminSubscriptionDashboard(): Promise<AdminSubscriptionDashboard> {
@@ -281,13 +368,13 @@ export async function getAdminPaymentRequests(): Promise<SubscriptionPaymentRequ
 }
 
 export async function decideSubscriptionPaymentRequest(requestId: string, status: 'approved' | 'rejected', adminNote?: string) {
-  const { data, error } = await supabase.rpc('dkd_gate_admin_decide_subscription_payment_request', {
+  const { data, error } = await supabase.rpc('dkd_gate_admin_decide_subscription_payment', {
     p_request_id: requestId,
     p_status: status,
     p_admin_note: adminNote?.trim() || null,
   });
   if (error) throw error;
-  return String(data);
+  return data as Record<string, unknown>;
 }
 
 export async function updateSubscriptionPlan(plan: SubscriptionPlan) {
@@ -312,6 +399,23 @@ export async function updateSubscriptionPlan(plan: SubscriptionPlan) {
     p_trial_days: plan.trial_days,
     p_is_public: plan.is_public,
     p_is_active: plan.is_active,
+  });
+  if (error) throw error;
+}
+
+export async function getAdminBillingSettings(): Promise<BillingSettings> {
+  const { data, error } = await supabase.rpc('dkd_gate_admin_get_billing_settings');
+  if (error) throw error;
+  return normalizeBilling(data);
+}
+
+export async function updateBillingSettings(settings: BillingSettings) {
+  const { error } = await supabase.rpc('dkd_gate_admin_update_billing_settings', {
+    p_bank_name: settings.bank_name?.trim() || null,
+    p_account_holder: settings.account_holder?.trim() || null,
+    p_iban: settings.iban?.replace(/\s+/g, '').toUpperCase() || null,
+    p_instructions: settings.instructions?.trim() || null,
+    p_is_active: settings.is_active,
   });
   if (error) throw error;
 }
