@@ -1,6 +1,6 @@
 {
   "name": "draborngate",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "main": "index.ts",
   "description": "DraBornGate kurye ve ziyaretçi geçişi, site finansı, profesyonel raporlama, paket ve abonelik platformu",
@@ -15,6 +15,7 @@
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/datetimepicker": "9.1.0",
     "@supabase/supabase-js": "^2.57.4",
     "base64-arraybuffer": "^1.0.2",
     "expo": "~57.0.7",
@@ -27,6 +28,7 @@
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
     "react-native": "0.86.0",
+    "react-native-maps": "1.27.2",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-svg": "15.15.4",
     "react-native-url-polyfill": "^2.0.0"
