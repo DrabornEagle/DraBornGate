@@ -1,0 +1,52 @@
+name: DraBornGate v0.2.1 Validate
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: draborngate-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      - name: Node.js 22 kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Bağımlılıkları kur
+        run: npm install --no-audit --no-fund
+
+      - name: TypeScript kontrolü
+        run: npm run typecheck
+
+      - name: Android Expo dışa aktarma testi
+        run: npx expo export --platform android --output-dir dist --max-workers 2 --no-bytecode
+
+      - name: Sürüm doğrulaması
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const pkg = require('./package.json');
+          const app = require('./app.json').expo;
+          const versionFile = fs.readFileSync('./src/config/version.ts', 'utf8');
+          const expected = '0.2.1';
+          if (pkg.version !== expected) throw new Error(`package.json sürümü ${pkg.version}`);
+          if (app.version !== expected) throw new Error(`app.json sürümü ${app.version}`);
+          if (app.android.versionCode !== 1) throw new Error(`Android versionCode ${app.android.versionCode}`);
+          if (!versionFile.includes(`APP_VERSION = '${expected}'`)) throw new Error('APP_VERSION eşleşmiyor');
+          if (!versionFile.includes("ANDROID_VERSION_CODE = 1")) throw new Error('ANDROID_VERSION_CODE eşleşmiyor');
+          console.log('DraBornGate v0.2.1 / Android versionCode 1 doğrulandı.');
+          NODE
