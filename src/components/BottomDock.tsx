@@ -37,7 +37,7 @@ const s = StyleSheet.create({
   dock: { width: '100%', minHeight: 76, flexDirection: 'row', alignItems: 'stretch', borderRadius: radius.xl, padding: 7, borderWidth: 1, borderColor: colors.borderStrong, overflow: 'hidden' },
   slot: { width: '25%', flexBasis: '25%', flexGrow: 0, flexShrink: 0, minWidth: 0, paddingHorizontal: 2 }, item: { width: '100%', height: 62 },
   pressable: { width: '100%', height: '100%', borderRadius: 20, alignItems: 'center', justifyContent: 'center', gap: 4, overflow: 'hidden' },
-  surface: { ...StyleSheet.absoluteFillObject, borderRadius: 20, backgroundColor: 'rgba(55,216,255,.13)', borderWidth: 1, borderColor: 'rgba(55,216,255,.29)' },
+  surface: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: 20, backgroundColor: 'rgba(55,216,255,.13)', borderWidth: 1, borderColor: 'rgba(55,216,255,.29)' },
   line: { position: 'absolute', top: 0, width: 32, height: 3, borderBottomLeftRadius: 3, borderBottomRightRadius: 3, backgroundColor: colors.cyan },
   dot: { position: 'absolute', bottom: 5, width: 5, height: 5, borderRadius: 5, backgroundColor: colors.cyan },
   label: { width: '100%', paddingHorizontal: 1, fontSize: 10, color: colors.textMuted, fontWeight: '800', textAlign: 'center' }, activeLabel: { color: colors.cyan, fontWeight: '900' },
