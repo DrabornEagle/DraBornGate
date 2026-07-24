@@ -1,4 +1,4 @@
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
@@ -14,8 +14,7 @@ export function DateField({ label, value, onChange, optional = false }: { label:
   const [open, setOpen] = useState(false);
   const date = useMemo(() => safeDate(value), [value]);
   const text = value ? date.toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric' }) : 'Tarih seçilmedi';
-  const change = (_event: DateTimePickerEvent, selected?: Date) => {
-    if (!selected) return;
+  const change = (_event: DateTimePickerChangeEvent, selected: Date) => {
     const normalized = new Date(selected);
     normalized.setHours(12, 0, 0, 0);
     onChange(normalized.toISOString());
