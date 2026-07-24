@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+// DraBornGate v0.3.2 tek seferlik görünür metin temizliği.
 const replacements = new Map([
   ['CourierPass + AirPass + VisitorPass', 'Kurye Geçişi + Akıllı Geçiş + Ziyaretçi Geçişi'],
   [">CourierPass<", ">Kurye Geçişi<"],
@@ -20,7 +21,7 @@ function walk(dir) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) walk(full);
     else if (textExtensions.has(path.extname(entry.name))) {
-      let source = fs.readFileSync(full, 'utf8');
+      const source = fs.readFileSync(full, 'utf8');
       let next = source;
       for (const [from, to] of replacements) {
         if (from === 'AirPass' || from === 'CourierPass' || from === 'VisitorPass') continue;
