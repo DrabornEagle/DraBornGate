@@ -86,7 +86,7 @@ insert into draborngate.dkd_gate_app_releases(
   version,android_version_code,demo_data_version,notes,released_at
 ) values(
   '0.3.0',1,'0.3.0',
-  'Profesyonel site raporları, günlük/saatlik yoğunluk, kapı-platform-kurye-güvenlik performansı, finans ve aidat analizi, CSV paylaşımı, Başlangıç/Profesyonel/Kurumsal paketler, kullanım limitleri, ücretsiz deneme, IBAN-dekont ödeme talebi, Admin onayı, tahsilat belgesi, abonelik ve gelir yönetimi.',
+  'Profesyonel site raporları, günlük/saatlik yoğunluk, kapı-platform-kurye-güvenlik performansı, finans ve aidat analizi, CSV paylaşımı, Başlangıç/Profesyonel/Kurumsal paketler, kullanım limitleri, ücretsiz deneme ve Google Play uyumlu abonelik yönetimi.',
   now()
 )
 on conflict(version) do update set

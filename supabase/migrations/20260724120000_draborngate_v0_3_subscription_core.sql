@@ -35,7 +35,7 @@ create table if not exists draborngate.dkd_gate_site_subscriptions (
   trial_started_at timestamptz,
   trial_ends_at timestamptz,
   cancel_at_period_end boolean not null default false,
-  source text not null default 'system' check (source in ('system','trial','payment','admin','demo')),
+  source text not null default 'system' check (source in ('system','trial','google_play','admin','demo')),
   approved_by uuid references auth.users(id) on delete set null,
   notes text,
   created_at timestamptz not null default now(),
@@ -47,51 +47,6 @@ create table if not exists draborngate.dkd_gate_trial_claims (
   site_id uuid references draborngate.dkd_gate_sites(id) on delete set null,
   plan_code text not null references draborngate.dkd_gate_subscription_plans(code),
   claimed_at timestamptz not null default now()
-);
-
-create table if not exists draborngate.dkd_gate_subscription_payment_requests (
-  id uuid primary key default gen_random_uuid(),
-  site_id uuid not null references draborngate.dkd_gate_sites(id) on delete cascade,
-  plan_code text not null references draborngate.dkd_gate_subscription_plans(code),
-  requested_by uuid not null references auth.users(id) on delete cascade,
-  billing_cycle text not null check (billing_cycle in ('monthly','yearly')),
-  amount numeric(12,2) not null check (amount >= 0),
-  currency text not null default 'TRY',
-  bank_reference text,
-  receipt_path text,
-  status text not null default 'pending' check (status in ('pending','approved','rejected','cancelled')),
-  admin_note text,
-  reviewed_by uuid references auth.users(id) on delete set null,
-  reviewed_at timestamptz,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create table if not exists draborngate.dkd_gate_subscription_invoices (
-  id uuid primary key default gen_random_uuid(),
-  invoice_number text not null unique,
-  payment_request_id uuid not null unique references draborngate.dkd_gate_subscription_payment_requests(id) on delete restrict,
-  site_id uuid not null references draborngate.dkd_gate_sites(id) on delete restrict,
-  plan_code text not null references draborngate.dkd_gate_subscription_plans(code),
-  billing_cycle text not null check (billing_cycle in ('monthly','yearly')),
-  amount numeric(12,2) not null check (amount >= 0),
-  currency text not null default 'TRY',
-  status text not null default 'paid' check (status in ('paid','cancelled')),
-  period_start timestamptz not null,
-  period_end timestamptz not null,
-  issued_at timestamptz not null default now(),
-  created_at timestamptz not null default now()
-);
-
-create table if not exists draborngate.dkd_gate_billing_settings (
-  singleton boolean primary key default true check (singleton),
-  bank_name text,
-  account_holder text,
-  iban text,
-  instructions text,
-  is_active boolean not null default false,
-  updated_by uuid references auth.users(id) on delete set null,
-  updated_at timestamptz not null default now()
 );
 
 create table if not exists draborngate.dkd_gate_report_exports (
@@ -121,18 +76,11 @@ create table if not exists draborngate.dkd_gate_audit_logs (
 alter table draborngate.dkd_gate_subscription_plans enable row level security;
 alter table draborngate.dkd_gate_site_subscriptions enable row level security;
 alter table draborngate.dkd_gate_trial_claims enable row level security;
-alter table draborngate.dkd_gate_subscription_payment_requests enable row level security;
-alter table draborngate.dkd_gate_subscription_invoices enable row level security;
-alter table draborngate.dkd_gate_billing_settings enable row level security;
 alter table draborngate.dkd_gate_report_exports enable row level security;
 alter table draborngate.dkd_gate_audit_logs enable row level security;
 
 create index if not exists dkd_gate_site_subscriptions_status_idx
   on draborngate.dkd_gate_site_subscriptions(status, current_period_end, trial_ends_at);
-create index if not exists dkd_gate_subscription_payments_status_idx
-  on draborngate.dkd_gate_subscription_payment_requests(status, created_at desc);
-create index if not exists dkd_gate_subscription_payments_site_idx
-  on draborngate.dkd_gate_subscription_payment_requests(site_id, created_at desc);
 create index if not exists dkd_gate_report_exports_site_idx
   on draborngate.dkd_gate_report_exports(site_id, created_at desc);
 create index if not exists dkd_gate_audit_logs_site_idx
@@ -171,9 +119,6 @@ on conflict (code) do update set
   sort_order=excluded.sort_order,
   updated_at=now();
 
-insert into draborngate.dkd_gate_billing_settings(singleton,is_active)
-values(true,false)
-on conflict (singleton) do nothing;
 
 create or replace function draborngate.dkd_gate_effective_plan_code(p_site_id uuid)
 returns text
@@ -434,9 +379,6 @@ create trigger dkd_gate_site_subscriptions_updated_at
 before update on draborngate.dkd_gate_site_subscriptions
 for each row execute function draborngate.dkd_gate_set_updated_at();
 
-create trigger dkd_gate_subscription_payment_requests_updated_at
-before update on draborngate.dkd_gate_subscription_payment_requests
-for each row execute function draborngate.dkd_gate_set_updated_at();
 
 with ranked as (
   select s.id,s.owner_user_id,s.is_demo,
