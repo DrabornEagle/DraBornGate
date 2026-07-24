@@ -14,6 +14,15 @@ export const createGateSite = (input: { name: string; address: string; city: str
   p_longitude: input.longitude ?? null,
 });
 
+export const updateGateSite = (input: { siteId: string; name: string; address: string; city: string; latitude?: number; longitude?: number }) => rpc<string>('dkd_gate_update_site', {
+  p_site_id: input.siteId,
+  p_name: input.name,
+  p_address: input.address,
+  p_city: input.city,
+  p_latitude: input.latitude ?? null,
+  p_longitude: input.longitude ?? null,
+});
+
 export const upsertSiteGate = (input: { siteId: string; name: string; stage?: string; entryPoint?: string; latitude?: number; longitude?: number; airpassEnabled: boolean; gateId?: string }) => rpc<string>('dkd_gate_upsert_gate', {
   p_site_id: input.siteId,
   p_name: input.name,
