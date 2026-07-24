@@ -1,9 +1,9 @@
 {
   "name": "draborngate",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": true,
   "main": "index.ts",
-  "description": "DraBornGate kurye geçişi, akıllı geçiş, ziyaretçi, site sakini ve site finans platformu",
+  "description": "DraBornGate kurye geçişi, akıllı geçiş, ziyaretçi, site sakini, site finansı, profesyonel raporlama ve abonelik platformu",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
