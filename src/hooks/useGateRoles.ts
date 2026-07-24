@@ -10,10 +10,10 @@ export function useGateRoles() {
   const [roles, setRoles] = useState<UserRole[]>(['courier']);
   const [loading, setLoading] = useState(false);
 
-  const refreshRoles = useCallback(async () => {
+  const refreshRoles = useCallback(async (): Promise<UserRole[]> => {
     if (!gate.session) {
       setRoles(['courier']);
-      return ['courier'] as UserRole[];
+      return ['courier'];
     }
     setLoading(true);
     try {
@@ -22,7 +22,7 @@ export function useGateRoles() {
       const next = Array.isArray(data)
         ? data.filter((item): item is UserRole => typeof item === 'string' && validRoles.includes(item as UserRole))
         : [];
-      const normalized = next.length ? Array.from(new Set(next)) : ['courier'];
+      const normalized: UserRole[] = next.length ? Array.from(new Set<UserRole>(next)) : ['courier'];
       setRoles(normalized);
       return normalized;
     } finally {
