@@ -3,6 +3,8 @@ name: DraBornGate v0.2.1 Validate
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
