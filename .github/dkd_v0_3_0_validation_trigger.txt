@@ -1,0 +1,2 @@
+DraBornGate v0.3.0 final validation.
+Android versionCode remains 1.
