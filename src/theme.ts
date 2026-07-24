@@ -2,6 +2,7 @@ export const colors = {
   background: '#06101D',
   backgroundSoft: '#091827',
   surface: '#0D2033',
+  panel: '#0D2033',
   surfaceRaised: '#12283E',
   surfaceMuted: '#173047',
   border: 'rgba(151, 205, 255, 0.16)',
