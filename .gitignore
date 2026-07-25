@@ -12,6 +12,7 @@ yarn-error.*
 .env
 .env.*
 !.env.example
+package-lock.json
 *firebase-adminsdk*.json
 *service-account*.json
 *service_account*.json
