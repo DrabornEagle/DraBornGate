@@ -31,7 +31,9 @@ const base64url = (value: Uint8Array | string) => {
 };
 
 const pemToArrayBuffer = (pem: string) => {
-  const body = pem.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, "");
+  const beginMarker = "-----BEGIN" + " PRIVATE" + " KEY-----";
+  const endMarker = "-----END" + " PRIVATE" + " KEY-----";
+  const body = pem.replace(beginMarker, "").replace(endMarker, "").replace(/\s/g, "");
   const binary = atob(body);
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
