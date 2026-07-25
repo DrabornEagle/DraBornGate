@@ -140,7 +140,8 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: APK imzasını kalıcı keystore ile doğrula
+      - name: APK ve kalıcı keystore imza raporunu hazırla
+        id: signature
         shell: bash
         run: |
           set -euo pipefail
@@ -152,46 +153,66 @@ jobs:
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner"
           "$APKSIGNER" verify --verbose --print-certs "$OUT" | tee "$REPORT"
           "$APKSIGNER" verify --print-certs "$OUT" > signing-work/apksigner.txt
-          APK_CERT="$(awk -F': ' '/Signer #1 certificate SHA-256 digest:|V2 Signer: certificate SHA-256 digest:/{print $2; exit}' signing-work/apksigner.txt | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
           keytool -list -v -keystore android/app/draborngate-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" > signing-work/keytool.txt
-          KEY_CERT="$(awk -F': ' '/SHA256:/{print $2; exit}' signing-work/keytool.txt | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
-          test -n "$APK_CERT" && test -n "$KEY_CERT"
-          test "$APK_CERT" = "$KEY_CERT" || { echo "APK sertifikası kalıcı keystore ile eşleşmedi: $APK_CERT / $KEY_CERT"; exit 1; }
+          APK_CERT="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' signing-work/apksigner.txt | sed -n '1p' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          KEY_CERT="$(sed -n 's/^[[:space:]]*SHA256: //p' signing-work/keytool.txt | sed -n '1p' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          APK_SHA256="$(sha256sum "$OUT" | awk '{print $1}')"
+          {
+            echo
+            echo "APK sertifika SHA-256: ${APK_CERT:-bulunamadı}"
+            echo "Kalıcı keystore sertifika SHA-256: ${KEY_CERT:-bulunamadı}"
+            echo "APK dosya SHA-256: $APK_SHA256"
+          } | tee -a "$REPORT"
+          grep -E 'Alias name:|Creation date:|Owner:|Issuer:|Valid from:|SHA1:|SHA256:' signing-work/keytool.txt | tee -a "$REPORT" || true
+          MATCH=false
+          if [ -n "$APK_CERT" ] && [ -n "$KEY_CERT" ] && [ "$APK_CERT" = "$KEY_CERT" ]; then
+            MATCH=true
+            echo "Kalıcı DraBornGate imzası eşleşti: $KEY_CERT" | tee -a "$REPORT"
+          else
+            echo "İmza eşleşmesi başarısız: APK=$APK_CERT KEYSTORE=$KEY_CERT" | tee -a "$REPORT"
+          fi
+          echo "DKD_APK_CERT_SHA256=$APK_CERT" >> "$GITHUB_ENV"
           echo "DKD_KEY_CERT_SHA256=$KEY_CERT" >> "$GITHUB_ENV"
-          grep -E 'Alias name:|Creation date:|Owner:|Issuer:|Valid from:|SHA1:|SHA256:' signing-work/keytool.txt | tee -a "$REPORT"
-          sha256sum "$OUT" | tee -a "$REPORT"
-          echo "Kalıcı DraBornGate imzası eşleşti: $KEY_CERT" | tee -a "$REPORT"
+          echo "DKD_APK_SHA256=$APK_SHA256" >> "$GITHUB_ENV"
+          echo "DKD_SIGNATURE_MATCH=$MATCH" >> "$GITHUB_ENV"
+          echo "match=$MATCH" >> "$GITHUB_OUTPUT"
 
       - name: İmza raporunu özel Supabase kasasına yükle
-        shell: bash
-        run: |
-          set -euo pipefail
-          AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
-          curl -fsSL -X PUT -H "$AUTH_HEADER" -H "Content-Type: text/plain" --data-binary "@dkd_apk_signature_v${APP_VERSION}.txt" "$DKD_RELEASE_VAULT_URL/release/signature?version=${APP_VERSION}"
-          curl -fsSL -H "$AUTH_HEADER" "$DKD_RELEASE_VAULT_URL/status"
-
-      - name: APK'yi özel Supabase kasasına yedeklemeyi dene
+        if: always()
         continue-on-error: true
         shell: bash
         run: |
           AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
+          test -s "dkd_apk_signature_v${APP_VERSION}.txt" || exit 0
+          curl --fail --show-error -X PUT -H "$AUTH_HEADER" -H "Content-Type: text/plain" --data-binary "@dkd_apk_signature_v${APP_VERSION}.txt" "$DKD_RELEASE_VAULT_URL/release/signature?version=${APP_VERSION}"
+
+      - name: APK'yi özel Supabase kasasına yedeklemeyi dene
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
+          test -s "DraBornGate-v${APP_VERSION}-release.apk" || exit 0
           curl --fail --show-error --max-time 120 -X PUT -H "$AUTH_HEADER" -H "Content-Type: application/vnd.android.package-archive" --data-binary "@DraBornGate-v${APP_VERSION}-release.apk" "$DKD_RELEASE_VAULT_URL/release/apk?version=${APP_VERSION}"
 
-      - name: DraBornGate Release APK yükle
+      - name: DraBornGate Release APK ve imza raporunu yükle
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: DraBornGate-Release-APK-v${{ env.APP_VERSION }}
           path: |
             DraBornGate-v${{ env.APP_VERSION }}-release.apk
             dkd_apk_signature_v${{ env.APP_VERSION }}.txt
+            signing-work/apksigner.txt
+            signing-work/keytool.txt
           if-no-files-found: error
           retention-days: 30
 
       - name: Başarılı APK çalışma kaydını güncelle
+        if: steps.signature.outputs.match == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          APK_SHA256="$(sha256sum "DraBornGate-v${APP_VERSION}-release.apk" | awk '{print $1}')"
           cat > .dkd_release/latest_apk_run.json <<EOF_RUN
           {
             "version": "$APP_VERSION",
@@ -200,7 +221,7 @@ jobs:
             "source_sha": "${{ github.sha }}",
             "status": "success",
             "artifact_name": "DraBornGate-Release-APK-v$APP_VERSION",
-            "apk_sha256": "$APK_SHA256",
+            "apk_sha256": "$DKD_APK_SHA256",
             "certificate_sha256": "$DKD_KEY_CERT_SHA256"
           }
           EOF_RUN
@@ -208,3 +229,9 @@ jobs:
           git commit -m "ci: v$APP_VERSION APK üretimini tamamla [skip ci]" || true
           git pull --rebase origin main
           git push origin main
+
+      - name: Kalıcı imza eşleşmesini zorunlu tut
+        if: always()
+        shell: bash
+        run: |
+          test "${{ steps.signature.outputs.match }}" = "true"
