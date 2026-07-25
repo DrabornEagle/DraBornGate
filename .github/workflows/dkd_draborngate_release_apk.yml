@@ -103,7 +103,8 @@ jobs:
           test -n "$STORE_PASSWORD" && test "$STORE_PASSWORD" != "null"
           test -n "$KEY_PASSWORD" && test "$KEY_PASSWORD" != "null"
           test -n "$KEY_ALIAS" && test "$KEY_ALIAS" != "null"
-          KEY_CERT="$(keytool -list -v -keystore "$KEYSTORE" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" | awk -F': ' '/SHA256:/{print $2; exit}' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          keytool -list -v -keystore "$KEYSTORE" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" > signing-work/keytool.txt
+          KEY_CERT="$(awk -F': ' '/SHA256:/{print $2; exit}' signing-work/keytool.txt | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
           test -n "$KEY_CERT"
           echo "Kalıcı DraBornGate keystore sertifikası: $KEY_CERT"
           echo "::add-mask::$STORE_PASSWORD"
@@ -147,10 +148,11 @@ jobs:
           cp "$APK" "$OUT"
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner"
           "$APKSIGNER" verify --verbose --print-certs "$OUT" | tee "$REPORT"
-          APK_CERT="$("$APKSIGNER" verify --print-certs "$OUT" | awk -F': ' '/Signer #1 certificate SHA-256 digest:|V2 Signer: certificate SHA-256 digest:/{print $2; exit}' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          "$APKSIGNER" verify --print-certs "$OUT" > signing-work/apksigner.txt
+          APK_CERT="$(awk -F': ' '/Signer #1 certificate SHA-256 digest:|V2 Signer: certificate SHA-256 digest:/{print $2; exit}' signing-work/apksigner.txt | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
           test -n "$APK_CERT"
           test "$APK_CERT" = "$DKD_KEY_CERT_SHA256" || { echo "APK sertifikası kalıcı keystore ile eşleşmedi: $APK_CERT"; exit 1; }
-          keytool -list -v -keystore android/app/draborngate-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" | grep -E 'Alias name:|Creation date:|Owner:|Issuer:|Valid from:|SHA1:|SHA256:' | tee -a "$REPORT"
+          grep -E 'Alias name:|Creation date:|Owner:|Issuer:|Valid from:|SHA1:|SHA256:' signing-work/keytool.txt | tee -a "$REPORT"
           sha256sum "$OUT" | tee -a "$REPORT"
           echo "Kalıcı DraBornGate imzası eşleşti: $APK_CERT" | tee -a "$REPORT"
 
