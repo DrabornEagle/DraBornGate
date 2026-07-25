@@ -1,8 +1,8 @@
-name: DraBornGate v0.3.3 Validate
+name: DraBornGate v0.3.4 Validate
 
 on:
   push:
-    branches: [main, release/v0.3.3-build, hotfix/v0.3.3-native-prebuild-validation]
+    branches: [main, release/v0.3.4]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: draborngate-v0-3-3-validate-${{ github.ref }}
+  group: draborngate-v0-3-4-validate-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -32,7 +32,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          npm run typecheck 2>&1 | tee dkd_typecheck_v0_3_3.log
+          npm run typecheck 2>&1 | tee dkd_typecheck_v0_3_4.log
           code=${PIPESTATUS[0]}
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           exit 0
@@ -40,13 +40,13 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dkd-typecheck-v0-3-3
-          path: dkd_typecheck_v0_3_3.log
+          name: dkd-typecheck-v0-3-4
+          path: dkd_typecheck_v0_3_4.log
           if-no-files-found: error
           retention-days: 7
       - name: TypeScript sonucunu doğrula
         run: |
-          cat dkd_typecheck_v0_3_3.log
+          cat dkd_typecheck_v0_3_4.log
           test "${{ steps.typecheck.outputs.exit_code }}" = "0"
       - name: Android Expo dışa aktarma testi
         run: npx expo export --platform android --output-dir dist --max-workers 2 --no-bytecode
@@ -58,7 +58,7 @@ jobs:
           GOOGLE_MAPS_ANDROID_API_KEY: dkd_validation_placeholder_key
         run: |
           set +e
-          npx expo prebuild --clean --platform android 2>&1 | tee dkd_native_prebuild_v0_3_3.log
+          npx expo prebuild --clean --platform android 2>&1 | tee dkd_native_prebuild_v0_3_4.log
           code=${PIPESTATUS[0]}
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           exit 0
@@ -66,47 +66,49 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dkd-native-prebuild-v0-3-3
-          path: dkd_native_prebuild_v0_3_3.log
+          name: dkd-native-prebuild-v0-3-4
+          path: dkd_native_prebuild_v0_3_4.log
           if-no-files-found: error
           retention-days: 7
       - name: Native prebuild sonucunu doğrula
         run: |
-          cat dkd_native_prebuild_v0_3_3.log
+          cat dkd_native_prebuild_v0_3_4.log
           test "${{ steps.prebuild.outputs.exit_code }}" = "0"
       - name: Native proje çıktısını doğrula
         run: |
           test -f android/gradlew
           test -f android/app/build.gradle
+          test -f android/app/google-services.json
           grep -R "com.draborneagle.draborngate" android/app/build.gradle android/app/src/main/AndroidManifest.xml
-      - name: Sürüm ve v0.3.3 kapsam doğrulaması
+      - name: Sürüm ve v0.3.4 kapsam doğrulaması
         run: |
           node - <<'NODE'
           const fs = require('fs');
           const pkg = require('./package.json');
           const app = require('./app.json').expo;
-          const expected = '0.3.3';
+          const expected = '0.3.4';
           const version = fs.readFileSync('./src/config/version.ts','utf8');
-          if(pkg.version!==expected||app.version!==expected||app.extra?.appVersion!==expected||app.extra?.demoDataVersion!==expected) throw new Error('v0.3.3 sürüm eşleşmesi bozuk');
+          if(pkg.version!==expected||app.version!==expected||app.extra?.appVersion!==expected||app.extra?.demoDataVersion!==expected) throw new Error('v0.3.4 sürüm eşleşmesi bozuk');
           if(app.android.versionCode!==1||!version.includes("ANDROID_VERSION_CODE = 1")) throw new Error('Android versionCode 1 değil');
+          if(app.android.googleServicesFile!=='./google-services.json'||!fs.existsSync('./google-services.json')) throw new Error('Firebase Android yapılandırması eksik');
           for(const [file,tokens] of Object.entries({
-            './src/components/AdminPackageCenter.tsx':['dkd_gate_admin_update_site_plan','dkd_gate_admin_update_courier_plan','Haftalık TL'],
-            './src/components/PrivacyDataCenter.tsx':['dkd_gate_request_account_deletion','Google Play aboneliklerini yönet','HESABIMI VE VERİLERİMİ SİLME TALEBİ'],
-            './src/components/GooglePlaySubscriptionButton.tsx':['expo-iap','dkd-gate-play-verify','subscriptionOffers'],
-            './src/screens/ProfileScreen.tsx':['CollapsibleSection','AdminPackageCenter','PrivacyDataCenter'],
-            './src/screens/ManagementProCenter.tsx':['weekly','GooglePlaySubscriptionButton','SiteRoleApplicationsManager'],
-            './src/screens/CourierCenterV032.tsx':['weekly','GooglePlaySubscriptionButton','İptal edene kadar otomatik yenilenir'],
-            './supabase/migrations/20260725023000_draborngate_v0_3_3_subscriptions_admin_privacy.sql':['dkd_gate_upsert_gate','weekly_price','dkd_gate_account_deletion_requests'],
+            './src/components/TimestampedPrivateImage.tsx':['toLocaleString','Modal','calendar'],
+            './src/screens/SecurityHome.tsx':['dkd_gate_lookup_courier_by_code','KOD EŞLEŞTİ','imageFullscreen'],
+            './src/screens/PassesScreen.tsx':['setLimit((value) => value + 5)','DAHA FAZLA'],
+            './src/screens/HistoryScreen.tsx':['setLimit((value) => value + 6)','DAHA FAZLA'],
+            './src/screens/ManagementProCenter.tsx':['dkd_gate_get_site_entry_report','Günlük','Haftalık','Aylık'],
+            './src/lib/notifications.ts':['getDevicePushTokenAsync','dkd_gate_register_push_token','dkd-gate-push-dispatch'],
+            './supabase/migrations/20260725162000_draborngate_v0_3_4_gate_flow_reports_push.sql':['dkd_gate_lookup_courier_by_code','dkd_gate_get_site_entry_report','dkd_gate_push_tokens'],
             './.github/workflows/dkd_draborngate_release_apk.yml':['name: DraBornGate Release APK','assembleRelease'],
             './.github/workflows/dkd_draborngate_release_aab.yml':['name: DraBornGate Release AAB','bundleRelease']
           })){
             const source=fs.readFileSync(file,'utf8');
             for(const token of tokens) if(!source.includes(token)) throw new Error(`${file} token eksik: ${token}`);
           }
-          const sourceFiles=[];
-          const walk=(dir)=>fs.readdirSync(dir,{withFileTypes:true}).forEach(e=>{const p=`${dir}/${e.name}`;e.isDirectory()?walk(p):/\.(ts|tsx|js|json)$/.test(e.name)&&sourceFiles.push(p)});
-          walk('./src'); sourceFiles.push('./App.tsx','./app.json','./app.config.js');
-          const forbidden=/\biban\b|bank_reference|receipt_path|subscriptionMedia|dekont/iu;
-          for(const file of sourceFiles) if(forbidden.test(fs.readFileSync(file,'utf8'))) throw new Error(`Eski alternatif ödeme kalıntısı: ${file}`);
-          console.log('DraBornGate v0.3.3, Android versionCode 1, Expo IAP ve native Android yapılandırması doğrulandı.');
+          const forbiddenSecrets=/BEGIN PRIVATE KEY|firebase-adminsdk-fbsvc@|private_key_id/;
+          const walk=(dir, out=[])=>{for(const e of fs.readdirSync(dir,{withFileTypes:true})){const p=`${dir}/${e.name}`;e.isDirectory()?walk(p,out):out.push(p)}return out};
+          for(const file of walk('.').filter(p=>!p.startsWith('./.git/')&&!p.includes('node_modules')&&!p.includes('/dist/'))) {
+            if(/\.(ts|tsx|js|json|yml|yaml|sql|md|sh)$/.test(file)&&forbiddenSecrets.test(fs.readFileSync(file,'utf8'))) throw new Error(`Firebase Admin özel anahtarı repoda bulunamaz: ${file}`);
+          }
+          console.log('DraBornGate v0.3.4, Android versionCode 1, FCM, yeni kod akışı, sayfalama ve ayrıntılı raporlar doğrulandı.');
           NODE
