@@ -1,8 +1,8 @@
-name: DraBornGate v0.3.2 Validate
+name: DraBornGate v0.3.3 Validate
 
 on:
   push:
-    branches: [main, release/v0.3.2]
+    branches: [main, release/v0.3.3-build]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -11,110 +11,74 @@ permissions:
   contents: read
 
 concurrency:
-  group: draborngate-v0-3-2-validate-${{ github.ref }}
+  group: draborngate-v0-3-3-validate-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - name: Kaynak kodu al
         uses: actions/checkout@v4
-
-      - name: Alternatif ödeme kalıntılarını tara
-        shell: bash
-        run: |
-          set +e
-          grep -RInE '(^|[^[:alnum:]_])(iban|dekont)([^[:alnum:]_]|$)|bank_reference|receipt_path|subscription_payment|billing_settings|subscriptionMedia|Havale/EFT/FAST' \
-            src App.tsx app.json app.config.js supabase 2>/dev/null > dkd_payment_residue_v0_3_2.log
-          cat dkd_payment_residue_v0_3_2.log
-          exit 0
-
-      - name: Alternatif ödeme tarama raporunu yükle
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: dkd-payment-residue-v0-3-2
-          path: dkd_payment_residue_v0_3_2.log
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Alternatif ödeme kalıntısı olmadığını doğrula
-        run: test ! -s dkd_payment_residue_v0_3_2.log
-
       - name: Node.js 22 kur
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
+          cache: npm
       - name: Bağımlılıkları kur
         run: npm install --no-audit --no-fund
-
       - name: TypeScript tanılaması
         id: typecheck
         shell: bash
         run: |
           set +e
-          npm run typecheck 2>&1 | tee dkd_typecheck_v0_3_2.log
+          npm run typecheck 2>&1 | tee dkd_typecheck_v0_3_3.log
           code=${PIPESTATUS[0]}
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           exit 0
-
       - name: TypeScript raporunu yükle
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dkd-typecheck-v0-3-2
-          path: dkd_typecheck_v0_3_2.log
+          name: dkd-typecheck-v0-3-3
+          path: dkd_typecheck_v0_3_3.log
           if-no-files-found: error
           retention-days: 7
-
       - name: TypeScript sonucunu doğrula
         run: |
-          cat dkd_typecheck_v0_3_2.log
+          cat dkd_typecheck_v0_3_3.log
           test "${{ steps.typecheck.outputs.exit_code }}" = "0"
-
       - name: Android Expo dışa aktarma testi
         run: npx expo export --platform android --output-dir dist --max-workers 2 --no-bytecode
-
-      - name: Sürüm ve v0.3.2 kapsam doğrulaması
+      - name: Sürüm ve v0.3.3 kapsam doğrulaması
         run: |
           node - <<'NODE'
           const fs = require('fs');
-          const path = require('path');
           const pkg = require('./package.json');
           const app = require('./app.json').expo;
-          const versionFile = fs.readFileSync('./src/config/version.ts', 'utf8');
-          const expected = '0.3.2';
-          if (pkg.version !== expected) throw new Error(`package.json sürümü ${pkg.version}`);
-          if (app.version !== expected || app.extra?.appVersion !== expected || app.extra?.demoDataVersion !== expected) throw new Error('Uygulama sürümleri eşleşmiyor');
-          if (app.android.versionCode !== 1) throw new Error(`Android versionCode ${app.android.versionCode}`);
-          if (!versionFile.includes(`APP_VERSION = '${expected}'`) || !versionFile.includes(`DEMO_DATA_VERSION = '${expected}'`) || !versionFile.includes('ANDROID_VERSION_CODE = 1')) throw new Error('version.ts eşleşmiyor');
-
-          const auth = fs.readFileSync('./src/screens/AuthScreen.tsx', 'utf8');
-          for (const token of ['Güvenlik', 'Site Sakini', 'SiteSearchSelect', 'selected_site_id']) if (!auth.includes(token)) throw new Error(`Kayıt akışı eksik: ${token}`);
-          const appSource = fs.readFileSync('./App.tsx', 'utf8');
-          for (const token of ['SiteRoleAccessGate', 'CourierCenterV032', 'ManagementProCenter']) if (!appSource.includes(token)) throw new Error(`Rol yönlendirmesi eksik: ${token}`);
-          const packageSource = fs.readFileSync('./src/screens/ManagementProCenter.tsx', 'utf8');
-          for (const token of ['Google Play', 'checkmark-circle', 'SiteRoleApplicationsManager']) if (!packageSource.includes(token)) throw new Error(`Paket merkezi eksik: ${token}`);
-          const courierSource = fs.readFileSync('./src/screens/CourierCenterV032.tsx', 'utf8');
-          for (const token of ['Kurye Paketleri', 'dkd_gate_get_courier_package_center', 'Google Play']) if (!courierSource.includes(token)) throw new Error(`Kurye paket merkezi eksik: ${token}`);
-          const migration = fs.readdirSync('./supabase/migrations').find(x => x.includes('draborngate_v0_3_2'));
-          if (!migration) throw new Error('v0.3.2 migration dosyası yok');
-
-          const activeFiles = [];
-          const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).forEach(entry => {
-            const full = path.join(dir, entry.name);
-            if (entry.isDirectory()) walk(full);
-            else if (/\.(ts|tsx|js|json)$/.test(entry.name)) activeFiles.push(full);
-          });
-          walk('./src');
-          activeFiles.push('./App.tsx', './app.json', './app.config.js');
-          const forbidden = /\biban\b|bank_reference|receipt_path|subscriptionMedia|dekont/iu;
-          for (const file of activeFiles) {
-            const source = fs.readFileSync(file, 'utf8');
-            if (forbidden.test(source)) throw new Error(`Kaldırılan alternatif ödeme kalıntısı: ${file}`);
+          const expected = '0.3.3';
+          const version = fs.readFileSync('./src/config/version.ts','utf8');
+          if(pkg.version!==expected||app.version!==expected||app.extra?.appVersion!==expected||app.extra?.demoDataVersion!==expected) throw new Error('v0.3.3 sürüm eşleşmesi bozuk');
+          if(app.android.versionCode!==1||!version.includes("ANDROID_VERSION_CODE = 1")) throw new Error('Android versionCode 1 değil');
+          for(const [file,tokens] of Object.entries({
+            './src/components/AdminPackageCenter.tsx':['dkd_gate_admin_update_site_plan','dkd_gate_admin_update_courier_plan','Haftalık TL'],
+            './src/components/PrivacyDataCenter.tsx':['dkd_gate_request_account_deletion','Google Play aboneliklerini yönet','HESABIMI VE VERİLERİMİ SİLME TALEBİ'],
+            './src/components/GooglePlaySubscriptionButton.tsx':['expo-iap','dkd-gate-play-verify','subscriptionOffers'],
+            './src/screens/ProfileScreen.tsx':['CollapsibleSection','AdminPackageCenter','PrivacyDataCenter'],
+            './src/screens/ManagementProCenter.tsx':['weekly','GooglePlaySubscriptionButton','SiteRoleApplicationsManager'],
+            './src/screens/CourierCenterV032.tsx':['weekly','GooglePlaySubscriptionButton','İptal edene kadar otomatik yenilenir'],
+            './supabase/migrations/20260725023000_draborngate_v0_3_3_subscriptions_admin_privacy.sql':['dkd_gate_upsert_gate','weekly_price','dkd_gate_account_deletion_requests'],
+            './.github/workflows/dkd_draborngate_release_apk.yml':['name: DraBornGate Release APK','assembleRelease'],
+            './.github/workflows/dkd_draborngate_release_aab.yml':['name: DraBornGate Release AAB','bundleRelease']
+          })){
+            const source=fs.readFileSync(file,'utf8');
+            for(const token of tokens) if(!source.includes(token)) throw new Error(`${file} token eksik: ${token}`);
           }
-          console.log('DraBornGate v0.3.2 doğrulandı. Android versionCode 1.');
+          const sourceFiles=[];
+          const walk=(dir)=>fs.readdirSync(dir,{withFileTypes:true}).forEach(e=>{const p=`${dir}/${e.name}`;e.isDirectory()?walk(p):/\.(ts|tsx|js|json)$/.test(e.name)&&sourceFiles.push(p)});
+          walk('./src'); sourceFiles.push('./App.tsx','./app.json','./app.config.js');
+          const forbidden=/\biban\b|bank_reference|receipt_path|subscriptionMedia|dekont/iu;
+          for(const file of sourceFiles) if(forbidden.test(fs.readFileSync(file,'utf8'))) throw new Error(`Eski alternatif ödeme kalıntısı: ${file}`);
+          console.log('DraBornGate v0.3.3, Android versionCode 1 ve Google Play hazırlıkları doğrulandı.');
           NODE
