@@ -1,11 +1,11 @@
-# DraBornGate v0.3.4
+# DraBornGate v0.3.5
 
 DraBornGate; kurye geçişi, AirPass, VisitorPass, site sakini, güvenlik, site kuralları, aidat ve site finans işlemlerini aynı güvenli site platformunda birleştiren Expo / React Native uygulamasıdır.
 
 ## Güncel sürüm bilgileri
 
-- Uygulama sürümü: `0.3.4`
-- Demo veri sürümü: `0.3.4`
+- Uygulama sürümü: `0.3.5`
+- Demo veri sürümü: `0.3.5`
 - Android paket adı: `com.draborneagle.draborngate`
 - Android `versionCode`: `1`
 - Bildirim kanalı: `draborngate-core`
@@ -16,7 +16,15 @@ DraBornGate; kurye geçişi, AirPass, VisitorPass, site sakini, güvenlik, site 
 
 Android `versionCode`, APK çıktısı alınacak sürüme kadar `1` olarak korunur. Uygulama sürümü ve demo veri sürümü birlikte artırılır.
 
-## v0.3.4 ana modülleri
+## v0.3.5 düzeltmesi
+
+- Expo SDK 53 ve sonrasında Android uzak bildirimleri Expo Go içinde desteklenmediği için oluşan kırmızı açılış ekranı giderildi.
+- `expo-notifications` artık uygulama açılırken statik olarak yüklenmez.
+- Expo Go algılandığında native uzak bildirim modülü güvenli biçimde atlanır; uygulamanın diğer bölümleri çalışmaya devam eder.
+- Development APK ve release APK içinde FCM cihaz anahtarı, Android bildirim kanalı ve uzak bildirim sistemi normal şekilde çalışır.
+- Gerçek uzak bildirim testi Expo Go ile değil, development veya release APK ile yapılır.
+
+## Ana modüller
 
 ### CourierPass / Kurye geçişi
 
@@ -85,6 +93,7 @@ Android `versionCode`, APK çıktısı alınacak sürüme kadar `1` olarak korun
 - Supabase bildirim kuyruğu, veritabanı tetikleyicisi ve `dkd-gate-push-dispatch` Edge Function.
 - Kurye talebi, kapıya varış, onay, ret, kod doğrulama ve tamamlanan geçiş bildirimleri.
 - Firebase Admin özel anahtarı APK veya GitHub içinde tutulmaz; yalnızca Supabase Vault üzerinden Edge Function tarafından okunur.
+- Expo Go yalnızca uygulama geliştirme arayüz testi için kullanılabilir; uzak FCM bildirimi için development/release APK gerekir.
 
 ## Veri ayrımı
 
@@ -96,7 +105,7 @@ Android `versionCode`, APK çıktısı alınacak sürüme kadar `1` olarak korun
 
 ## Demo verileri
 
-Demo varsayılan olarak yüklenmez. Profil ekranından v0.3.4 demo paketi yüklenebilir, yeniden kurulabilir, güncellenebilir veya yalnızca demo kayıtları silinebilir. Gerçek kayıtlar demo işlemlerinden etkilenmez.
+Demo varsayılan olarak yüklenmez. Profil ekranından v0.3.5 demo paketi yüklenebilir, yeniden kurulabilir, güncellenebilir veya yalnızca demo kayıtları silinebilir. Gerçek kayıtlar demo işlemlerinden etkilenmez.
 
 ## Doğrulama
 
@@ -106,24 +115,23 @@ npm run typecheck
 npx expo export --platform android --output-dir dist --max-workers 2 --no-bytecode
 ```
 
-GitHub doğrulama akışı TypeScript, Expo Android export, native Android yapılandırması, Firebase Android dosyası, paket adı, uygulama sürümü, demo veri sürümü ve Android `versionCode` politikasını kontrol eder.
+GitHub doğrulama akışı TypeScript, Expo Android export, native Android yapılandırması, Firebase Android dosyası, paket adı, uygulama sürümü, demo veri sürümü, Expo Go bildirim güvenliği ve Android `versionCode` politikasını kontrol eder.
 
 Release iş akışları:
 
 - `.github/workflows/dkd_draborngate_release_apk.yml`
 - `.github/workflows/dkd_draborngate_release_aab.yml`
 
-## Termux: önce yedek, sonra v0.3.4 ile eşitle
+## Termux: önce yedek, sonra v0.3.5 ile eşitle
 
 ```bash
 pkg update -y
 pkg install git nodejs-lts zip -y
 termux-setup-storage
 mkdir -p ~/projects
-cd ~/projects
 
-if [ ! -d DraBornGate/.git ]; then
-  git clone https://github.com/DrabornEagle/DraBornGate.git DraBornGate
+if [ ! -d ~/projects/DraBornGate/.git ]; then
+  git clone https://github.com/DrabornEagle/DraBornGate.git ~/projects/DraBornGate
 fi
 
 cd ~/projects/DraBornGate
@@ -132,17 +140,18 @@ git fetch origin --prune
 TS="$(date +%Y%m%d_%H%M%S)"
 git archive \
   --format=zip \
-  --output="/sdcard/Download/DraBornGate_v0.3.3_before_v0.3.4_${TS}.zip" \
-  origin/backup/v0.3.3-2026-07-25
+  --output="/sdcard/Download/DraBornGate_v0.3.4_before_v0.3.5_${TS}.zip" \
+  origin/backup/v0.3.4-before-v0.3.5-expogo-fix-2026-07-25
 
-git stash push -u -m "DraBornGate_local_before_v0.3.4_${TS}" || true
+git stash push -u -m "DraBornGate_local_before_v0.3.5_${TS}" || true
 git checkout main
 git reset --hard origin/main
+rm -f package-lock.json
 npm install --no-audit --no-fund
 npm run typecheck
 
 node -p '"Sürüm: " + require("./package.json").version'
-git rev-parse --short HEAD
+echo "Commit: $(git rev-parse --short HEAD)"
 git status --short
 ```
 
@@ -150,7 +159,8 @@ git status --short
 
 - v0.3.3 sürüm yedeği: `backup/v0.3.3-2026-07-25`
 - v0.3.4 README düzeltmesi öncesi yedek: `backup/v0.3.4-before-readme-sync-2026-07-25`
+- v0.3.5 Expo Go düzeltmesi öncesi yedek: `backup/v0.3.4-before-v0.3.5-expogo-fix-2026-07-25`
 
 ## v0.4 öncesi durum
 
-v0.3.4; geçiş kodu akışı, güvenlik doğrulaması, zaman damgalı görseller, otomatik veri yenileme, ayrıntılı yönetim raporları, kayıt sayfalaması ve bildirim altyapısındaki eksikleri kapatan sürümdür. v0.4 geliştirmelerine geçmeden önce gerçek cihaz bildirimleri, iki telefonlu kurye–güvenlik senaryosu ve APK / AAB release iş akışları son kez uçtan uca test edilmelidir.
+v0.3.5; v0.3.4 geçiş güvenliği ve raporlama özelliklerini korur, ayrıca Expo Go açılışını bozan Android uzak bildirim modülü yükleme hatasını giderir. Gerçek FCM testi development/release APK üzerinde, iki ayrı telefonda kurye–güvenlik senaryosuyla yapılmalıdır.
