@@ -1,10 +1,65 @@
 begin;
 
+create or replace function public.dkd_gate_store_firebase_service_account_base64(p_secret_base64 text)
+returns boolean
+language plpgsql security definer
+set search_path=vault,public,pg_catalog as $$
+declare
+  v_id uuid;
+  v_json text;
+begin
+  if current_user not in ('service_role','postgres') then
+    raise exception 'service_role gerekli';
+  end if;
+  if coalesce(length(p_secret_base64),0)<1000 then
+    raise exception 'Firebase servis hesabı verisi eksik';
+  end if;
+
+  v_json:=convert_from(decode(p_secret_base64,'base64'),'utf8');
+  if (v_json::jsonb->>'type')<>'service_account'
+     or coalesce(v_json::jsonb->>'project_id','')=''
+     or coalesce(v_json::jsonb->>'client_email','')=''
+     or coalesce(v_json::jsonb->>'private_key','')='' then
+    raise exception 'Firebase servis hesabı JSON geçersiz';
+  end if;
+
+  select id into v_id
+  from vault.secrets
+  where name='dkd_gate_firebase_service_account_json'
+  order by created_at desc
+  limit 1;
+
+  if v_id is null then
+    perform vault.create_secret(
+      p_secret_base64,
+      'dkd_gate_firebase_service_account_json',
+      'DraBornGate FCM servis hesabı base64 JSON',
+      null
+    );
+  else
+    perform vault.update_secret(
+      v_id,
+      p_secret_base64,
+      'dkd_gate_firebase_service_account_json',
+      'DraBornGate FCM servis hesabı base64 JSON',
+      null
+    );
+  end if;
+
+  return true;
+end $$;
+
+revoke all on function public.dkd_gate_store_firebase_service_account_base64(text) from public,anon,authenticated;
+grant execute on function public.dkd_gate_store_firebase_service_account_base64(text) to service_role;
+
 create or replace function public.dkd_gate_get_firebase_service_account_json()
 returns text
 language sql stable security definer
 set search_path=vault,public,pg_catalog as $$
-  select decrypted_secret
+  select case
+    when left(ltrim(decrypted_secret),1)='{' then decrypted_secret
+    else convert_from(decode(decrypted_secret,'base64'),'utf8')
+  end
   from vault.decrypted_secrets
   where name='dkd_gate_firebase_service_account_json'
   order by updated_at desc
