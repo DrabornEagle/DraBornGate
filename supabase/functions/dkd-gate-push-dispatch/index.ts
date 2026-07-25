@@ -61,7 +61,7 @@ async function getGoogleAccessToken(account: FirebaseServiceAccount) {
   const response = await fetch(account.token_uri ?? "https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth-type:jwt-bearer".replace("type", "grant-type"), assertion }),
+    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }),
   });
   const payload = await response.json();
   if (!response.ok || !payload.access_token) throw new Error(`Firebase OAuth başarısız: ${JSON.stringify(payload)}`);
