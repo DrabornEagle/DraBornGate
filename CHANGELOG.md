@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.7
+
+- Güvenlik kartlarında geçiş kodu kalıcı olarak görünür hale getirildi.
+- Karttan “Kodu Eşleştir” akışı, 6 haneli kod doğrulama ekranı ve “Eşleşme Gerçekleşti” başarı penceresi eklendi.
+- Sipariş ekran görüntüsü kartına dikkat animasyonu, tarama çizgisi ve tam ekran güvenli görüntüleme eklendi.
+- Bildirim merkezine “Tümünü Temizle”, ilk 5 kayıt ve “Daha Fazla” sayfalaması eklendi.
+- Canlı rozeti Kurye Operasyonu ve Güvenlik Operasyonu başlıklarının yanına taşındı; bildirim zili aşağı alındı.
+- Tüm Kapılar görünümündeki “Kod Hazır” filtresi “Kurye Geliyor” olarak değiştirildi.
+- Yeni Kurye Geçişi ekranında bildirim zili gizlendi.
+- Kurye Paketleri kartı paketi olmayan kullanıcı için renkli ve animasyonlu yapıldı; aktif pakette hareket kapatıldı.
+- React Native SafeAreaView kullanım uyarısı giderildi.
+- Yalnızca DraBornGate Release APK ve DraBornGate Release AAB iş akışları bırakıldı.
+- Uygulama ve demo sürümü 0.3.7 oldu; Android versionCode 1 olarak korundu.
+
+
 ## 0.2.0
 
 - AirPass foreground GPS distance tracking, 30 metre prompt, manual send, nearest gate suggestion and location verification added.

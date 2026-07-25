@@ -105,6 +105,8 @@ interface GateContextValue {
   addFinanceTransaction: (input: CreateFinanceInput) => Promise<string>;
   setFinanceVisibility: (siteId: string, visible: boolean) => Promise<void>;
   markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
+  clearNotifications: () => Promise<void>;
   loadDemoData: () => Promise<string>;
   deleteDemoData: () => Promise<void>;
 }
@@ -359,10 +361,12 @@ export function GateProvider({ children }: PropsWithChildren) {
   const addFinanceTransaction = useCallback((input: CreateFinanceInput) => rpcRefresh<string>('dkd_gate_add_finance_transaction', { p_site_id: input.siteId, p_type: input.type, p_category: input.category, p_description: input.description, p_amount: input.amount, p_date: input.date, p_visible: input.visible }), [rpcRefresh]);
   const setFinanceVisibility = useCallback((siteId: string, visible: boolean) => rpcRefresh<void>('dkd_gate_set_finance_visibility', { p_site_id: siteId, p_visible: visible }), [rpcRefresh]);
   const markNotificationRead = useCallback((id: string) => rpcRefresh<void>('dkd_gate_mark_notification_read', { p_notification_id: id }), [rpcRefresh]);
+  const markAllNotificationsRead = useCallback(() => rpcRefresh<void>('dkd_gate_mark_all_notifications_read'), [rpcRefresh]);
+  const clearNotifications = useCallback(() => rpcRefresh<void>('dkd_gate_clear_notifications'), [rpcRefresh]);
   const loadDemoData = useCallback(async () => stringValue(await rpcRefresh<string>('dkd_gate_load_demo_data'), '0.2.0'), [rpcRefresh]);
   const deleteDemoData = useCallback(() => rpcRefresh<void>('dkd_gate_delete_demo_data'), [rpcRefresh]);
 
-  const value = useMemo<GateContextValue>(() => ({ session, user: session?.user ?? null, initialized, loading, refreshing, error, profile, courierProfile, residentProfiles, sites, gates, passes, activities, rules, ruleAcceptances, visitors, notifications, duesPeriods, duesCharges, financeTransactions, settings, release, signIn, signUp, signOut, refresh, updateProfile, upsertResidentProfile, createPass, updatePassStatus, retryPass, updateAirPass, acceptRule, upsertRule, createVisitor, decideVisitor, createDuesPeriod, markDuePaid, addFinanceTransaction, setFinanceVisibility, markNotificationRead, loadDemoData, deleteDemoData }), [session, initialized, loading, refreshing, error, profile, courierProfile, residentProfiles, sites, gates, passes, activities, rules, ruleAcceptances, visitors, notifications, duesPeriods, duesCharges, financeTransactions, settings, release, signIn, signUp, signOut, refresh, updateProfile, upsertResidentProfile, createPass, updatePassStatus, retryPass, updateAirPass, acceptRule, upsertRule, createVisitor, decideVisitor, createDuesPeriod, markDuePaid, addFinanceTransaction, setFinanceVisibility, markNotificationRead, loadDemoData, deleteDemoData]);
+  const value = useMemo<GateContextValue>(() => ({ session, user: session?.user ?? null, initialized, loading, refreshing, error, profile, courierProfile, residentProfiles, sites, gates, passes, activities, rules, ruleAcceptances, visitors, notifications, duesPeriods, duesCharges, financeTransactions, settings, release, signIn, signUp, signOut, refresh, updateProfile, upsertResidentProfile, createPass, updatePassStatus, retryPass, updateAirPass, acceptRule, upsertRule, createVisitor, decideVisitor, createDuesPeriod, markDuePaid, addFinanceTransaction, setFinanceVisibility, markNotificationRead, markAllNotificationsRead, clearNotifications, loadDemoData, deleteDemoData }), [session, initialized, loading, refreshing, error, profile, courierProfile, residentProfiles, sites, gates, passes, activities, rules, ruleAcceptances, visitors, notifications, duesPeriods, duesCharges, financeTransactions, settings, release, signIn, signUp, signOut, refresh, updateProfile, upsertResidentProfile, createPass, updatePassStatus, retryPass, updateAirPass, acceptRule, upsertRule, createVisitor, decideVisitor, createDuesPeriod, markDuePaid, addFinanceTransaction, setFinanceVisibility, markNotificationRead, markAllNotificationsRead, clearNotifications, loadDemoData, deleteDemoData]);
   return <GateContext.Provider value={value}>{children}</GateContext.Provider>;
 }
 
