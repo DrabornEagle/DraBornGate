@@ -39,6 +39,7 @@ jobs:
           test -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" || { echo "ANDROID_KEYSTORE_BASE64 eksik"; exit 1; }
           test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "ANDROID_KEYSTORE_PASSWORD eksik"; exit 1; }
           test -n "$GOOGLE_MAPS_ANDROID_API_KEY" || { echo "GOOGLE_MAPS_ANDROID_API_KEY eksik"; exit 1; }
+          test -f google-services.json || { echo "google-services.json eksik"; exit 1; }
       - name: Bağımlılıkları kur ve doğrula
         run: |
           npm install --no-audit --no-fund
@@ -71,11 +72,11 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --stacktrace
       - name: APK adını düzenle
-        run: cp android/app/build/outputs/apk/release/app-release.apk DraBornGate-v0.3.3-release.apk
+        run: cp android/app/build/outputs/apk/release/app-release.apk DraBornGate-v0.3.4-release.apk
       - name: DraBornGate Release APK yükle
         uses: actions/upload-artifact@v4
         with:
-          name: DraBornGate-Release-APK-v0.3.3
-          path: DraBornGate-v0.3.3-release.apk
+          name: DraBornGate-Release-APK-v0.3.4
+          path: DraBornGate-v0.3.4-release.apk
           if-no-files-found: error
           retention-days: 14
