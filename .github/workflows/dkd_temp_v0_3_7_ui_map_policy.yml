@@ -1,105 +1,45 @@
-name: DraBornGate v0.3.7 UI Map Policy Sync
+name: DraBornGate v0.3.7 Typecheck Debug
 
 on:
   push:
     branches: [work/draborngate-v0.3.7-ui-map-policy-fixes]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: draborngate-v0-3-7-ui-map-policy-${{ github.ref }}
+  group: draborngate-v0-3-7-typecheck-debug-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  sync-and-validate:
+  typecheck-debug:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 25
     steps:
-      - name: Çalışma dalını al
+      - name: Kaynağı al
         uses: actions/checkout@v4
         with:
           ref: work/draborngate-v0.3.7-ui-map-policy-fixes
-          fetch-depth: 0
+          fetch-depth: 1
+          show-progress: false
 
-      - name: v0.3.7 düzeltme paketini doğrula ve uygula
+      - name: Düzeltme paketini uygula
         shell: bash
         run: |
           set -euo pipefail
-          cat .dkd_payload/part_* | base64 --decode > /tmp/draborngate-v0.3.7-ui-map-policy.tar.gz
-          gzip -t /tmp/draborngate-v0.3.7-ui-map-policy.tar.gz
-          tar -tzf /tmp/draborngate-v0.3.7-ui-map-policy.tar.gz >/dev/null
-          tar --no-same-owner -xzf /tmp/draborngate-v0.3.7-ui-map-policy.tar.gz -C "$GITHUB_WORKSPACE"
-          rm -rf .dkd_payload
-          rm -f .github/workflows/dkd_temp_v0_3_7_ui_map_policy.yml
-          chmod +x scripts/dkd_sync_v0_3_7_ui_map_policy_fixes_termux.sh
+          cat .dkd_payload/part_* | base64 --decode > /tmp/dkd-source.tar.gz
+          gzip -t /tmp/dkd-source.tar.gz
+          tar --no-same-owner -xzf /tmp/dkd-source.tar.gz -C "$GITHUB_WORKSPACE"
 
       - name: Node.js 22 kur
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Bağımlılıkları kur
-        run: npm install --no-audit --no-fund
+      - name: Bağımlılıkları sessiz kur
+        shell: bash
+        run: npm install --no-audit --no-fund >/tmp/dkd-npm-install.log 2>&1
 
-      - name: TypeScript doğrula
+      - name: TypeScript hatalarını göster
         run: npm run typecheck
-
-      - name: Bildirim seslerini üret
-        run: node scripts/dkd_generate_notification_sounds.js
-
-      - name: Expo Android dışa aktarımını doğrula
-        env:
-          GOOGLE_MAPS_ANDROID_API_KEY: dkd_not_used_openstreetmap
-        run: npx expo export --platform android --output-dir dist --max-workers 2 --no-bytecode
-
-      - name: Kapsam ve Play kalıntılarını doğrula
-        shell: bash
-        run: |
-          set -euo pipefail
-          node - <<'NODE'
-          const fs = require('fs');
-          const pkg = require('./package.json');
-          if (pkg.version !== '0.3.7') throw new Error('Sürüm 0.3.7 değil');
-          if (pkg.dependencies['react-native-maps']) throw new Error('react-native-maps kaldırılmadı');
-          if (pkg.dependencies['react-native-webview'] !== '13.16.1') throw new Error('react-native-webview sürümü eksik');
-          const checks = {
-            'App.tsx': ["role === 'courier' && tab === 'passes'"],
-            'src/components/SiteLocationPicker.tsx': ['OpenStreetMap', 'react-native-webview', 'Leaflet'],
-            'src/components/NotificationSoundPicker.tsx': ['Bildirim Sesi', 'SEÇİLİ'],
-            'src/screens/ProfileScreen.tsx': ['NotificationSoundPicker'],
-            'src/screens/ManagementProCenter.tsx': ['Ad soyad veya plaka ara', 'DAHA FAZLA'],
-            'src/screens/PassesScreen.tsx': ['colorfulVariant', 'setVisibleCount((value) => value + 5)'],
-            'src/components/PassCard.tsx': ['KODU EŞLEŞTİR', 'colorfulVariant'],
-            'src/screens/SecurityHome.tsx': ['Reddet'],
-            'store_assets/google_play/PLAY_STORE_READINESS_V0.3.7.md': ['Privacy Policy URL', 'Account Deletion URL'],
-            'scripts/dkd_sync_v0_3_7_ui_map_policy_fixes_termux.sh': ['git reset --hard origin/main']
-          };
-          for (const [file, tokens] of Object.entries(checks)) {
-            const source = fs.readFileSync(file, 'utf8');
-            for (const token of tokens) if (!source.includes(token)) throw new Error(`${file} eksik: ${token}`);
-          }
-          NODE
-          if grep -RniE 'IBAN|Havale|FAST|EFT' src supabase store_assets README.md CHANGELOG.md; then
-            echo 'IBAN/Havale/FAST/EFT kalıntısı bulundu.'
-            exit 1
-          fi
-          test "$(find .github/workflows -maxdepth 1 -type f | wc -l | tr -d ' ')" -eq 2
-          test -f .github/workflows/dkd_draborngate_release_apk.yml
-          test -f .github/workflows/dkd_draborngate_release_aab.yml
-
-      - name: Geçici çıktıları temizle
-        run: rm -rf dist assets/sounds node_modules
-
-      - name: Kaynakları çalışma dalına işle
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "DraBornGate Source Bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add -A
-          git commit -m "DraBornGate v0.3.7 UI, harita ve Play hazırlık düzeltmeleri" || exit 0
-          git push origin HEAD:work/draborngate-v0.3.7-ui-map-policy-fixes
