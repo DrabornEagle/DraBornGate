@@ -103,16 +103,11 @@ jobs:
           test -n "$STORE_PASSWORD" && test "$STORE_PASSWORD" != "null"
           test -n "$KEY_PASSWORD" && test "$KEY_PASSWORD" != "null"
           test -n "$KEY_ALIAS" && test "$KEY_ALIAS" != "null"
-          keytool -list -v -keystore "$KEYSTORE" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" > signing-work/keytool.txt
-          KEY_CERT="$(awk -F': ' '/SHA256:/{print $2; exit}' signing-work/keytool.txt | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
-          test -n "$KEY_CERT"
-          echo "Kalıcı DraBornGate keystore sertifikası: $KEY_CERT"
           echo "::add-mask::$STORE_PASSWORD"
           echo "::add-mask::$KEY_PASSWORD"
           echo "ANDROID_KEYSTORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
           echo "ANDROID_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
           echo "ANDROID_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
-          echo "DKD_KEY_CERT_SHA256=$KEY_CERT" >> "$GITHUB_ENV"
           cat >> "$HOME/.gradle/gradle.properties" <<EOF_GRADLE
           DKD_UPLOAD_STORE_FILE=$GITHUB_WORKSPACE/$KEYSTORE
           DKD_UPLOAD_STORE_PASSWORD=$STORE_PASSWORD
@@ -150,11 +145,14 @@ jobs:
           "$APKSIGNER" verify --verbose --print-certs "$OUT" | tee "$REPORT"
           "$APKSIGNER" verify --print-certs "$OUT" > signing-work/apksigner.txt
           APK_CERT="$(awk -F': ' '/Signer #1 certificate SHA-256 digest:|V2 Signer: certificate SHA-256 digest:/{print $2; exit}' signing-work/apksigner.txt | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
-          test -n "$APK_CERT"
-          test "$APK_CERT" = "$DKD_KEY_CERT_SHA256" || { echo "APK sertifikası kalıcı keystore ile eşleşmedi: $APK_CERT"; exit 1; }
+          keytool -list -v -keystore android/app/draborngate-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" > signing-work/keytool.txt
+          KEY_CERT="$(awk -F': ' '/SHA256:/{print $2; exit}' signing-work/keytool.txt | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          test -n "$APK_CERT" && test -n "$KEY_CERT"
+          test "$APK_CERT" = "$KEY_CERT" || { echo "APK sertifikası kalıcı keystore ile eşleşmedi: $APK_CERT / $KEY_CERT"; exit 1; }
+          echo "DKD_KEY_CERT_SHA256=$KEY_CERT" >> "$GITHUB_ENV"
           grep -E 'Alias name:|Creation date:|Owner:|Issuer:|Valid from:|SHA1:|SHA256:' signing-work/keytool.txt | tee -a "$REPORT"
           sha256sum "$OUT" | tee -a "$REPORT"
-          echo "Kalıcı DraBornGate imzası eşleşti: $APK_CERT" | tee -a "$REPORT"
+          echo "Kalıcı DraBornGate imzası eşleşti: $KEY_CERT" | tee -a "$REPORT"
 
       - name: İmza raporunu özel Supabase kasasına yükle
         shell: bash
