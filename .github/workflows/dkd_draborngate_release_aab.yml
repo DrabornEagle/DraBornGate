@@ -77,13 +77,11 @@ jobs:
           test -n "$STORE_PASSWORD" && test "$STORE_PASSWORD" != "null"
           test -n "$KEY_PASSWORD" && test "$KEY_PASSWORD" != "null"
           test -n "$KEY_ALIAS" && test "$KEY_ALIAS" != "null"
-          keytool -list -v -keystore "$KEYSTORE" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" > signing-work/keytool.txt
-          KEY_CERT="$(awk -F': ' '/SHA256:/{print $2; exit}' signing-work/keytool.txt | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
-          test -n "$KEY_CERT"
-          echo "Kalıcı DraBornGate keystore sertifikası: $KEY_CERT"
           echo "::add-mask::$STORE_PASSWORD"
           echo "::add-mask::$KEY_PASSWORD"
-          echo "DKD_KEY_CERT_SHA256=$KEY_CERT" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
           cat >> "$HOME/.gradle/gradle.properties" <<EOF_GRADLE
           DKD_UPLOAD_STORE_FILE=$GITHUB_WORKSPACE/$KEYSTORE
           DKD_UPLOAD_STORE_PASSWORD=$STORE_PASSWORD
@@ -99,6 +97,7 @@ jobs:
           src = src.replace(marker, (block) => block.replace(/\n\s{4}\}$/, `\n        release {\n            storeFile file(findProperty('DKD_UPLOAD_STORE_FILE'))\n            storePassword findProperty('DKD_UPLOAD_STORE_PASSWORD')\n            keyAlias findProperty('DKD_UPLOAD_KEY_ALIAS')\n            keyPassword findProperty('DKD_UPLOAD_KEY_PASSWORD')\n        }\n    }`));
           src = src.replace(/signingConfig\s+signingConfigs\.debug/g, 'signingConfig signingConfigs.release');
           fs.writeFileSync(file, src);
+          if (!src.includes('signingConfig signingConfigs.release')) throw new Error('Release imzalama ayarı uygulanamadı');
           NODE
 
       - name: Release AAB oluştur
@@ -113,7 +112,10 @@ jobs:
           set -euo pipefail
           cp android/app/build/outputs/bundle/release/app-release.aab "DraBornGate-v${APP_VERSION}-release.aab"
           jarsigner -verify -verbose -certs "DraBornGate-v${APP_VERSION}-release.aab" | tee "dkd_aab_signature_v${APP_VERSION}.txt"
-          echo "Kalıcı DraBornGate sertifikası: $DKD_KEY_CERT_SHA256" | tee -a "dkd_aab_signature_v${APP_VERSION}.txt"
+          keytool -list -v -keystore android/app/draborngate-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" > signing-work/keytool.txt
+          KEY_CERT="$(awk -F': ' '/SHA256:/{print $2; exit}' signing-work/keytool.txt | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          test -n "$KEY_CERT"
+          echo "Kalıcı DraBornGate sertifikası: $KEY_CERT" | tee -a "dkd_aab_signature_v${APP_VERSION}.txt"
           sha256sum "DraBornGate-v${APP_VERSION}-release.aab" | tee -a "dkd_aab_signature_v${APP_VERSION}.txt"
 
       - name: DraBornGate Release AAB yükle
