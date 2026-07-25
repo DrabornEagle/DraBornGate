@@ -2,6 +2,9 @@ name: DraBornGate Release APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - release/v0.3.6-ui-notifications-apk
 
 permissions:
   contents: read
@@ -13,7 +16,7 @@ concurrency:
 jobs:
   release-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 65
     env:
       CI: "1"
       GOOGLE_MAPS_ANDROID_API_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_API_KEY }}
@@ -23,16 +26,26 @@ jobs:
     steps:
       - name: Kaynak kodu al
         uses: actions/checkout@v4
+
+      - name: Sürüm bilgisini hazırla
+        shell: bash
+        run: |
+          APP_VERSION="$(node -p 'require("./package.json").version')"
+          echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
+          echo "DraBornGate v$APP_VERSION Release APK hazırlanıyor."
+
       - name: Node.js 22 kur
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
       - name: Java 17 kur
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
           cache: gradle
+
       - name: Release sırlarını doğrula
         shell: bash
         run: |
@@ -40,16 +53,24 @@ jobs:
           test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "ANDROID_KEYSTORE_PASSWORD eksik"; exit 1; }
           test -n "$GOOGLE_MAPS_ANDROID_API_KEY" || { echo "GOOGLE_MAPS_ANDROID_API_KEY eksik"; exit 1; }
           test -f google-services.json || { echo "google-services.json eksik"; exit 1; }
-      - name: Bağımlılıkları kur ve doğrula
+
+      - name: Bağımlılıkları, sesleri ve TypeScript'i doğrula
         run: |
           npm install --no-audit --no-fund
           npm run typecheck
+          test -f assets/sounds/gate_bell.wav
+          test -f assets/sounds/gate_chime.wav
+          test -f assets/sounds/gate_alert.wav
+
       - name: Android release projesini üret
         run: npx expo prebuild --clean --platform android
+
       - name: İmzalama anahtarını hazırla
         shell: bash
         run: |
+          mkdir -p "$HOME/.gradle" signing-backup
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/draborngate-release.keystore
+          test -s android/app/draborngate-release.keystore
           cat >> "$HOME/.gradle/gradle.properties" <<EOF
           DKD_UPLOAD_STORE_FILE=$GITHUB_WORKSPACE/android/app/draborngate-release.keystore
           DKD_UPLOAD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD
@@ -66,17 +87,48 @@ jobs:
           src = src.replace(/(release\s*\{[\s\S]*?)signingConfig\s+signingConfigs\.debug/, '$1signingConfig signingConfigs.release');
           fs.writeFileSync(file, src);
           NODE
+
       - name: Release APK oluştur
         working-directory: android
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --stacktrace
-      - name: APK adını düzenle
-        run: cp android/app/build/outputs/apk/release/app-release.apk DraBornGate-v0.3.4-release.apk
+
+      - name: APK imzasını doğrula ve dosyaları hazırla
+        shell: bash
+        run: |
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          OUT="DraBornGate-v${APP_VERSION}-release.apk"
+          cp "$APK" "$OUT"
+          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner" verify --verbose --print-certs "$OUT" | tee dkd_apk_signature_v${APP_VERSION}.txt
+          cp android/app/draborngate-release.keystore signing-backup/DraBornGate-original-signing.keystore
+          {
+            echo "DraBornGate v${APP_VERSION} kalıcı imzalama anahtarı"
+            echo "Alias: ${ANDROID_KEY_ALIAS}"
+            echo "Android versionCode: 1"
+            echo "Oluşturma kaynağı: GitHub Actions secret ANDROID_KEYSTORE_BASE64"
+            echo "Parola bu yedeğe dahil edilmedi. ANDROID_KEYSTORE_PASSWORD secret değeri ayrıca güvenli saklanmalıdır."
+            echo
+            keytool -list -v -keystore android/app/draborngate-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" | grep -E 'Alias name:|Creation date:|Owner:|Issuer:|Valid from:|SHA1:|SHA256:' || true
+          } > signing-backup/DraBornGate-keystore-info.txt
+          cp dkd_apk_signature_v${APP_VERSION}.txt signing-backup/
+          (cd signing-backup && zip -9 ../DraBornGate-v${APP_VERSION}-keystore-backup.zip ./*)
+
       - name: DraBornGate Release APK yükle
         uses: actions/upload-artifact@v4
         with:
-          name: DraBornGate-Release-APK-v0.3.4
-          path: DraBornGate-v0.3.4-release.apk
+          name: DraBornGate-Release-APK-v${{ env.APP_VERSION }}
+          path: |
+            DraBornGate-v${{ env.APP_VERSION }}-release.apk
+            dkd_apk_signature_v${{ env.APP_VERSION }}.txt
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
+
+      - name: İmzalama keystore yedeğini yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: DraBornGate-Signing-Keystore-v${{ env.APP_VERSION }}
+          path: DraBornGate-v${{ env.APP_VERSION }}-keystore-backup.zip
+          if-no-files-found: error
+          retention-days: 90
