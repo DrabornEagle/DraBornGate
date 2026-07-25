@@ -151,14 +151,6 @@ jobs:
           "$APKSIGNER" verify --verbose --print-certs "$OUT" | tee "dkd_apk_signature_v${APP_VERSION}.txt"
           keytool -list -v -keystore android/app/draborngate-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" | grep -E 'Alias name:|Creation date:|Owner:|Issuer:|Valid from:|SHA1:|SHA256:' | tee -a "dkd_apk_signature_v${APP_VERSION}.txt"
 
-      - name: APK ve imza raporunu özel kasaya yükle
-        shell: bash
-        run: |
-          AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
-          curl -fsSL -X PUT -H "$AUTH_HEADER" -H "Content-Type: application/vnd.android.package-archive" --data-binary "@DraBornGate-v${APP_VERSION}-release.apk" "$DKD_RELEASE_VAULT_URL/release/apk?version=${APP_VERSION}"
-          curl -fsSL -X PUT -H "$AUTH_HEADER" -H "Content-Type: text/plain" --data-binary "@dkd_apk_signature_v${APP_VERSION}.txt" "$DKD_RELEASE_VAULT_URL/release/signature?version=${APP_VERSION}"
-          echo "APK ve imza raporu özel Supabase release kasasına yüklendi."
-
       - name: DraBornGate Release APK yükle
         uses: actions/upload-artifact@v4
         with:
@@ -168,6 +160,13 @@ jobs:
             dkd_apk_signature_v${{ env.APP_VERSION }}.txt
           if-no-files-found: error
           retention-days: 30
+
+      - name: İmza raporunu özel kasaya yükle
+        shell: bash
+        run: |
+          AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
+          curl -fsSL -X PUT -H "$AUTH_HEADER" -H "Content-Type: text/plain" --data-binary "@dkd_apk_signature_v${APP_VERSION}.txt" "$DKD_RELEASE_VAULT_URL/release/signature?version=${APP_VERSION}"
+          echo "İmza raporu özel Supabase release kasasına yüklendi."
 
       - name: Kalıcı keystore kasasını doğrula
         shell: bash
