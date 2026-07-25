@@ -4,5 +4,10 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noFallthroughCasesInSwitch": true
-  }
+  },
+  "exclude": [
+    "supabase/functions/**",
+    "node_modules",
+    "dist"
+  ]
 }
