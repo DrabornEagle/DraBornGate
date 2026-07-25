@@ -2,7 +2,7 @@ name: DraBornGate v0.3.3 Validate
 
 on:
   push:
-    branches: [main, release/v0.3.3-build]
+    branches: [main, release/v0.3.3-build, hotfix/v0.3.3-native-prebuild-validation]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -51,9 +51,28 @@ jobs:
       - name: Android Expo dışa aktarma testi
         run: npx expo export --platform android --output-dir dist --max-workers 2 --no-bytecode
       - name: Native Android yapılandırmasını üret
+        id: prebuild
+        shell: bash
         env:
           GOOGLE_MAPS_ANDROID_API_KEY: dkd_validation_placeholder_key
-        run: npx expo prebuild --clean --platform android --non-interactive
+        run: |
+          set +e
+          npx expo prebuild --clean --platform android --non-interactive 2>&1 | tee dkd_native_prebuild_v0_3_3.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Native prebuild raporunu yükle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dkd-native-prebuild-v0-3-3
+          path: dkd_native_prebuild_v0_3_3.log
+          if-no-files-found: error
+          retention-days: 7
+      - name: Native prebuild sonucunu doğrula
+        run: |
+          cat dkd_native_prebuild_v0_3_3.log
+          test "${{ steps.prebuild.outputs.exit_code }}" = "0"
       - name: Native proje çıktısını doğrula
         run: |
           test -f android/gradlew
