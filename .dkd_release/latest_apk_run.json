@@ -3,6 +3,8 @@
   "run_id": "30174926211",
   "run_number": "40",
   "source_sha": "7f1a610f32267e5a1f9d96b44c228982fe5e1fb8",
-  "status": "building",
-  "artifact_name": "DraBornGate-Release-APK-v0.3.7"
+  "status": "success",
+  "artifact_name": "DraBornGate-Release-APK-v0.3.7",
+  "apk_sha256": "31a4718350fca232815c712b5ae5eb32f8ea5af4a27dc43f8840505741220137",
+  "certificate_sha256": "46ce9784230837cb0de92b43d659e566a4b5c0912e155027fe0c513f659a2332"
 }
