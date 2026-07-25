@@ -88,17 +88,25 @@ jobs:
           DKD_UPLOAD_KEY_ALIAS=$KEY_ALIAS
           DKD_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD
           EOF_GRADLE
-          node <<'NODE'
-          const fs = require('fs');
-          const file = 'android/app/build.gradle';
-          let src = fs.readFileSync(file, 'utf8');
-          const marker = /signingConfigs\s*\{([\s\S]*?)\n\s{4}\}/;
-          if (!marker.test(src)) throw new Error('signingConfigs bloğu bulunamadı');
-          src = src.replace(marker, (block) => block.replace(/\n\s{4}\}$/, `\n        release {\n            storeFile file(findProperty('DKD_UPLOAD_STORE_FILE'))\n            storePassword findProperty('DKD_UPLOAD_STORE_PASSWORD')\n            keyAlias findProperty('DKD_UPLOAD_KEY_ALIAS')\n            keyPassword findProperty('DKD_UPLOAD_KEY_PASSWORD')\n        }\n    }`));
-          src = src.replace(/signingConfig\s+signingConfigs\.debug/g, 'signingConfig signingConfigs.release');
-          fs.writeFileSync(file, src);
-          if (!src.includes('signingConfig signingConfigs.release')) throw new Error('Release imzalama ayarı uygulanamadı');
-          NODE
+          cat >> android/app/build.gradle <<'EOF_SIGNING'
+
+          android {
+              signingConfigs {
+                  dkdRelease {
+                      storeFile file(findProperty('DKD_UPLOAD_STORE_FILE'))
+                      storePassword findProperty('DKD_UPLOAD_STORE_PASSWORD')
+                      keyAlias findProperty('DKD_UPLOAD_KEY_ALIAS')
+                      keyPassword findProperty('DKD_UPLOAD_KEY_PASSWORD')
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.dkdRelease
+                  }
+              }
+          }
+          EOF_SIGNING
+          grep -q "signingConfig signingConfigs.dkdRelease" android/app/build.gradle
 
       - name: Release AAB oluştur
         working-directory: android
