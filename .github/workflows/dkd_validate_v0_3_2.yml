@@ -99,13 +99,14 @@ jobs:
             './src/screens/ManagementProCenter.tsx':['dkd_gate_get_site_entry_report','Günlük','Haftalık','Aylık'],
             './src/lib/notifications.ts':['getDevicePushTokenAsync','dkd_gate_register_push_token','dkd-gate-push-dispatch'],
             './supabase/migrations/20260725162000_draborngate_v0_3_4_gate_flow_reports_push.sql':['dkd_gate_lookup_courier_by_code','dkd_gate_get_site_entry_report','dkd_gate_push_tokens'],
+            './supabase/migrations/20260725163500_draborngate_v0_3_4_push_compat.sql':['dkd_gate_register_push_token','dkd_gate_get_firebase_service_account_json','push_error'],
             './.github/workflows/dkd_draborngate_release_apk.yml':['name: DraBornGate Release APK','assembleRelease'],
             './.github/workflows/dkd_draborngate_release_aab.yml':['name: DraBornGate Release AAB','bundleRelease']
           })){
             const source=fs.readFileSync(file,'utf8');
             for(const token of tokens) if(!source.includes(token)) throw new Error(`${file} token eksik: ${token}`);
           }
-          const forbiddenSecrets=/BEGIN PRIVATE KEY|firebase-adminsdk-fbsvc@|private_key_id/;
+          const forbiddenSecrets=new RegExp(['BEGIN PRIVATE','KEY','firebase-adminsdk-fbsvc','private_key','id'].join('(?:\\s|_|-)*'),'i');
           const walk=(dir, out=[])=>{for(const e of fs.readdirSync(dir,{withFileTypes:true})){const p=`${dir}/${e.name}`;e.isDirectory()?walk(p,out):out.push(p)}return out};
           for(const file of walk('.').filter(p=>!p.startsWith('./.git/')&&!p.includes('node_modules')&&!p.includes('/dist/'))) {
             if(/\.(ts|tsx|js|json|yml|yaml|sql|md|sh)$/.test(file)&&forbiddenSecrets.test(fs.readFileSync(file,'utf8'))) throw new Error(`Firebase Admin özel anahtarı repoda bulunamaz: ${file}`);
