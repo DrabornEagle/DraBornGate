@@ -130,9 +130,13 @@ jobs:
           const marker = /signingConfigs\s*\{([\s\S]*?)\n\s{4}\}/;
           if (!marker.test(src)) throw new Error('signingConfigs bloğu bulunamadı');
           src = src.replace(marker, (block) => block.replace(/\n\s{4}\}$/, `\n        release {\n            storeFile file(findProperty('DKD_UPLOAD_STORE_FILE'))\n            storePassword findProperty('DKD_UPLOAD_STORE_PASSWORD')\n            keyAlias findProperty('DKD_UPLOAD_KEY_ALIAS')\n            keyPassword findProperty('DKD_UPLOAD_KEY_PASSWORD')\n        }\n    }`));
-          src = src.replace(/(release\s*\{[\s\S]*?)signingConfig\s+signingConfigs\.debug/, '$1signingConfig signingConfigs.release');
+          const debugConfigCount = (src.match(/signingConfig\s+signingConfigs\.debug/g) || []).length;
+          if (debugConfigCount < 1) throw new Error('Debug signingConfig başvurusu bulunamadı');
+          src = src.replace(/signingConfig\s+signingConfigs\.debug/g, 'signingConfig signingConfigs.release');
+          if (!/signingConfig\s+signingConfigs\.release/.test(src)) throw new Error('Release signingConfig uygulanamadı');
           fs.writeFileSync(file, src);
           NODE
+          grep -n "signingConfig signingConfigs.release" android/app/build.gradle
 
       - name: Release APK oluştur
         working-directory: android
@@ -140,16 +144,29 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: APK imzasını doğrula ve dosyaları hazırla
+      - name: APK imzasını kalıcı keystore ile doğrula
         shell: bash
         run: |
+          set -euo pipefail
           APK="android/app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
           OUT="DraBornGate-v${APP_VERSION}-release.apk"
           cp "$APK" "$OUT"
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner"
           "$APKSIGNER" verify --verbose --print-certs "$OUT" | tee "dkd_apk_signature_v${APP_VERSION}.txt"
+
+          APK_CERT="$($APKSIGNER verify --print-certs "$OUT" | awk -F': ' '/Signer #1 certificate SHA-256 digest:|V2 Signer: certificate SHA-256 digest:/{print $2; exit}' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          KEY_CERT="$(keytool -list -v -keystore android/app/draborngate-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" | awk -F': ' '/SHA256:/{print $2; exit}' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          test -n "$APK_CERT" && test -n "$KEY_CERT"
+          if [ "$APK_CERT" != "$KEY_CERT" ]; then
+            echo "APK kalıcı DraBornGate keystore ile imzalanmamış." >&2
+            echo "APK sertifikası: $APK_CERT" >&2
+            echo "Keystore sertifikası: $KEY_CERT" >&2
+            exit 1
+          fi
+
           keytool -list -v -keystore android/app/draborngate-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" | grep -E 'Alias name:|Creation date:|Owner:|Issuer:|Valid from:|SHA1:|SHA256:' | tee -a "dkd_apk_signature_v${APP_VERSION}.txt"
+          echo "Kalıcı DraBornGate imzası eşleşti: $KEY_CERT" | tee -a "dkd_apk_signature_v${APP_VERSION}.txt"
 
       - name: DraBornGate Release APK yükle
         uses: actions/upload-artifact@v4
@@ -162,6 +179,7 @@ jobs:
           retention-days: 30
 
       - name: İmza raporunu özel kasaya yükle
+        continue-on-error: true
         shell: bash
         run: |
           AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
@@ -169,6 +187,7 @@ jobs:
           echo "İmza raporu özel Supabase release kasasına yüklendi."
 
       - name: Kalıcı keystore kasasını doğrula
+        if: always()
         shell: bash
         run: |
           curl -fsSL -H "Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN" "$DKD_RELEASE_VAULT_URL/status"
