@@ -21,6 +21,8 @@ type NotificationRow = {
   data: Record<string, unknown> | null;
 };
 
+type PushTokenRow = { id: string; expo_push_token: string };
+
 const base64url = (value: Uint8Array | string) => {
   const bytes = typeof value === "string" ? new TextEncoder().encode(value) : value;
   let binary = "";
@@ -83,7 +85,7 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceRole, { auth: { persistSession: false } });
     const { data: rows, error: rowsError } = await admin.schema("draborngate").from("dkd_gate_notifications")
       .select("id,user_id,title,body,data")
-      .is("push_sent_at", null)
+      .is("sent_at", null)
       .gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString())
       .order("created_at", { ascending: true })
       .limit(100);
@@ -96,14 +98,15 @@ Deno.serve(async (req) => {
     let failed = 0;
 
     for (const notification of notifications) {
-      const { data: tokens, error: tokenError } = await admin.schema("draborngate").from("dkd_gate_push_tokens")
-        .select("id,token")
+      const { data: tokenRows, error: tokenError } = await admin.schema("draborngate").from("dkd_gate_push_tokens")
+        .select("id,expo_push_token")
         .eq("user_id", notification.user_id)
-        .eq("provider", "fcm")
+        .eq("platform", "fcm")
         .eq("is_active", true);
       if (tokenError) throw tokenError;
-      if (!tokens?.length) {
-        await admin.schema("draborngate").from("dkd_gate_notifications").update({ push_sent_at: new Date().toISOString(), push_error: "Aktif FCM cihaz anahtarı yok" }).eq("id", notification.id);
+      const tokens = (tokenRows ?? []) as PushTokenRow[];
+      if (!tokens.length) {
+        await admin.schema("draborngate").from("dkd_gate_notifications").update({ sent_at: new Date().toISOString(), push_error: "Aktif FCM cihaz anahtarı yok" }).eq("id", notification.id);
         continue;
       }
 
@@ -114,7 +117,7 @@ Deno.serve(async (req) => {
           method: "POST",
           headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
           body: JSON.stringify({ message: {
-            token: item.token,
+            token: item.expo_push_token,
             notification: { title: notification.title, body: notification.body },
             data: stringData({ ...(notification.data ?? {}), notificationId: notification.id }),
             android: { priority: "high", notification: { channel_id: "draborngate-core", sound: "default", visibility: "PUBLIC" } },
@@ -132,7 +135,7 @@ Deno.serve(async (req) => {
         }
       }
       await admin.schema("draborngate").from("dkd_gate_notifications").update({
-        push_sent_at: new Date().toISOString(),
+        sent_at: new Date().toISOString(),
         push_error: notificationSent ? null : errors.join(" | ").slice(0, 2000) || "FCM gönderilemedi",
       }).eq("id", notification.id);
     }
