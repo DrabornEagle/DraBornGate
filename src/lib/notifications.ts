@@ -45,10 +45,9 @@ export async function prepareGateNotifications() {
         const token = typeof deviceToken.data === 'string' ? deviceToken.data : JSON.stringify(deviceToken.data);
         if (token) {
           await supabase.rpc('dkd_gate_register_push_token', {
-            p_provider: 'fcm',
             p_token: token,
-            p_device_type: Platform.OS,
-            p_app_version: APP_VERSION,
+            p_platform: 'fcm',
+            p_device_name: `${Platform.OS} v${APP_VERSION}`,
           });
         }
       } catch { /* FCM tokeni APK içinde yeniden denenecek. */ }
