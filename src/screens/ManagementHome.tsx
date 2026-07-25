@@ -576,7 +576,7 @@ export function ManagementHome() {
                 label="Manuel ödeme notu"
                 value={paymentNote}
                 onChangeText={setPaymentNote}
-                placeholder="Örn. Havale ile alındı / Makbuz 124"
+                placeholder="Örn. Yönetim tarafından ödendi işaretlendi / Makbuz 124"
               />
               <Text style={styles.noteHelp}>Aşağıdaki “Ödendi” veya “Geri Al” işleminde bu not kullanılır. Android’de ayrı açılır metin kutusuna ihtiyaç yoktur.</Text>
             </Panel>

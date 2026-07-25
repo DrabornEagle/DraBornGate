@@ -11,6 +11,7 @@ import { AnimatedPressable, FadeInView } from '../components/Motion';
 import { PrivacyDataCenter } from '../components/PrivacyDataCenter';
 import { PrivateImage } from '../components/PrivateImage';
 import { Panel } from '../components/UI';
+import { NotificationSoundPicker } from '../components/NotificationSoundPicker';
 import { ANDROID_VERSION_CODE, APP_VERSION, DEMO_DATA_VERSION } from '../config/version';
 import { useGateAdmin } from '../hooks/useGateAdmin';
 import { useGateRoles } from '../hooks/useGateRoles';
@@ -78,6 +79,8 @@ export function ProfileScreen({ role, onSelectRole }: { role: UserRole; onSelect
     </CollapsibleSection>
 
     {role === 'resident' ? <CollapsibleSection title="Site Sakini Adresleri" subtitle={`${ownAddresses.length} kayıtlı adres`} icon="home" tone={colors.orange}>{ownAddresses.length ? <View style={s.menu}>{ownAddresses.map((item) => { const site = gate.sites.find((x) => x.id === item.siteId); return <Panel key={item.id} style={s.address} gradient><Ionicons name="home" size={24} color={colors.orange} /><View style={s.copy}><Text style={s.menuTitle}>{site?.name ?? 'Site'}</Text><Text style={s.menuText}>{item.block} • Kat {item.floor} • Daire {item.apartment}{item.addressNote ? ` • ${item.addressNote}` : ''}</Text></View></Panel>; })}</View> : <Panel><Text style={s.demoText}>Site yönetimi hesabını sitene eklediğinde adresin burada görünür.</Text></Panel>}</CollapsibleSection> : null}
+
+    <CollapsibleSection title="Bildirim Zili" subtitle="Bu cihaz için zil sesi veya sessiz modu seç" icon="notifications" tone={colors.purple}><NotificationSoundPicker /></CollapsibleSection>
 
     <CollapsibleSection title="Gizlilik ve Veri Merkezi" subtitle="İzinler, veri güvenliği, abonelik ve hesap silme" icon="shield-checkmark" tone={colors.green}><PrivacyDataCenter /></CollapsibleSection>
 

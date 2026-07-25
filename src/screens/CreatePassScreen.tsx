@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useMemo, useState } from 'react';
-import { Alert, Image, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Animated, Image, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { AnimatedPressable, FadeInView } from '../components/Motion';
 import { Panel } from '../components/UI';
 import { selectAndReadDeliveryImage } from '../lib/gateMedia';
@@ -30,6 +30,17 @@ export function CreatePassScreen({ onBack, onCreated }: { onBack: () => void; on
   const [ocrPayload, setOcrPayload] = useState<Record<string, unknown>>({});
   const [readingImage, setReadingImage] = useState(false);
   const [rulesAccepted, setRulesAccepted] = useState(false);
+  const uploadMotion = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (screenshotPath) { uploadMotion.stopAnimation(); uploadMotion.setValue(0); return; }
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(uploadMotion, { toValue: 1, duration: 1200, useNativeDriver: true }),
+      Animated.timing(uploadMotion, { toValue: 0, duration: 1200, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [screenshotPath, uploadMotion]);
 
   const filteredSites = useMemo(() => {
     const query = siteSearch.trim().toLocaleLowerCase('tr-TR');
@@ -145,7 +156,9 @@ export function CreatePassScreen({ onBack, onCreated }: { onBack: () => void; on
       </FadeInView>
 
       <FadeInView delay={50}>
+        <Animated.View style={!screenshotPath ? { transform: [{ scale: uploadMotion.interpolate({ inputRange: [0, 1], outputRange: [1, 1.018] }) }, { translateY: uploadMotion.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) }] } : undefined}>
         <Panel style={s.uploadPanel} gradient>
+          {!screenshotPath ? <Animated.View pointerEvents="none" style={[s.uploadGlow, { opacity: uploadMotion.interpolate({ inputRange: [0, 1], outputRange: [.12, .46] }), transform: [{ translateX: uploadMotion.interpolate({ inputRange: [0, 1], outputRange: [-130, 310] }) }, { rotate: '-16deg' }] }]} /> : null}
           <View style={s.uploadTop}>
             <View style={s.uploadIcon}><Ionicons name="scan" size={28} color={colors.cyan} /></View>
             <View style={s.headerCopy}>
@@ -167,6 +180,7 @@ export function CreatePassScreen({ onBack, onCreated }: { onBack: () => void; on
             </View>
           ) : null}
         </Panel>
+        </Animated.View>
       </FadeInView>
 
       <Text style={s.sectionLabel}>ANLAŞMALI SİTE</Text>
@@ -282,7 +296,8 @@ const s = StyleSheet.create({
   title: { color: colors.text, fontSize: 25, fontWeight: '900' },
   sub: { color: colors.textSoft, fontSize: 13, marginTop: 3 },
   sectionLabel: { color: colors.cyan, fontSize: 12, fontWeight: '900', letterSpacing: .7 },
-  uploadPanel: { gap: 13, borderColor: 'rgba(55,216,255,.34)' },
+  uploadPanel: { gap: 13, borderColor: 'rgba(55,216,255,.48)', overflow: 'hidden' },
+  uploadGlow: { position: 'absolute', top: -80, bottom: -80, width: 72, backgroundColor: 'rgba(117,105,255,.55)' },
   uploadTop: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   uploadIcon: { width: 52, height: 52, borderRadius: 17, backgroundColor: 'rgba(55,216,255,.12)', alignItems: 'center', justifyContent: 'center' },
   panelTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },

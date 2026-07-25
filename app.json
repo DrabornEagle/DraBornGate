@@ -28,7 +28,15 @@
       ],
       "adaptiveIcon": {
         "backgroundColor": "#06101D"
-      }
+      },
+      "blockedPermissions": [
+        "android.permission.MANAGE_EXTERNAL_STORAGE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "plugins": [
       "expo-iap",
@@ -52,7 +60,13 @@
         "expo-notifications",
         {
           "color": "#37D8FF",
-          "defaultChannel": "draborngate-core"
+          "defaultChannel": "draborngate-core",
+          "sounds": [
+            "./assets/sounds/gate_bell.wav",
+            "./assets/sounds/gate_chime.wav",
+            "./assets/sounds/gate_digital.wav",
+            "./assets/sounds/gate_alert.wav"
+          ]
         }
       ]
     ],

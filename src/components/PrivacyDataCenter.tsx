@@ -29,8 +29,8 @@ export function PrivacyDataCenter() {
       <View style={s.copy}><Text style={s.title}>Verilerin senin kontrolünde</Text><Text style={s.text}>DraBornGate reklam amacıyla veri satmaz. Kimlik, rol, site, geçiş, isteğe bağlı fotoğraf ve konum verileri yalnızca uygulama işlevleri, güvenlik ve destek için işlenir.</Text></View>
     </Panel>
     <Info icon="person" title="Hesap ve profil" text="Ad soyad, e-posta, telefon, profil fotoğrafı, rol ve kurye bilgileri." />
-    <Info icon="location" title="Konum ve site verileri" text="Haritada site pini seçimi ve Akıllı Geçiş doğrulaması sırasında uygulama açıkken konum." />
-    <Info icon="receipt" title="Abonelik verileri" text="Kart bilgileri DraBornGate tarafından alınmaz. Ürün, dönem, sipariş ve doğrulama belirteçleri Google Play üzerinden işlenir." />
+    <Info icon="location" title="Konum ve site verileri" text="OpenStreetMap üzerinde site pini seçimi ve Akıllı Geçiş doğrulaması sırasında yalnızca uygulama açıkken konum." />
+    <Info icon="receipt" title="Abonelik verileri" text="Kart bilgileri DraBornGate tarafından alınmaz. Dijital paketler yalnızca Google Play üzerinden işlenir; uygulamada banka transferi veya harici ödeme bağlantısı bulunmaz." />
     <LinkButton icon="document-text" title="Gizlilik Politikası" onPress={() => void open(`${WEB_ROOT}/privacy/`)} />
     <LinkButton icon="reader" title="Kullanım Koşulları" onPress={() => void open(`${WEB_ROOT}/terms/`)} />
     <LinkButton icon="server" title="Veri Güvenliği Özeti" onPress={() => void open(`${WEB_ROOT}/data-safety/`)} />
