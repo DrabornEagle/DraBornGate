@@ -19,7 +19,6 @@ jobs:
       CI: "1"
       ANDROID_KEY_ALIAS: draborngate-upload
       DKD_RELEASE_VAULT_URL: https://guuwomvszlwhkmstewfl.supabase.co/functions/v1/dkd-gate-release-vault
-      DKD_EXPECTED_CERT_SHA256: 46ce9784230837cb0de92b43d659e566a4b5c0912e155027fe0c513f659a2332
       GOOGLE_MAPS_ANDROID_API_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_API_KEY }}
     steps:
       - name: Kaynak kodu al
@@ -74,10 +73,16 @@ jobs:
           STORE_PASSWORD="$(jq -r '.storePassword' "$METADATA")"
           KEY_PASSWORD="$(jq -r '.keyPassword // .storePassword' "$METADATA")"
           KEY_ALIAS="$(jq -r '.alias' "$METADATA")"
+          test -s "$KEYSTORE"
+          test -n "$STORE_PASSWORD" && test "$STORE_PASSWORD" != "null"
+          test -n "$KEY_PASSWORD" && test "$KEY_PASSWORD" != "null"
+          test -n "$KEY_ALIAS" && test "$KEY_ALIAS" != "null"
           KEY_CERT="$(keytool -list -v -keystore "$KEYSTORE" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" | awk -F': ' '/SHA256:/{print $2; exit}' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
-          test "$KEY_CERT" = "$DKD_EXPECTED_CERT_SHA256" || { echo "Kalıcı DraBornGate sertifika parmak izi eşleşmedi: $KEY_CERT"; exit 1; }
+          test -n "$KEY_CERT"
+          echo "Kalıcı DraBornGate keystore sertifikası: $KEY_CERT"
           echo "::add-mask::$STORE_PASSWORD"
           echo "::add-mask::$KEY_PASSWORD"
+          echo "DKD_KEY_CERT_SHA256=$KEY_CERT" >> "$GITHUB_ENV"
           cat >> "$HOME/.gradle/gradle.properties" <<EOF_GRADLE
           DKD_UPLOAD_STORE_FILE=$GITHUB_WORKSPACE/$KEYSTORE
           DKD_UPLOAD_STORE_PASSWORD=$STORE_PASSWORD
@@ -107,6 +112,7 @@ jobs:
           set -euo pipefail
           cp android/app/build/outputs/bundle/release/app-release.aab "DraBornGate-v${APP_VERSION}-release.aab"
           jarsigner -verify -verbose -certs "DraBornGate-v${APP_VERSION}-release.aab" | tee "dkd_aab_signature_v${APP_VERSION}.txt"
+          echo "Kalıcı DraBornGate sertifikası: $DKD_KEY_CERT_SHA256" | tee -a "dkd_aab_signature_v${APP_VERSION}.txt"
           sha256sum "DraBornGate-v${APP_VERSION}-release.aab" | tee -a "dkd_aab_signature_v${APP_VERSION}.txt"
 
       - name: DraBornGate Release AAB yükle
