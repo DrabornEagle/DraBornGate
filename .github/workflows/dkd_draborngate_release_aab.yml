@@ -77,7 +77,8 @@ jobs:
           test -n "$STORE_PASSWORD" && test "$STORE_PASSWORD" != "null"
           test -n "$KEY_PASSWORD" && test "$KEY_PASSWORD" != "null"
           test -n "$KEY_ALIAS" && test "$KEY_ALIAS" != "null"
-          KEY_CERT="$(keytool -list -v -keystore "$KEYSTORE" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" | awk -F': ' '/SHA256:/{print $2; exit}' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          keytool -list -v -keystore "$KEYSTORE" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" > signing-work/keytool.txt
+          KEY_CERT="$(awk -F': ' '/SHA256:/{print $2; exit}' signing-work/keytool.txt | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
           test -n "$KEY_CERT"
           echo "Kalıcı DraBornGate keystore sertifikası: $KEY_CERT"
           echo "::add-mask::$STORE_PASSWORD"
