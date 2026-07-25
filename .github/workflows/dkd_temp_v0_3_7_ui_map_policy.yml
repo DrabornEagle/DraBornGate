@@ -3,6 +3,8 @@ name: DraBornGate v0.3.7 Typecheck Debug
 on:
   push:
     branches: [work/draborngate-v0.3.7-ui-map-policy-fixes]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
