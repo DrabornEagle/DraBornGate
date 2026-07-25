@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AppTab, BottomDock } from './src/components/BottomDock';
+import { GateNotificationBell } from './src/components/GateNotificationBell';
 import { AppBackground } from './src/components/UI';
 import { APP_VERSION } from './src/config/version';
 import { useGateRoles } from './src/hooks/useGateRoles';
@@ -61,7 +62,7 @@ function AppContent() {
     if (role === 'resident') return <SiteRoleAccessGate role="resident"><ResidentHome onOpenProfile={() => setTab('profile')} /></SiteRoleAccessGate>;
     return <ManagementAccessGate />;
   };
-  return <AppBackground><SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}><View style={styles.screen}>{error ? <View style={styles.error}><Text style={styles.errorText}>{error}</Text></View> : null}{render()}</View>{!showCreatePass ? <BottomDock role={role} current={tab} onChange={setTab} /> : null}</SafeAreaView></AppBackground>;
+  return <AppBackground><SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}><View style={styles.screen}>{error ? <View style={styles.error}><Text style={styles.errorText}>{error}</Text></View> : null}{render()}</View><GateNotificationBell />{!showCreatePass ? <BottomDock role={role} current={tab} onChange={setTab} /> : null}</SafeAreaView></AppBackground>;
 }
 
 export default function App() { return <SafeAreaProvider><GateProvider><StatusBar style="light" /><AppContent /></GateProvider></SafeAreaProvider>; }
