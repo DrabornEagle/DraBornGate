@@ -6,7 +6,7 @@ import { Panel, SectionTitle } from '../components/UI';
 import { useGateAdmin } from '../hooks/useGateAdmin';
 import { supabase } from '../lib/supabase';
 import { colors, radius, spacing } from '../theme';
-import { ManagementHomeV031 } from './ManagementHomeV031';
+import { ManagementHomeV036 } from './ManagementHomeV036';
 
 type ManagementApplication = {
   id: string;
@@ -43,7 +43,7 @@ export function ManagementAccessGate() {
     return <View style={styles.loading}><ActivityIndicator size="large" color={colors.magenta} /><Text style={styles.loadingTitle}>Yönetim yetkisi kontrol ediliyor</Text><Text style={styles.loadingText}>Başvuru ve onay bilgilerin hazırlanıyor.</Text></View>;
   }
 
-  if (isAdmin || application?.status === 'approved') return <ManagementHomeV031 />;
+  if (isAdmin || application?.status === 'approved') return <ManagementHomeV036 />;
 
   const rejected = application?.status === 'rejected';
   return (
