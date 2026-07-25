@@ -2,7 +2,7 @@
   "expo": {
     "name": "DraBornGate",
     "slug": "draborngate",
-    "version": "0.3.5",
+    "version": "0.3.6",
     "orientation": "portrait",
     "scheme": "draborngate",
     "userInterfaceStyle": "dark",
@@ -47,13 +47,22 @@
         "expo-notifications",
         {
           "color": "#37D8FF",
-          "defaultChannel": "draborngate-core"
+          "defaultChannel": "draborngate-system-default-v2",
+          "sounds": [
+            "./assets/sounds/gate_chime.wav",
+            "./assets/sounds/gate_pulse.wav",
+            "./assets/sounds/gate_alert.wav",
+            "./assets/sounds/gate_bell.wav",
+            "./assets/sounds/gate_siren.wav",
+            "./assets/sounds/gate_digital.wav",
+            "./assets/sounds/gate_turbo.wav"
+          ]
         }
       ]
     ],
     "extra": {
-      "appVersion": "0.3.5",
-      "demoDataVersion": "0.3.5",
+      "appVersion": "0.3.6",
+      "demoDataVersion": "0.3.6",
       "androidVersionCode": 1,
       "privacyPolicyUrl": "https://www.draborneagle.com/DraBornGate/privacy/",
       "accountDeletionUrl": "https://www.draborneagle.com/DraBornGate/account-deletion/",
