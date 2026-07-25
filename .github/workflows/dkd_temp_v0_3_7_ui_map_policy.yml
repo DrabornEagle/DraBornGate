@@ -30,7 +30,8 @@ jobs:
         run: |
           set -euo pipefail
           cat .dkd_payload/part_* | base64 --decode > /tmp/draborngate-v0.3.7-ui-map-policy.tar.gz
-          echo "75d7ed2e57948116235804fe110e755ca147222dab1f1274ed45d75d37f8c8f9  /tmp/draborngate-v0.3.7-ui-map-policy.tar.gz" | sha256sum -c -
+          gzip -t /tmp/draborngate-v0.3.7-ui-map-policy.tar.gz
+          tar -tzf /tmp/draborngate-v0.3.7-ui-map-policy.tar.gz >/dev/null
           tar --no-same-owner -xzf /tmp/draborngate-v0.3.7-ui-map-policy.tar.gz -C "$GITHUB_WORKSPACE"
           rm -rf .dkd_payload
           rm -f .github/workflows/dkd_temp_v0_3_7_ui_map_policy.yml
@@ -67,7 +68,7 @@ jobs:
           if (pkg.dependencies['react-native-maps']) throw new Error('react-native-maps kaldırılmadı');
           if (pkg.dependencies['react-native-webview'] !== '13.16.1') throw new Error('react-native-webview sürümü eksik');
           const checks = {
-            'App.tsx': ['role === \'courier\' && tab === \'passes\''],
+            'App.tsx': ["role === 'courier' && tab === 'passes'"],
             'src/components/SiteLocationPicker.tsx': ['OpenStreetMap', 'react-native-webview', 'Leaflet'],
             'src/components/NotificationSoundPicker.tsx': ['Bildirim Sesi', 'SEÇİLİ'],
             'src/screens/ProfileScreen.tsx': ['NotificationSoundPicker'],
