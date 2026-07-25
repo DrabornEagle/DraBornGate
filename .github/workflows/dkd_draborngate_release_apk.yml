@@ -3,10 +3,12 @@ name: DraBornGate Release APK
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '.dkd_release/**'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: draborngate-release-apk-${{ github.ref }}
@@ -25,6 +27,25 @@ jobs:
     steps:
       - name: Kaynak kodu al
         uses: actions/checkout@v4
+      - name: APK çalışma kimliğini kaydet
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .dkd_release
+          cat > .dkd_release/latest_apk_run.json <<EOF_RUN
+          {
+            "version": "0.3.7",
+            "run_id": "${{ github.run_id }}",
+            "run_number": "${{ github.run_number }}",
+            "source_sha": "${{ github.sha }}",
+            "artifact_name": "DraBornGate-Release-APK-v0.3.7"
+          }
+          EOF_RUN
+          git config user.name "DraBornGate Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add .dkd_release/latest_apk_run.json
+          git commit -m "ci: v0.3.7 APK çalışma kimliğini kaydet [skip ci]" || exit 0
+          git push
       - name: Node.js 22 kur
         uses: actions/setup-node@v4
         with:
@@ -52,12 +73,12 @@ jobs:
         shell: bash
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/draborngate-release.keystore
-          cat >> "$HOME/.gradle/gradle.properties" <<EOF
+          cat >> "$HOME/.gradle/gradle.properties" <<EOF_GRADLE
           DKD_UPLOAD_STORE_FILE=$GITHUB_WORKSPACE/android/app/draborngate-release.keystore
           DKD_UPLOAD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD
           DKD_UPLOAD_KEY_ALIAS=$ANDROID_KEY_ALIAS
           DKD_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD
-          EOF
+          EOF_GRADLE
           node <<'NODE'
           const fs = require('fs');
           const file = 'android/app/build.gradle';
