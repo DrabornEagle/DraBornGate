@@ -1,111 +1,147 @@
-# DraBornGate v0.3.5
+# DraBornGate v0.3.6
 
-DraBornGate; kurye geçişi, AirPass, VisitorPass, site sakini, güvenlik, site kuralları, aidat ve site finans işlemlerini aynı güvenli site platformunda birleştiren Expo / React Native uygulamasıdır.
+DraBornGate; kurye geçişi, AirPass / Akıllı Geçiş, VisitorPass, site sakini, güvenlik, site yönetimi, ayrıntılı raporlama, aidat ve finans işlemlerini aynı güvenli site platformunda birleştiren Expo / React Native uygulamasıdır.
 
 ## Güncel sürüm bilgileri
 
-- Uygulama sürümü: `0.3.5`
-- Demo veri sürümü: `0.3.5`
+- Uygulama sürümü: `0.3.6`
+- Demo veri sürümü: `0.3.6`
 - Android paket adı: `com.draborneagle.draborngate`
 - Android `versionCode`: `1`
-- Bildirim kanalı: `draborngate-core`
 - Supabase şeması: `draborngate`
 - Tablo standardı: `draborngate.dkd_gate_*`
 - Mobil RPC standardı: `public.dkd_gate_*`
-- Özel görseller: private `draborngate-private` Storage bucket
+- Özel sipariş görselleri: private `draborngate-private` Storage bucket
+- Özel imzalama kasası: private `draborngate-release-private` Storage bucket
 
-Android `versionCode`, APK çıktısı alınacak sürüme kadar `1` olarak korunur. Uygulama sürümü ve demo veri sürümü birlikte artırılır.
+Uygulama sürümü ve demo veri sürümü birlikte artırılır. İlk imzalı APK sürümünde Android `versionCode` değeri `1` olarak korunmuştur.
 
-## v0.3.5 düzeltmesi
+## v0.3.6 yenilikleri
 
-- Expo SDK 53 ve sonrasında Android uzak bildirimleri Expo Go içinde desteklenmediği için oluşan kırmızı açılış ekranı giderildi.
-- `expo-notifications` artık uygulama açılırken statik olarak yüklenmez.
-- Expo Go algılandığında native uzak bildirim modülü güvenli biçimde atlanır; uygulamanın diğer bölümleri çalışmaya devam eder.
-- Development APK ve release APK içinde FCM cihaz anahtarı, Android bildirim kanalı ve uzak bildirim sistemi normal şekilde çalışır.
-- Gerçek uzak bildirim testi Expo Go ile değil, development veya release APK ile yapılır.
+### Büyük ve açılır rapor kategorileri
+
+Site Yönetimi Raporlar ekranındaki küçük ve sıkışık metinler büyütüldü. Raporlar aşağıdaki açılır / kapanır ana kategorilere ayrıldı:
+
+- Genel performans özeti
+- Kurye giriş ve teslimat ayrıntıları
+- Gün gün hareket
+- Yoğun saatler
+- Kapı performansı
+- Kurye performansı
+- Güvenlik personeli işlemleri
+- Paket kullanımı ve rapor dışa aktarma
+
+Günlük, haftalık ve aylık raporlar korunur. Kurye adı, platform, plaka, giriş kapısı, müşteri, açık adres, blok, kat, daire, sipariş numarası, talep saati, kapıya varış ve giriş tamamlama saatleri gösterilir.
+
+### Büyük geçiş ayrıntı ekranları
+
+- `Kurye Giriş ve Teslimat Ayrıntıları` kartına dokunulduğunda büyük modern ayrıntı penceresi açılır.
+- Site Yönetimi ana ekranındaki `Günlük Kurye Giriş Kayıtları` kartına dokunulduğunda aynı büyük ayrıntı ekranı açılır.
+- Ayrıntı ekranında kurye, plaka, platform, site, kapı, müşteri, adres, sipariş numarası, zaman çizelgesi, konum doğrulaması, kod ve sipariş görseli gösterilir.
+- Eski site kurulum, kapı, kural, kullanıcı, aidat ve finans araçları korunur ve `Yönetim Araçları` bölümünden açılır.
+
+### Güvenlik ve tek kullanımlık kod
+
+- Kurye talebi oluşturulduğu anda benzersiz 6 haneli tek kullanımlık kod hazırlanır.
+- Güvenlik kuyruğunda kod önceden görünür.
+- Kart üzerinde `Güvenlik Doğrulama Kodu` ve `Kodu kuryeden isteyin ve eşleştirin` açıklaması bulunur.
+- Kurye `Kapıya Geldim` işlemini yaptıktan sonra güvenlik, kuryenin söylediği kodu sistemde aratır.
+- Kod eşleşirse giriş tamamlanır ve kod tekrar kullanılamaz.
+- Güvenlik kuyruğundaki kurye, adres, plaka ve durum metinleri büyütüldü.
+
+### Modern Akıllı Geçiş ve Kapıya Geldim
+
+- Akıllı Geçiş paneli daha renkli, açıklayıcı ve hareketli hâle getirildi.
+- Talep ve kod, konum kontrolü ve güvenlik doğrulaması adımları görsel ilerleme olarak gösterilir.
+- Kapıya kalan mesafe, yakın kapı önerisi ve konum doğrulama durumu daha belirgin gösterilir.
+- `Kapıya Geldim` düğmesi renkli ve animasyonlu hâle getirildi.
+- İşlemden sonra büyük, modern ve animasyonlu bir başarı penceresi açılır.
+- Pencerede görevliye söylenecek kod büyük biçimde gösterilir ve doğrulama adımları açıklanır.
+
+### Kayıt sınırları ve Daha Fazla
+
+- Kurye ana ekranında `Son Hareketler` ilk açılışta en fazla 5 kayıt gösterir.
+- `5 Hareket Daha Göster` her dokunuşta 5 yeni kayıt açar.
+- `Geçişlerim` ilk açılışta en fazla 4 kayıt gösterir.
+- `5 Kayıt Daha Göster` her dokunuşta 5 yeni kayıt açar.
+- Güvenlik `Tüm Geçişler` ekranındaki 4 + 5 sayfalama ve Güvenlik İşlemlerindeki 6 + 6 sayfalama korunur.
+
+### Bildirim zili ve bildirim merkezi
+
+- Oturum açılan bütün rol ekranlarına hareketli zil simgesi eklendi.
+- Okunmamış bildirim sayısı zil üzerinde gösterilir.
+- Bildirim merkezi; kurye, güvenlik, ziyaretçi, aidat, finans ve yönetim bildirimlerini tek yerde toplar.
+- Bildirimler tek tek veya topluca okundu olarak işaretlenebilir.
+- Bildirim listesi 10 kayıtlık sayfalama kullanır.
+- Uygulama içi kayıtlar Supabase bildirim tablosundan gelir; release APK içinde aynı olaylar FCM ile cihaza da gönderilir.
+
+### DraBornGarage tarzı özel bildirim sesleri
+
+Olay türüne göre ayrı Android bildirim kanalları ve yerel sesler bulunur:
+
+- Genel bildirim: `gate_bell.wav`
+- Kapıya varış, kod ve Akıllı Geçiş: `gate_chime.wav`
+- Onay ve tamamlanan işlem: `gate_digital.wav`
+- Ret, iptal ve uyarı: `gate_alert.wav`
+- Kritik güvenlik bildirimi: `gate_siren.wav`
+
+Ses dosyaları `npm install` sonrasında `scripts/generate_notification_sounds.mjs` ile otomatik üretilir. Expo Go, Android uzak bildirimlerini desteklemediği için gerçek FCM ve özel ses testi imzalı development / release APK üzerinde yapılır.
+
+### İlk kalıcı imzalı Release APK
+
+- `.github/workflows/dkd_draborngate_release_apk.yml` imzalı release APK üretir.
+- İlk çalıştırmada RSA 4096 bit kalıcı DraBornGate imzalama anahtarı oluşturulur.
+- Sonraki bütün APK ve AAB sürümleri aynı anahtarla imzalanır.
+- Keystore ve parolası GitHub deposuna eklenmez.
+- Keystore ve özel metadata yalnızca private Supabase release kasasında saklanır.
+- GitHub Actions, kasaya GitHub OIDC kimliğiyle bağlanır.
+- APK ve imza raporu GitHub Actions artifact olarak yüklenir; keystore genel artifact alanına konulmaz.
 
 ## Ana modüller
 
 ### CourierPass / Kurye geçişi
 
-- Kurye profili, platform ve motosiklet plakası kaydı.
-- Sipariş ekran görüntüsü seçme, OCR ile metin okuma ve manuel düzeltme.
-- Görselin çekildiği güncel tarih ve saatin kayıtla birlikte saklanması ve görsel üzerinde gösterilmesi.
-- Anlaşmalı site, kapı, etap, blok, kat ve daire seçimi.
-- Kritik site kurallarını onaylamadan geçiş talebi gönderememe.
-- Talep oluşturulduğu anda benzersiz, 6 haneli ve tek kullanımlık geçiş kodu üretimi.
-- Kurye `Kapıya Geldim` işlemini yaptıktan sonra güvenliğe kod doğrulama bildirimi gönderilmesi.
-- Kullanılmış kodun tekrar kullanılamaması.
+- Kurye profili, platform ve motosiklet plakası kaydı
+- Sipariş ekran görüntüsü seçme, OCR ve manuel düzeltme
+- Görsel çekim tarih ve saatini kayıtla birlikte saklama
+- Anlaşmalı site, kapı, etap, blok, kat ve daire seçimi
+- Kritik site kurallarını onaylama
+- Otomatik 6 haneli tek kullanımlık kod
+- Kapıya varış ve güvenlik kod eşleştirmesi
 
-### Güvenlik paneli
+### AirPass / Akıllı Geçiş
 
-- Bekleyen, onaylı, kapıda, aktif ve tamamlanan kurye geçişlerini yönetme.
-- Kuryenin söylediği 6 haneli kodu aratarak ilgili geçiş kaydını bulma.
-- Kod eşleştiğinde geçişi tamamlama; eşleşmeyen veya kullanılmış kodu reddetme.
-- Kurye tarafından gönderilen sipariş ekran görüntüsünü tam ekran açma.
-- Onay, ret, kod doğrulama ve geçiş işlemlerinden sonra verileri otomatik yenileme.
-- Kurye kuyruğunda ilk açılışta 4 kayıt; `Daha Fazla` ile her seferinde 5 yeni kayıt.
-- Güvenlik işlem kayıtlarında ilk açılışta 6 kayıt; `Daha Fazla` ile her seferinde 6 yeni kayıt.
-
-### Site yönetimi ve raporlar
-
-- Günlük, haftalık ve aylık ayrıntılı geçiş raporları.
-- Kurye adı, platform, plaka, kapı, müşteri, açık adres, blok, kat, daire ve sipariş numarası.
-- Talep oluşturma, kapıya varış, geçiş tamamlama ve ret zamanları.
-- Site, kapı, etap, GPS, güvenlik, yönetici ve sakin üyelik yönetimi.
-- Kurye hareketleri, tamamlanan geçişler, ziyaretçi sayısı, onay oranı ve kapasite özetleri.
-
-### AirPass
-
-- Uygulama açıkken GPS mesafe kontrolü.
-- Yakın kapı önerisi ve konum doğrulama etiketi.
-- 30 metre yaklaşma bildirimi ve manuel geçiş talebi.
+- Uygulama açıkken GPS mesafe kontrolü
+- 30 metre yaklaşma uyarısı
+- Yakın kapı önerisi
+- Konumu güvenliğe gönderme
+- Konum doğrulama etiketi
 
 ### VisitorPass
 
-- Site sakininin misafir kodu oluşturması.
-- Güvenliğin kodla misafir kaydı bulması, giriş vermesi veya reddetmesi.
-- Site ve kapı kurallarının ziyaretçi rolüne göre gösterilmesi.
+- Site sakininin misafir kodu oluşturması
+- Güvenliğin kodla misafir bulması
+- Giriş verme veya reddetme
+- Site ve kapı kurallarını ziyaretçi rolüne göre gösterme
 
-### Site sakini
+### Site yönetimi, aidat ve finans
 
-- Site, blok, kat ve daire profili.
-- Yalnızca olumlu adres eşleşmelerinde ilgili kurye geçişlerini görme.
-- Aidat geçmişi ve yönetim izin verdiğinde site finans özeti.
+- Site, kapı, etap ve GPS yönetimi
+- Yönetici, güvenlik ve sakin üyelikleri
+- Site / blok / daire bazlı aidat
+- Ödendi / ödenmedi işlemi ve ödeme notu
+- Günlük borç hatırlatma
+- Gelir, gider, bakiye ve sakin görünürlüğü
+- Günlük, haftalık ve aylık ayrıntılı raporlar
 
-### Kurallar, aidat ve finans
+## Veri ve güvenlik ayrımı
 
-- Site veya kapı / etap bazlı, tarih aralıklı, kritik ve sürümlü kurallar.
-- Tüm site, blok veya daire bazlı aidat oluşturma.
-- Manuel ödendi / ödenmedi işlemi ve ödeme notu.
-- Günlük otomatik borç hatırlatma.
-- Gelir, gider ve sakin görünürlüğü ayarları.
-
-### Profil ve roller
-
-- Birden fazla role sahip kullanıcıların roller arasında geçiş yapabilmesi.
-- Kullanıcının yalnızca tek rolü varsa profilde `Rollerim` bölümünün gösterilmemesi.
-
-### Bildirim sistemi
-
-- Expo Notifications ile Android izin ve kanal yönetimi.
-- Firebase Cloud Messaging HTTP v1 cihaz anahtarı kaydı.
-- Supabase bildirim kuyruğu, veritabanı tetikleyicisi ve `dkd-gate-push-dispatch` Edge Function.
-- Kurye talebi, kapıya varış, onay, ret, kod doğrulama ve tamamlanan geçiş bildirimleri.
-- Firebase Admin özel anahtarı APK veya GitHub içinde tutulmaz; yalnızca Supabase Vault üzerinden Edge Function tarafından okunur.
-- Expo Go yalnızca uygulama geliştirme arayüz testi için kullanılabilir; uzak FCM bildirimi için development/release APK gerekir.
-
-## Veri ayrımı
-
-- Ortak DraBornGo / DraBornGate kimliği: `auth.users`
+- Ortak DraBornGo / DraBornGate kullanıcı kimliği: `auth.users`
 - DraBornGate özel şeması: `draborngate`
 - DraBornGo ürün tablolarına dokunulmaz.
-- İki uygulama yalnızca Supabase Auth kullanıcı kimliğini paylaşır.
 - Gerçek kayıtlarla demo kayıtları birbirinden ayrılır.
-
-## Demo verileri
-
-Demo varsayılan olarak yüklenmez. Profil ekranından v0.3.5 demo paketi yüklenebilir, yeniden kurulabilir, güncellenebilir veya yalnızca demo kayıtları silinebilir. Gerçek kayıtlar demo işlemlerinden etkilenmez.
+- Firebase Admin servis hesabı APK veya GitHub içinde tutulmaz; Supabase Vault üzerinden yalnızca Edge Function tarafından okunur.
+- Android keystore GitHub deposunda tutulmaz; özel release kasasında korunur.
 
 ## Doğrulama
 
@@ -115,14 +151,26 @@ npm run typecheck
 npx expo export --platform android --output-dir dist --max-workers 2 --no-bytecode
 ```
 
-GitHub doğrulama akışı TypeScript, Expo Android export, native Android yapılandırması, Firebase Android dosyası, paket adı, uygulama sürümü, demo veri sürümü, Expo Go bildirim güvenliği ve Android `versionCode` politikasını kontrol eder.
+GitHub doğrulama akışı şunları denetler:
+
+- TypeScript
+- Expo Android export
+- Native Android prebuild
+- Firebase Android yapılandırması
+- Paket adı ve sürüm alanları
+- Android `versionCode: 1`
+- Expo Go bildirim güvenliği
+- Özel bildirim sesleri
+- Açılır rapor kategorileri ve büyük ayrıntı ekranları
+- Sayfalama kuralları
+- Keystore veya Firebase Admin dosyasının repoya eklenmemesi
 
 Release iş akışları:
 
 - `.github/workflows/dkd_draborngate_release_apk.yml`
 - `.github/workflows/dkd_draborngate_release_aab.yml`
 
-## Termux: önce yedek, sonra v0.3.5 ile eşitle
+## Termux: önce v0.3.5 yedeği, sonra v0.3.6 eşitlemesi
 
 ```bash
 pkg update -y
@@ -140,12 +188,13 @@ git fetch origin --prune
 TS="$(date +%Y%m%d_%H%M%S)"
 git archive \
   --format=zip \
-  --output="/sdcard/Download/DraBornGate_v0.3.4_before_v0.3.5_${TS}.zip" \
-  origin/backup/v0.3.4-before-v0.3.5-expogo-fix-2026-07-25
+  --output="/sdcard/Download/DraBornGate_v0.3.5_before_v0.3.6_${TS}.zip" \
+  origin/backup/v0.3.5-before-v0.3.6-ui-notifications-apk-2026-07-25
 
-git stash push -u -m "DraBornGate_local_before_v0.3.5_${TS}" || true
+git stash push -u -m "DraBornGate_local_before_v0.3.6_${TS}" || true
 git checkout main
 git reset --hard origin/main
+rm -rf node_modules .expo dist
 rm -f package-lock.json
 npm install --no-audit --no-fund
 npm run typecheck
@@ -155,12 +204,13 @@ echo "Commit: $(git rev-parse --short HEAD)"
 git status --short
 ```
 
-## GitHub yedekleri
+## GitHub sürüm yedekleri
 
-- v0.3.3 sürüm yedeği: `backup/v0.3.3-2026-07-25`
-- v0.3.4 README düzeltmesi öncesi yedek: `backup/v0.3.4-before-readme-sync-2026-07-25`
-- v0.3.5 Expo Go düzeltmesi öncesi yedek: `backup/v0.3.4-before-v0.3.5-expogo-fix-2026-07-25`
+- `backup/v0.3.3-2026-07-25`
+- `backup/v0.3.4-before-readme-sync-2026-07-25`
+- `backup/v0.3.4-before-v0.3.5-expogo-fix-2026-07-25`
+- `backup/v0.3.5-before-v0.3.6-ui-notifications-apk-2026-07-25`
 
 ## v0.4 öncesi durum
 
-v0.3.5; v0.3.4 geçiş güvenliği ve raporlama özelliklerini korur, ayrıca Expo Go açılışını bozan Android uzak bildirim modülü yükleme hatasını giderir. Gerçek FCM testi development/release APK üzerinde, iki ayrı telefonda kurye–güvenlik senaryosuyla yapılmalıdır.
+v0.3.6; büyük ve açılır raporları, modern geçiş ayrıntılarını, görünür güvenlik kodunu, yeni Akıllı Geçiş deneyimini, bildirim zilini, özel bildirim seslerini ve ilk kalıcı imzalı APK altyapısını tamamlayan sürümdür. v0.4 öncesinde imzalı APK ile iki ayrı telefonda kurye–güvenlik geçişi, FCM bildirimi, özel zil sesi ve tek kullanımlık kod doğrulaması uçtan uca test edilmelidir.
