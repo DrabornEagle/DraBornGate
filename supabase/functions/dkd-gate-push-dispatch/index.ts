@@ -6,22 +6,27 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-dkd-dispatch-secret",
 };
 
-type FirebaseServiceAccount = {
-  project_id: string;
-  private_key: string;
-  client_email: string;
-  token_uri?: string;
-};
-
-type NotificationRow = {
-  id: string;
-  user_id: string;
-  title: string;
-  body: string;
-  data: Record<string, unknown> | null;
-};
-
+type FirebaseServiceAccount = { project_id: string; private_key: string; client_email: string; token_uri?: string };
+type NotificationRow = { id: string; user_id: string; kind: string; title: string; body: string; data: Record<string, unknown> | null };
 type PushTokenRow = { id: string; expo_push_token: string };
+type PushProfile = { channelId: string; sound: string };
+
+const PROFILES: Record<"default" | "arrival" | "success" | "warning" | "urgent", PushProfile> = {
+  default: { channelId: "draborngate-system-default-v2", sound: "gate_bell.wav" },
+  arrival: { channelId: "draborngate-arrival-v2", sound: "gate_chime.wav" },
+  success: { channelId: "draborngate-success-v2", sound: "gate_digital.wav" },
+  warning: { channelId: "draborngate-warning-v2", sound: "gate_alert.wav" },
+  urgent: { channelId: "draborngate-urgent-v2", sound: "gate_siren.wav" },
+};
+
+const profileFor = (kindValue: unknown): PushProfile => {
+  const kind = typeof kindValue === "string" ? kindValue.toLowerCase() : "";
+  if (kind.includes("urgent") || kind.includes("emergency") || kind.includes("critical")) return PROFILES.urgent;
+  if (kind.includes("rejected") || kind.includes("cancel") || kind.includes("failed") || kind.includes("error") || kind.includes("overdue")) return PROFILES.warning;
+  if (kind.includes("completed") || kind.includes("approved") || kind.includes("verified") || kind.includes("paid")) return PROFILES.success;
+  if (kind.includes("arrived") || kind.includes("airpass") || kind.includes("code") || kind.includes("near_gate")) return PROFILES.arrival;
+  return PROFILES.default;
+};
 
 const base64url = (value: Uint8Array | string) => {
   const bytes = typeof value === "string" ? new TextEncoder().encode(value) : value;
@@ -43,36 +48,18 @@ const pemToArrayBuffer = (pem: string) => {
 async function getGoogleAccessToken(account: FirebaseServiceAccount) {
   const now = Math.floor(Date.now() / 1000);
   const header = base64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const claim = base64url(JSON.stringify({
-    iss: account.client_email,
-    scope: "https://www.googleapis.com/auth/firebase.messaging",
-    aud: account.token_uri ?? "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3500,
-  }));
+  const claim = base64url(JSON.stringify({ iss: account.client_email, scope: "https://www.googleapis.com/auth/firebase.messaging", aud: account.token_uri ?? "https://oauth2.googleapis.com/token", iat: now, exp: now + 3500 }));
   const unsigned = `${header}.${claim}`;
-  const key = await crypto.subtle.importKey(
-    "pkcs8",
-    pemToArrayBuffer(account.private_key),
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
+  const key = await crypto.subtle.importKey("pkcs8", pemToArrayBuffer(account.private_key), { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
   const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(unsigned));
   const assertion = `${unsigned}.${base64url(new Uint8Array(signature))}`;
-  const response = await fetch(account.token_uri ?? "https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }),
-  });
+  const response = await fetch(account.token_uri ?? "https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }) });
   const payload = await response.json();
   if (!response.ok || !payload.access_token) throw new Error(`Firebase OAuth başarısız: ${JSON.stringify(payload)}`);
   return String(payload.access_token);
 }
 
-const stringData = (data: Record<string, unknown> | null) => Object.fromEntries(
-  Object.entries(data ?? {}).map(([key, value]) => [key, typeof value === "string" ? value : JSON.stringify(value)]),
-);
+const stringData = (data: Record<string, unknown> | null) => Object.fromEntries(Object.entries(data ?? {}).map(([key, value]) => [key, typeof value === "string" ? value : JSON.stringify(value)]));
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -110,7 +97,7 @@ Deno.serve(async (req) => {
     if (!firebase.project_id || !firebase.client_email || !firebase.private_key) throw new Error("Firebase servis hesabı eksik");
 
     let notificationsQuery = admin.schema("draborngate").from("dkd_gate_notifications")
-      .select("id,user_id,title,body,data")
+      .select("id,user_id,kind,title,body,data")
       .is("sent_at", null)
       .gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString())
       .order("created_at", { ascending: true })
@@ -126,11 +113,8 @@ Deno.serve(async (req) => {
     let failed = 0;
 
     for (const notification of notifications) {
-      const { data: tokenRows, error: tokenError } = await admin.schema("draborngate").from("dkd_gate_push_tokens")
-        .select("id,expo_push_token")
-        .eq("user_id", notification.user_id)
-        .in("platform", ["fcm", "android"])
-        .eq("is_active", true);
+      const profile = profileFor(notification.kind);
+      const { data: tokenRows, error: tokenError } = await admin.schema("draborngate").from("dkd_gate_push_tokens").select("id,expo_push_token").eq("user_id", notification.user_id).in("platform", ["fcm", "android"]).eq("is_active", true);
       if (tokenError) throw tokenError;
       const tokens = (tokenRows ?? []) as PushTokenRow[];
       if (!tokens.length) {
@@ -147,8 +131,8 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ message: {
             token: item.expo_push_token,
             notification: { title: notification.title, body: notification.body },
-            data: stringData({ ...(notification.data ?? {}), notificationId: notification.id }),
-            android: { priority: "high", notification: { channel_id: "draborngate-core", sound: "default", visibility: "PUBLIC" } },
+            data: stringData({ ...(notification.data ?? {}), notificationId: notification.id, kind: notification.kind }),
+            android: { priority: "high", notification: { channel_id: profile.channelId, sound: profile.sound, visibility: "PUBLIC", notification_priority: "PRIORITY_MAX", default_vibrate_timings: false } },
           } }),
         });
         const payload = await response.json().catch(() => ({}));
@@ -157,15 +141,10 @@ Deno.serve(async (req) => {
           failed += 1;
           errors.push(JSON.stringify(payload));
           const serialized = JSON.stringify(payload);
-          if (response.status === 404 || serialized.includes("UNREGISTERED") || serialized.includes("registration-token-not-registered")) {
-            await admin.schema("draborngate").from("dkd_gate_push_tokens").update({ is_active: false, updated_at: new Date().toISOString() }).eq("id", item.id);
-          }
+          if (response.status === 404 || serialized.includes("UNREGISTERED") || serialized.includes("registration-token-not-registered")) await admin.schema("draborngate").from("dkd_gate_push_tokens").update({ is_active: false, updated_at: new Date().toISOString() }).eq("id", item.id);
         }
       }
-      await admin.schema("draborngate").from("dkd_gate_notifications").update({
-        sent_at: new Date().toISOString(),
-        push_error: notificationSent ? null : errors.join(" | ").slice(0, 2000) || "FCM gönderilemedi",
-      }).eq("id", notification.id);
+      await admin.schema("draborngate").from("dkd_gate_notifications").update({ sent_at: new Date().toISOString(), push_error: notificationSent ? null : errors.join(" | ").slice(0, 2000) || "FCM gönderilemedi" }).eq("id", notification.id);
     }
 
     return new Response(JSON.stringify({ ok: true, processed: notifications.length, sent, failed }), { headers: { ...cors, "Content-Type": "application/json" } });
