@@ -116,10 +116,13 @@ jobs:
             echo 'Expo Go açılışını bozan statik expo-notifications importu bulunamaz.' >&2
             exit 1
           fi
-          grep -Fq "DraBornGate-Signing-Keystore" .github/workflows/dkd_draborngate_release_apk.yml
+          grep -Fq "id-token: write" .github/workflows/dkd_draborngate_release_apk.yml
+          grep -Fq "dkd-gate-release-vault" .github/workflows/dkd_draborngate_release_apk.yml
           grep -Fq "assembleRelease" .github/workflows/dkd_draborngate_release_apk.yml
+          test -f supabase/functions/dkd-gate-release-vault/index.ts
+          test -f supabase/migrations/20260725194500_draborngate_v0_3_6_release_vault.sql
           if git ls-files | grep -Eqi 'firebase-adminsdk|service[-_]?account.*\.json$|\.keystore$|\.jks$'; then
             echo 'Firebase Admin hesabı veya Android keystore repoya eklenemez.' >&2
             exit 1
           fi
-          echo 'DraBornGate v0.3.6, büyük raporlar, bildirim zili/sesleri, sayfalama ve Android versionCode 1 doğrulandı.'
+          echo 'DraBornGate v0.3.6, büyük raporlar, bildirim zili/sesleri, özel release kasası ve Android versionCode 1 doğrulandı.'
