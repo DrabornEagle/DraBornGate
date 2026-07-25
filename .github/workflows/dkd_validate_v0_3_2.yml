@@ -106,7 +106,11 @@ jobs:
             const source=fs.readFileSync(file,'utf8');
             for(const token of tokens) if(!source.includes(token)) throw new Error(`${file} token eksik: ${token}`);
           }
-          const forbiddenSecrets=new RegExp(['BEGIN PRIVATE','KEY','firebase-adminsdk-fbsvc','private_key','id'].join('(?:\\s|_|-)*'),'i');
+          const forbiddenSecrets=new RegExp([
+            'BEGIN'+' PRIVATE'+' KEY',
+            'firebase-adminsdk'+'-fbsvc@',
+            'private'+'_key'+'_id'
+          ].join('|'),'i');
           const walk=(dir, out=[])=>{for(const e of fs.readdirSync(dir,{withFileTypes:true})){const p=`${dir}/${e.name}`;e.isDirectory()?walk(p,out):out.push(p)}return out};
           for(const file of walk('.').filter(p=>!p.startsWith('./.git/')&&!p.includes('node_modules')&&!p.includes('/dist/'))) {
             if(/\.(ts|tsx|js|json|yml|yaml|sql|md|sh)$/.test(file)&&forbiddenSecrets.test(fs.readFileSync(file,'utf8'))) throw new Error(`Firebase Admin özel anahtarı repoda bulunamaz: ${file}`);
