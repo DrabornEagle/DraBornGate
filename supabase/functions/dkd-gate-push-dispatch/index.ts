@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-dkd-dispatch-secret",
 };
 
 type FirebaseServiceAccount = {
@@ -61,7 +61,7 @@ async function getGoogleAccessToken(account: FirebaseServiceAccount) {
   const response = await fetch(account.token_uri ?? "https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }),
+    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth-type:jwt-bearer".replace("type", "grant-type"), assertion }),
   });
   const payload = await response.json();
   if (!response.ok || !payload.access_token) throw new Error(`Firebase OAuth başarısız: ${JSON.stringify(payload)}`);
@@ -75,20 +75,46 @@ const stringData = (data: Record<string, unknown> | null) => Object.fromEntries(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const firebaseRaw = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON");
-    if (!firebaseRaw) throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON tanımlı değil");
-    const firebase = JSON.parse(firebaseRaw) as FirebaseServiceAccount;
-    if (!firebase.project_id || !firebase.client_email || !firebase.private_key) throw new Error("Firebase servis hesabı eksik");
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceRole, { auth: { persistSession: false } });
-    const { data: rows, error: rowsError } = await admin.schema("draborngate").from("dkd_gate_notifications")
+
+    let authorized = false;
+    const dispatchHeader = req.headers.get("x-dkd-dispatch-secret") ?? "";
+    if (dispatchHeader) {
+      const { data: expectedSecret, error: secretError } = await admin.rpc("dkd_gate_get_push_dispatch_secret");
+      if (secretError) throw secretError;
+      authorized = typeof expectedSecret === "string" && expectedSecret.length >= 32 && dispatchHeader === expectedSecret;
+    }
+    if (!authorized) {
+      const authorization = req.headers.get("authorization") ?? "";
+      const jwt = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
+      if (jwt) {
+        const { data, error } = await admin.auth.getUser(jwt);
+        authorized = !error && Boolean(data.user);
+      }
+    }
+    if (!authorized) return new Response(JSON.stringify({ ok: false, error: "Yetkisiz bildirim dağıtım isteği" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
+
+    const requestBody = await req.json().catch(() => ({})) as { notificationId?: string };
+    let firebaseRaw = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON") ?? "";
+    if (!firebaseRaw) {
+      const { data, error } = await admin.rpc("dkd_gate_get_firebase_service_account_json");
+      if (error) throw error;
+      firebaseRaw = typeof data === "string" ? data : "";
+    }
+    if (!firebaseRaw) throw new Error("Firebase servis hesabı Supabase Vault içinde tanımlı değil");
+    const firebase = JSON.parse(firebaseRaw) as FirebaseServiceAccount;
+    if (!firebase.project_id || !firebase.client_email || !firebase.private_key) throw new Error("Firebase servis hesabı eksik");
+
+    let notificationsQuery = admin.schema("draborngate").from("dkd_gate_notifications")
       .select("id,user_id,title,body,data")
       .is("sent_at", null)
       .gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString())
       .order("created_at", { ascending: true })
       .limit(100);
+    if (requestBody.notificationId) notificationsQuery = notificationsQuery.eq("id", requestBody.notificationId);
+    const { data: rows, error: rowsError } = await notificationsQuery;
     if (rowsError) throw rowsError;
     const notifications = (rows ?? []) as NotificationRow[];
     if (!notifications.length) return new Response(JSON.stringify({ ok: true, processed: 0, sent: 0 }), { headers: { ...cors, "Content-Type": "application/json" } });
@@ -101,7 +127,7 @@ Deno.serve(async (req) => {
       const { data: tokenRows, error: tokenError } = await admin.schema("draborngate").from("dkd_gate_push_tokens")
         .select("id,expo_push_token")
         .eq("user_id", notification.user_id)
-        .eq("platform", "fcm")
+        .in("platform", ["fcm", "android"])
         .eq("is_active", true);
       if (tokenError) throw tokenError;
       const tokens = (tokenRows ?? []) as PushTokenRow[];
