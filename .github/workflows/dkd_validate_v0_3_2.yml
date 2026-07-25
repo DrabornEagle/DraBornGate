@@ -1,8 +1,8 @@
-name: DraBornGate v0.3.5 Validate
+name: DraBornGate v0.3.6 Validate
 
 on:
   push:
-    branches: [main, release/v0.3.5]
+    branches: [main, release/v0.3.6-ui-notifications-apk]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -11,13 +11,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: draborngate-v0-3-5-validate-${{ github.ref }}
+  group: draborngate-v0-3-6-validate-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 50
     steps:
       - name: Kaynak kodu al
         uses: actions/checkout@v4
@@ -25,14 +25,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Bağımlılıkları kur
+      - name: Bağımlılıkları ve bildirim seslerini kur
         run: npm install --no-audit --no-fund
       - name: TypeScript tanılaması
         id: typecheck
         shell: bash
         run: |
           set +e
-          npm run typecheck 2>&1 | tee dkd_typecheck_v0_3_5.log
+          npm run typecheck 2>&1 | tee dkd_typecheck_v0_3_6.log
           code=${PIPESTATUS[0]}
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           exit 0
@@ -40,13 +40,13 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dkd-typecheck-v0-3-5
-          path: dkd_typecheck_v0_3_5.log
+          name: dkd-typecheck-v0-3-6
+          path: dkd_typecheck_v0_3_6.log
           if-no-files-found: error
           retention-days: 7
       - name: TypeScript sonucunu doğrula
         run: |
-          cat dkd_typecheck_v0_3_5.log
+          cat dkd_typecheck_v0_3_6.log
           test "${{ steps.typecheck.outputs.exit_code }}" = "0"
       - name: Android Expo dışa aktarma testi
         run: npx expo export --platform android --output-dir dist --max-workers 2 --no-bytecode
@@ -58,7 +58,7 @@ jobs:
           GOOGLE_MAPS_ANDROID_API_KEY: dkd_validation_placeholder_key
         run: |
           set +e
-          npx expo prebuild --clean --platform android 2>&1 | tee dkd_native_prebuild_v0_3_5.log
+          npx expo prebuild --clean --platform android 2>&1 | tee dkd_native_prebuild_v0_3_6.log
           code=${PIPESTATUS[0]}
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           exit 0
@@ -66,13 +66,13 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dkd-native-prebuild-v0-3-5
-          path: dkd_native_prebuild_v0_3_5.log
+          name: dkd-native-prebuild-v0-3-6
+          path: dkd_native_prebuild_v0_3_6.log
           if-no-files-found: error
           retention-days: 7
       - name: Native prebuild sonucunu doğrula
         run: |
-          cat dkd_native_prebuild_v0_3_5.log
+          cat dkd_native_prebuild_v0_3_6.log
           test "${{ steps.prebuild.outputs.exit_code }}" = "0"
       - name: Native proje çıktısını doğrula
         run: |
@@ -80,7 +80,7 @@ jobs:
           test -f android/app/build.gradle
           test -f android/app/google-services.json
           grep -R "com.draborneagle.draborngate" android/app/build.gradle android/app/src/main/AndroidManifest.xml
-      - name: Sürüm ve v0.3.5 kapsam doğrulaması
+      - name: Sürüm ve v0.3.6 kapsam doğrulaması
         shell: bash
         run: |
           set -euo pipefail
@@ -88,19 +88,27 @@ jobs:
           const fs = require('fs');
           const pkg = require('./package.json');
           const app = require('./app.json').expo;
-          const expected = '0.3.5';
+          const expected = '0.3.6';
           const version = fs.readFileSync('./src/config/version.ts','utf8');
-          if(pkg.version!==expected||app.version!==expected||app.extra?.appVersion!==expected||app.extra?.demoDataVersion!==expected) throw new Error('v0.3.5 sürüm eşleşmesi bozuk');
+          if(pkg.version!==expected||app.version!==expected||app.extra?.appVersion!==expected||app.extra?.demoDataVersion!==expected) throw new Error('v0.3.6 sürüm eşleşmesi bozuk');
           if(app.android.versionCode!==1||!version.includes("ANDROID_VERSION_CODE = 1")) throw new Error('Android versionCode 1 değil');
           if(app.android.googleServicesFile!=='./google-services.json'||!fs.existsSync('./google-services.json')) throw new Error('Firebase Android yapılandırması eksik');
+          if(!pkg.scripts?.postinstall||!pkg.scripts?.['generate:sounds']) throw new Error('Bildirim sesi üretim komutları eksik');
           console.log('Sürüm alanları doğrulandı.');
           NODE
-          grep -Fq "toLocaleString('tr-TR'" src/components/TimestampedPrivateImage.tsx
-          grep -Fq "imageFullscreen" src/screens/SecurityHome.tsx
-          grep -Fq "dkd_gate_lookup_courier_by_code" src/screens/SecurityHome.tsx
+          test -f assets/sounds/gate_bell.wav
+          test -f assets/sounds/gate_chime.wav
+          test -f assets/sounds/gate_alert.wav
+          grep -Fq "GateNotificationBell" App.tsx
+          grep -Fq "CollapsibleCategory" src/screens/ManagementProCenter.tsx
+          grep -Fq "GateRecordDetailsModal" src/screens/ManagementProCenter.tsx
+          grep -Fq "ManagementHomeV036" src/screens/ManagementAccessGate.tsx
+          grep -Fq "ArrivalSuccessModal" src/screens/CourierHome.tsx
+          grep -Fq "setActivityLimit((value) => value + 5)" src/screens/CourierHome.tsx
           grep -Fq "setLimit((value) => value + 5)" src/screens/PassesScreen.tsx
-          grep -Fq "setLimit((value) => value + 6)" src/screens/HistoryScreen.tsx
-          grep -Fq "dkd_gate_get_site_entry_report" src/screens/ManagementProCenter.tsx
+          grep -Fq "revealApprovalCode" src/screens/SecurityHome.tsx
+          grep -Fq "draborngate-arrival-v2" src/lib/notifications.ts
+          grep -Fq "gate_chime.wav" src/lib/notifications.ts
           grep -Fq "getDevicePushTokenAsync" src/lib/notifications.ts
           grep -Fq "IS_EXPO_GO" src/lib/notifications.ts
           grep -Fq "import('expo-notifications')" src/lib/notifications.ts
@@ -108,10 +116,10 @@ jobs:
             echo 'Expo Go açılışını bozan statik expo-notifications importu bulunamaz.' >&2
             exit 1
           fi
-          grep -Fq "dkd_gate_get_firebase_service_account_json" supabase/migrations/20260725163500_draborngate_v0_3_4_push_compat.sql
-          grep -Fq "dkd_gate_notifications_push_dispatch_trg" supabase/migrations/20260725164000_draborngate_v0_3_4_push_dispatch_trigger.sql
-          if git ls-files | grep -Eqi 'firebase-adminsdk|service[-_]?account.*\.json$'; then
-            echo 'Firebase Admin servis hesabı dosyası repoya eklenemez.' >&2
+          grep -Fq "DraBornGate-Signing-Keystore" .github/workflows/dkd_draborngate_release_apk.yml
+          grep -Fq "assembleRelease" .github/workflows/dkd_draborngate_release_apk.yml
+          if git ls-files | grep -Eqi 'firebase-adminsdk|service[-_]?account.*\.json$|\.keystore$|\.jks$'; then
+            echo 'Firebase Admin hesabı veya Android keystore repoya eklenemez.' >&2
             exit 1
           fi
-          echo 'DraBornGate v0.3.5, Expo Go güvenliği ve Android versionCode 1 doğrulandı.'
+          echo 'DraBornGate v0.3.6, büyük raporlar, bildirim zili/sesleri, sayfalama ve Android versionCode 1 doğrulandı.'
