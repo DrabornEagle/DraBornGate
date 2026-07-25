@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, RefreshControl, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { BillingCycle, GooglePlaySubscriptionButton } from '../components/GooglePlaySubscriptionButton';
 import { AnimatedPressable, FadeInView, FloatingView } from '../components/Motion';
 import { SiteRoleApplicationsManager } from '../components/SiteRoleApplicationsManager';
@@ -46,7 +46,8 @@ export function ManagementProCenter() {
   const [center, setCenter] = useState<Center>();
   const [report, setReport] = useState<Report>();
   const [entryReport, setEntryReport] = useState<EntryReport>();
-  const [entryLimit, setEntryLimit] = useState(10);
+  const [entryLimit, setEntryLimit] = useState(5);
+  const [entrySearch, setEntrySearch] = useState('');
   const [selected, setSelected] = useState('');
   const [cycle, setCycle] = useState<BillingCycle>('monthly');
   const [loading, setLoading] = useState(true);
@@ -79,7 +80,7 @@ export function ManagementProCenter() {
       setCenter(next);
       setReport(reportResult.data as Report);
       setEntryReport(entriesResult.data as EntryReport);
-      setEntryLimit(10);
+      setEntryLimit(5);
       setSelected((current) => current && next.plans.some((plan) => plan.code === current) ? current : next.effective_plan?.code || next.plans?.[0]?.code || '');
       if (next.subscription?.billing_cycle) setCycle(next.subscription.billing_cycle);
     } catch (caught) { Alert.alert('Merkez yüklenemedi', caught instanceof Error ? caught.message : 'Tekrar dene.'); }
@@ -105,7 +106,10 @@ export function ManagementProCenter() {
 
   const selectedPlan = center?.plans.find((plan) => plan.code === selected);
   const entries = entryReport?.entries ?? [];
-  const visibleEntries = entries.slice(0, entryLimit);
+  const normalizedEntrySearch = entrySearch.trim().toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ');
+  const filteredEntries = normalizedEntrySearch ? entries.filter((item) => `${item.courier_name} ${item.courier_plate ?? ''}`.toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ').includes(normalizedEntrySearch)) : entries;
+  const visibleEntries = filteredEntries.slice(0, entryLimit);
+  useEffect(() => { setEntryLimit(5); }, [entrySearch]);
   const busiestHours = (report?.hourly ?? []).filter((item) => item.total > 0).sort((a, b) => b.total - a.total).slice(0, 6);
 
   if (loading && !center) return <View style={s.loading}><ActivityIndicator size="large" color={colors.magenta} /><Text style={s.muted}>Raporlar ve paketler hazırlanıyor</Text></View>;
@@ -121,9 +125,10 @@ export function ManagementProCenter() {
       <View style={s.metrics}><MetricCard label="Kurye geçişi" value={String(numberValue(report.summary.courier_total))} icon="navigate" tone={colors.cyan} /><MetricCard label="Tamamlanan" value={String(numberValue(report.summary.completed))} icon="checkmark-done" tone={colors.green} /><MetricCard label="Ziyaretçi" value={String(numberValue(report.summary.visitor_total))} icon="people" tone={colors.orange} /></View>
       <Panel style={s.summary} gradient><Line label="Onay oranı" value={`%${numberValue(report.summary.approval_rate)}`} /><Line label="Tamamlama oranı" value={`%${numberValue(report.summary.completion_rate)}`} /><Line label="Ortalama giriş süresi" value={`${numberValue(report.summary.average_completion_minutes)} dk`} /><Line label="Akıllı Geçiş oranı" value={`%${numberValue(report.summary.airpass_rate)}`} /><Line label="Finans bakiyesi" value={money(report.summary.balance)} /><Line label="Ödenmemiş aidat" value={money(report.summary.dues_unpaid)} /></Panel>
 
-      <SectionTitle title="Kurye giriş ve teslimat ayrıntıları" action={`${entries.length} kayıt`} />
+      <SectionTitle title="Kurye giriş ve teslimat ayrıntıları" action={`${filteredEntries.length} kayıt`} />
+      <View style={s.entrySearch}><Ionicons name="search" size={20} color={colors.cyan} /><TextInput value={entrySearch} onChangeText={setEntrySearch} placeholder="Ad soyad veya plaka ara" placeholderTextColor={colors.textMuted} selectionColor={colors.cyan} autoCapitalize="characters" style={s.entrySearchInput} />{entrySearch ? <AnimatedPressable onPress={() => setEntrySearch('')}><Ionicons name="close-circle" size={21} color={colors.textMuted} /></AnimatedPressable> : null}</View>
       {visibleEntries.length ? <View style={s.entryList}>{visibleEntries.map((item) => <Panel key={item.id} style={s.entryCard} gradient><View style={s.entryTop}><View style={s.entryIcon}><Ionicons name={item.status === 'completed' ? 'checkmark-done' : item.status === 'arrived' ? 'location' : 'time'} size={22} color={item.status === 'completed' ? colors.green : item.status === 'arrived' ? colors.cyan : colors.orange} /></View><View style={s.copy}><Text style={s.entryName}>{item.courier_name}</Text><Text style={s.entryMeta}>{item.platform} • {item.courier_plate || 'Plaka yok'} • {item.gate}</Text></View><Text style={s.entryStatus}>{item.status.toLocaleUpperCase('tr-TR')}</Text></View><View style={s.addressBox}><Ionicons name="home" size={18} color={colors.orange} /><View style={s.copy}><Text style={s.addressTitle}>{item.customer_name || 'Müşteri adı yok'} • {item.block} / Kat {item.floor || '-'} / Daire {item.apartment}</Text><Text style={s.addressText}>{item.address_text || 'Adres açıklaması yok'}</Text><Text style={s.orderText}>Sipariş: {item.order_number}</Text></View></View><View style={s.timeGrid}><TimeLine label="Talep" value={item.created_at} /><TimeLine label="Kapıya geldi" value={item.arrived_at} /><TimeLine label="Giriş tamamlandı" value={item.completed_at} /></View>{item.location_verified ? <Text style={s.location}>KONUM DOĞRULANDI{item.last_distance_m != null ? ` • ${Math.round(item.last_distance_m)} m` : ''}</Text> : null}</Panel>)}</View> : <EmptyState icon="document-text-outline" title="Bu dönemde giriş yok" description="Kurye geçişleri tamamlandıkça hangi kuryenin hangi saatte hangi adrese gittiği burada görünür." />}
-      {visibleEntries.length < entries.length ? <AnimatedPressable onPress={() => setEntryLimit((value) => value + 10)}><View style={s.more}><Ionicons name="chevron-down" size={20} color={colors.cyan} /><Text style={s.moreText}>DAHA FAZLA</Text><Text style={s.moreCount}>{entries.length - visibleEntries.length} kayıt kaldı</Text></View></AnimatedPressable> : null}
+      {visibleEntries.length < filteredEntries.length ? <AnimatedPressable onPress={() => setEntryLimit((value) => value + 5)}><View style={s.more}><Ionicons name="chevron-down" size={20} color={colors.cyan} /><Text style={s.moreText}>DAHA FAZLA</Text><Text style={s.moreCount}>{filteredEntries.length - visibleEntries.length} kayıt kaldı</Text></View></AnimatedPressable> : null}
 
       <SectionTitle title="Gün gün hareket" />
       <Panel style={s.listPanel} gradient>{(report.daily ?? []).map((item) => <ReportLine key={item.date} title={dateLabel(item.date)} value={`${item.courier} kurye • ${item.completed} tamamlandı • ${item.visitor} ziyaretçi`} tone={item.completed ? colors.green : colors.cyan} />)}</Panel>
@@ -168,6 +173,7 @@ const s = StyleSheet.create({
   tabs: { flexDirection: 'row', gap: 7 }, tabWrap: { flex: 1 }, tab: { minHeight: 55, borderRadius: 17, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: 5 }, tabActive: { borderColor: colors.magenta, backgroundColor: 'rgba(222,85,255,.08)' }, tabText: { color: colors.textMuted, fontSize: 10, fontWeight: '900' }, section: { gap: 13 },
   rangeRow: { flexDirection: 'row', gap: 7 }, rangeWrap: { flex: 1 }, range: { minHeight: 45, borderRadius: 14, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }, rangeActive: { borderColor: colors.cyan, backgroundColor: 'rgba(55,216,255,.09)' }, rangeText: { color: colors.textMuted, fontSize: 11, fontWeight: '900' }, rangeTextActive: { color: colors.cyan }, warning: { flexDirection: 'row', alignItems: 'center', gap: 8, borderColor: 'rgba(255,179,92,.4)' }, warningText: { flex: 1, color: colors.orange, fontSize: 11, lineHeight: 17 },
   metrics: { flexDirection: 'row', gap: 7 }, summary: { gap: 9 }, line: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 }, lineLabel: { color: colors.textSoft, fontSize: 12 }, lineValue: { color: colors.text, fontSize: 12, fontWeight: '900' },
+  entrySearch: { minHeight: 54, borderRadius: 17, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: 'rgba(55,216,255,.06)', paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 9 }, entrySearchInput: { flex: 1, color: colors.text, fontSize: 13, fontWeight: '800' },
   entryList: { gap: 10 }, entryCard: { gap: 11 }, entryTop: { flexDirection: 'row', alignItems: 'center', gap: 9 }, entryIcon: { width: 45, height: 45, borderRadius: 15, backgroundColor: 'rgba(55,216,255,.10)', alignItems: 'center', justifyContent: 'center' }, copy: { flex: 1 }, entryName: { color: colors.text, fontSize: 15, fontWeight: '900' }, entryMeta: { color: colors.textSoft, fontSize: 10, marginTop: 3 }, entryStatus: { color: colors.cyan, fontSize: 8, fontWeight: '900' }, addressBox: { flexDirection: 'row', gap: 8, borderRadius: 14, backgroundColor: 'rgba(255,179,92,.08)', padding: 10 }, addressTitle: { color: colors.text, fontSize: 12, fontWeight: '900' }, addressText: { color: colors.textSoft, fontSize: 10, lineHeight: 15, marginTop: 3 }, orderText: { color: colors.cyan, fontSize: 9, fontWeight: '900', marginTop: 4 }, timeGrid: { gap: 6 }, timeLine: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 }, timeLabel: { color: colors.textMuted, fontSize: 10 }, timeValue: { color: colors.text, fontSize: 10, fontWeight: '800', textAlign: 'right' }, location: { color: colors.green, fontSize: 9, fontWeight: '900' },
   more: { minHeight: 55, borderRadius: 17, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: 'rgba(55,216,255,.07)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }, moreText: { color: colors.cyan, fontSize: 12, fontWeight: '900' }, moreCount: { color: colors.textMuted, fontSize: 10, fontWeight: '800' },
   listPanel: { gap: 0 }, reportLine: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 9, borderBottomWidth: 1, borderBottomColor: colors.border }, reportDot: { width: 8, height: 8, borderRadius: 8 }, reportTitle: { color: colors.text, fontSize: 12, fontWeight: '900' }, reportValue: { color: colors.textSoft, fontSize: 10, lineHeight: 15, marginTop: 3 },

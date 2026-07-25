@@ -140,7 +140,7 @@ begin
   insert into draborngate.dkd_gate_dues_charges(
     period_id,site_id,resident_profile_id,resident_user_id,block,floor,apartment,amount,status,paid_at,payment_note,is_demo,demo_owner_user_id
   ) values(
-    v_previous_period_id,v_site_id,v_resident_id,v_uid,'B Blok','3','18',1400,'paid',now()-interval '18 days','FAST ile ödendi',true,v_uid
+    v_previous_period_id,v_site_id,v_resident_id,v_uid,'B Blok','3','18',1400,'paid',now()-interval '18 days','Yönetim tarafından ödendi işaretlendi',true,v_uid
   );
 
   insert into draborngate.dkd_gate_finance_transactions(

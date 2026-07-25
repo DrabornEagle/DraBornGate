@@ -62,7 +62,8 @@ function AppContent() {
     if (role === 'resident') return <SiteRoleAccessGate role="resident"><ResidentHome onOpenProfile={() => setTab('profile')} /></SiteRoleAccessGate>;
     return <ManagementAccessGate />;
   };
-  return <AppBackground><SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}><View style={styles.screen}>{error ? <View style={styles.error}><Text style={styles.errorText}>{error}</Text></View> : null}{render()}{!showCreatePass ? <DkdNotificationBell /> : null}</View>{!showCreatePass ? <BottomDock role={role} current={tab} onChange={setTab} /> : null}</SafeAreaView></AppBackground>;
+  const hideNotificationBell = showCreatePass || (role === 'courier' && tab === 'passes');
+  return <AppBackground><SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}><View style={styles.screen}>{error ? <View style={styles.error}><Text style={styles.errorText}>{error}</Text></View> : null}{render()}{!hideNotificationBell ? <DkdNotificationBell /> : null}</View>{!showCreatePass ? <BottomDock role={role} current={tab} onChange={setTab} /> : null}</SafeAreaView></AppBackground>;
 }
 
 export default function App() { return <SafeAreaProvider><GateProvider><StatusBar style="light" /><AppContent /></GateProvider></SafeAreaProvider>; }

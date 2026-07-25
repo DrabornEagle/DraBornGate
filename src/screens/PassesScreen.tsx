@@ -14,8 +14,8 @@ const filters: Array<[Filter, string]> = [['all', 'Tümü'], ['waiting', 'Kod Ha
 export function PassesScreen({ role }: { role: UserRole }) {
   const gate = useGate();
   const [filter, setFilter] = useState<Filter>('all');
-  const [limit, setLimit] = useState(role === 'security' ? 4 : 20);
-  useEffect(() => { setLimit(role === 'security' ? 4 : 20); }, [filter, role]);
+  const [limit, setLimit] = useState(role === 'security' ? 4 : role === 'courier' ? 5 : 20);
+  useEffect(() => { setLimit(role === 'security' ? 4 : role === 'courier' ? 5 : 20); }, [filter, role]);
   if (role === 'resident') return <ResidentPasses />;
   if (role === 'management') return <ManagementRules />;
 
@@ -28,7 +28,7 @@ export function PassesScreen({ role }: { role: UserRole }) {
   return <ScrollView refreshControl={<RefreshControl refreshing={gate.refreshing} onRefresh={() => void gate.refresh()} tintColor={colors.cyan} />} contentContainerStyle={s.content}>
     <FadeInView style={s.header}><View><Text style={s.eyebrow}>{role === 'courier' ? 'KURYE GEÇİŞ MERKEZİ' : 'GÜVENLİK KUYRUĞU'}</Text><Text style={s.title}>{role === 'courier' ? 'Geçişlerim' : 'Tüm geçişler'}</Text><Text style={s.sub}>Canlı sistem • {scoped.length} erişilebilir kayıt</Text></View><View style={s.headIcon}><Ionicons name="shield-checkmark" size={27} color={colors.cyan} /></View></FadeInView>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filters}>{filters.map(([value, label]) => <AnimatedPressable key={value} onPress={() => setFilter(value)}><View style={[s.filter, filter === value && s.active]}><Text style={[s.filterText, filter === value && s.activeText]}>{label}</Text><Text style={s.count}>{value === 'all' ? scoped.length : scoped.filter((x) => x.status === value).length}</Text></View></AnimatedPressable>)}</ScrollView>
-    <View style={s.list}>{visible.length ? visible.map((pass, index) => <FadeInView key={pass.id} delay={50 + index * 25}><View style={s.passWrap}><PassCard pass={pass} showImage={role !== 'courier'} imageFullscreen={role === 'security'} showApprovalCode={role === 'courier'} />{role === 'courier' && pass.status === 'waiting' ? <Action title="BEKLEYEN TALEBİ İPTAL ET" icon="trash" tone={colors.red} onPress={() => cancel(pass.id)} /> : null}{role === 'courier' && ['rejected', 'cancelled', 'expired'].includes(pass.status) ? <Action title="AYNI BİLGİLERLE TEKRAR TALEP GÖNDER" icon="refresh" tone={colors.cyan} onPress={() => void retry(pass.id)} /> : null}</View></FadeInView>) : <EmptyState icon="file-tray-outline" title="Kayıt bulunamadı" description="Bu filtrede gerçek veya örnek kurye geçiş kaydı yok." />}</View>
+    <View style={s.list}>{visible.length ? visible.map((pass, index) => <FadeInView key={pass.id} delay={50 + index * 25}><View style={s.passWrap}><PassCard pass={pass} showImage={role !== 'courier'} imageFullscreen={role === 'security'} showApprovalCode={role === 'courier'} colorfulVariant={role === 'courier'} />{role === 'courier' && pass.status === 'waiting' ? <Action title="BEKLEYEN TALEBİ İPTAL ET" icon="trash" tone={colors.red} onPress={() => cancel(pass.id)} /> : null}{role === 'courier' && ['rejected', 'cancelled', 'expired'].includes(pass.status) ? <Action title="AYNI BİLGİLERLE TEKRAR TALEP GÖNDER" icon="refresh" tone={colors.cyan} onPress={() => void retry(pass.id)} /> : null}</View></FadeInView>) : <EmptyState icon="file-tray-outline" title="Kayıt bulunamadı" description="Bu filtrede gerçek veya örnek kurye geçiş kaydı yok." />}</View>
     {visible.length < filtered.length ? <AnimatedPressable onPress={() => setLimit((value) => value + 5)}><View style={s.more}><Ionicons name="chevron-down" size={20} color={colors.cyan} /><Text style={s.moreText}>DAHA FAZLA</Text><Text style={s.moreCount}>{filtered.length - visible.length} kayıt kaldı</Text></View></AnimatedPressable> : null}
   </ScrollView>;
 }

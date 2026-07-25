@@ -16,6 +16,17 @@ DraBornGate; kurye geçişi, AirPass, VisitorPass, site sakini, güvenlik, site 
 
 Android `versionCode`, APK çıktısı alınacak sürüme kadar `1` olarak korunur. Uygulama sürümü ve demo veri sürümü birlikte artırılır.
 
+## v0.3.7 güvenlik, harita ve Play hazırlığı
+
+- Kurye Geçiş Merkezi’nde global zil görünmez; bildirim merkezi diğer uygun ekranlarda korunur.
+- Site konumu OpenStreetMap üzerinde dokunarak veya pini sürükleyerek seçilir; Google Maps Android anahtarına bağlı değildir.
+- Profilde cihaz bazlı zil sesi ve sessiz mod seçimi bulunur.
+- Kurye geçiş kartları farklı modern renk tonlarıyla gösterilir ve listeler 5+5 ilerler.
+- Yönetim, ad soyad veya plaka aramasıyla tarih/saat ayrıntılı kurye hareketlerini bulabilir.
+- Dijital paketler Google Play Billing ile sunulur; uygulama banka transferi veya harici ödeme bağlantısı içermez.
+- Geniş fotoğraf/video ve dosya izinleri engellenmiş, sistem seçicisi kullanılmıştır.
+- Google Play hazırlık dosyaları `store_assets/google_play` altında tutulur.
+
 ## v0.3.7 güvenlik ve bildirim düzeltmeleri
 
 - Güvenlik, yetkili olduğu sitelerde kurye geçiş kodunu kart üzerinde her zaman görebilir.

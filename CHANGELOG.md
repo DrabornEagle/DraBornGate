@@ -2,6 +2,17 @@
 
 ## 0.3.7
 
+- Kurye Geçiş Merkezi ekranındaki global bildirim zili kaldırıldı.
+- Site konum seçimi Google Maps anahtarına bağlı olmadan OpenStreetMap/WebView tabanlı dokunma ve sürükleme desteğine geçirildi.
+- Profil ekranına cihaz bazlı seçilebilir bildirim zil sesleri ve sessiz mod eklendi.
+- Yeni Kurye Geçişi görsel/OCR kartının tamamı, görsel seçilene kadar dikkat animasyonu aldı.
+- Kurye Paketleri kartı daha açıklayıcı ve modern yapıldı; aktif paketi olan kullanıcıda animasyon kapalı tutuldu.
+- Güvenlik kuyruğundaki yinelenen “Karttan kodu eşleştir” alanı kaldırıldı; geçiş kodunun altındaki tek eşleştirme düğmesi büyütülüp animasyonlu hale getirildi.
+- Kurye Geçişlerim ve yönetim giriş ayrıntıları 5+5 sayfalama aldı.
+- Yönetim raporlarına kurye ad soyadı veya plaka ile arama eklendi.
+- Geçişlerim kartları kayıt bazlı farklı modern renk paletlerine geçirildi.
+- Geniş medya/depolama izinleri engellendi, banka transferi metin kalıntıları temizlendi ve Google Play yayın kontrol dokümanları eklendi.
+- Release APK iş akışı, bu bakım sürümünde istem dışı APK üretmemek için yalnızca manuel çalıştırmaya alındı.
 - Güvenlik kartlarında geçiş kodu kalıcı olarak görünür hale getirildi.
 - Karttan “Kodu Eşleştir” akışı, 6 haneli kod doğrulama ekranı ve “Eşleşme Gerçekleşti” başarı penceresi eklendi.
 - Sipariş ekran görüntüsü kartına dikkat animasyonu, tarama çizgisi ve tam ekran güvenli görüntüleme eklendi.
