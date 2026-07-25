@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - release/v0.3.6-ui-notifications-apk
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
