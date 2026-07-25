@@ -1,3 +1,3 @@
-export const APP_VERSION = '0.3.3';
+export const APP_VERSION = '0.3.4';
 export const ANDROID_VERSION_CODE = 1;
-export const DEMO_DATA_VERSION = '0.3.3';
+export const DEMO_DATA_VERSION = '0.3.4';

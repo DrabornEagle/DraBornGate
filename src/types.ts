@@ -106,12 +106,15 @@ export interface CourierPass {
   orderNumber: string;
   note: string;
   screenshotUri?: string;
+  screenshotCapturedAt?: string;
   ocrText?: string;
   ocrStatus: 'pending' | 'parsed' | 'manual' | 'failed';
   createdAt: string;
   etaMinutes: number;
   status: PassStatus;
   approvalCode?: string;
+  codeCreatedAt?: string;
+  codeSharedAt?: string;
   rejectionReason?: string;
   rulesVersion?: number;
   rulesAcceptedAt?: string;
@@ -241,6 +244,7 @@ export interface CreatePassInput {
   orderNumber: string;
   note: string;
   screenshotPath?: string;
+  screenshotCapturedAt?: string;
   ocrText?: string;
   ocrPayload?: Record<string, unknown>;
   etaMinutes?: number;

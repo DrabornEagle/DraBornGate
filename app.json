@@ -2,7 +2,7 @@
   "expo": {
     "name": "DraBornGate",
     "slug": "draborngate",
-    "version": "0.3.3",
+    "version": "0.3.4",
     "orientation": "portrait",
     "scheme": "draborngate",
     "userInterfaceStyle": "dark",
@@ -18,6 +18,7 @@
     "android": {
       "package": "com.draborneagle.draborngate",
       "versionCode": 1,
+      "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "resize",
       "permissions": ["CAMERA", "ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "POST_NOTIFICATIONS"],
       "adaptiveIcon": {
@@ -51,8 +52,8 @@
       ]
     ],
     "extra": {
-      "appVersion": "0.3.3",
-      "demoDataVersion": "0.3.3",
+      "appVersion": "0.3.4",
+      "demoDataVersion": "0.3.4",
       "androidVersionCode": 1,
       "privacyPolicyUrl": "https://www.draborneagle.com/DraBornGate/privacy/",
       "accountDeletionUrl": "https://www.draborneagle.com/DraBornGate/account-deletion/",

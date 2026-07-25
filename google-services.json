@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "444920385318",
+    "project_id": "draborngate",
+    "storage_bucket": "draborngate.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:444920385318:android:3ff6fe22da81573d9b7be7",
+        "android_client_info": {
+          "package_name": "com.draborneagle.draborngate"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4XoIohb6mwQ95CI4HsNQeya9SYvo65kM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
