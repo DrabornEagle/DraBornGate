@@ -2,7 +2,7 @@
   "expo": {
     "name": "DraBornGate",
     "slug": "draborngate",
-    "version": "0.3.4",
+    "version": "0.3.5",
     "orientation": "portrait",
     "scheme": "draborngate",
     "userInterfaceStyle": "dark",
@@ -52,8 +52,8 @@
       ]
     ],
     "extra": {
-      "appVersion": "0.3.4",
-      "demoDataVersion": "0.3.4",
+      "appVersion": "0.3.5",
+      "demoDataVersion": "0.3.5",
       "androidVersionCode": 1,
       "privacyPolicyUrl": "https://www.draborneagle.com/DraBornGate/privacy/",
       "accountDeletionUrl": "https://www.draborneagle.com/DraBornGate/account-deletion/",
