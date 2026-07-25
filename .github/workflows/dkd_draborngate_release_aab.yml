@@ -1,0 +1,94 @@
+name: DraBornGate Release AAB
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: draborngate-release-aab-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-aab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      GOOGLE_MAPS_ANDROID_API_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_API_KEY }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      - name: Node.js 22 kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Java 17 kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Play release sırlarını doğrula
+        shell: bash
+        run: |
+          test -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" || { echo "ANDROID_KEYSTORE_BASE64 eksik"; exit 1; }
+          test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "ANDROID_KEYSTORE_PASSWORD eksik"; exit 1; }
+          test -n "$ANDROID_KEY_ALIAS" || { echo "ANDROID_KEY_ALIAS eksik"; exit 1; }
+          test -n "$ANDROID_KEY_PASSWORD" || { echo "ANDROID_KEY_PASSWORD eksik"; exit 1; }
+          test -n "$GOOGLE_MAPS_ANDROID_API_KEY" || { echo "GOOGLE_MAPS_ANDROID_API_KEY eksik"; exit 1; }
+
+      - name: Bağımlılıkları kur ve doğrula
+        run: |
+          npm install --no-audit --no-fund
+          npm run typecheck
+
+      - name: Android release projesini üret
+        run: npx expo prebuild --clean --platform android --non-interactive
+
+      - name: İmzalama anahtarını hazırla
+        shell: bash
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/draborngate-release.keystore
+          cat >> "$HOME/.gradle/gradle.properties" <<EOF
+          DKD_UPLOAD_STORE_FILE=$GITHUB_WORKSPACE/android/app/draborngate-release.keystore
+          DKD_UPLOAD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD
+          DKD_UPLOAD_KEY_ALIAS=$ANDROID_KEY_ALIAS
+          DKD_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD
+          EOF
+          node <<'NODE'
+          const fs = require('fs');
+          const file = 'android/app/build.gradle';
+          let src = fs.readFileSync(file, 'utf8');
+          const marker = /signingConfigs\s*\{([\s\S]*?)\n\s{4}\}/;
+          if (!marker.test(src)) throw new Error('signingConfigs bloğu bulunamadı');
+          src = src.replace(marker, (block) => block.replace(/\n\s{4}\}$/, `\n        release {\n            storeFile file(findProperty('DKD_UPLOAD_STORE_FILE'))\n            storePassword findProperty('DKD_UPLOAD_STORE_PASSWORD')\n            keyAlias findProperty('DKD_UPLOAD_KEY_ALIAS')\n            keyPassword findProperty('DKD_UPLOAD_KEY_PASSWORD')\n        }\n    }`));
+          src = src.replace(/(release\s*\{[\s\S]*?)signingConfig\s+signingConfigs\.debug/, '$1signingConfig signingConfigs.release');
+          fs.writeFileSync(file, src);
+          NODE
+
+      - name: Release AAB oluştur
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon --stacktrace
+
+      - name: AAB adını düzenle
+        run: cp android/app/build/outputs/bundle/release/app-release.aab DraBornGate-v0.3.3-release.aab
+
+      - name: DraBornGate Release AAB yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: DraBornGate-Release-AAB-v0.3.3
+          path: DraBornGate-v0.3.3-release.aab
+          if-no-files-found: error
+          retention-days: 14
