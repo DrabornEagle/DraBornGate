@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: draborngate-release-apk-${{ github.ref }}
@@ -19,13 +20,12 @@ concurrency:
 jobs:
   release-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 65
+    timeout-minutes: 70
     env:
       CI: "1"
-      GOOGLE_MAPS_ANDROID_API_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_API_KEY }}
-      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: draborngate-upload
-      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      DKD_RELEASE_VAULT_URL: https://guuwomvszlwhkmstewfl.supabase.co/functions/v1/dkd-gate-release-vault
+      GOOGLE_MAPS_ANDROID_API_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_API_KEY }}
     steps:
       - name: Kaynak kodu al
         uses: actions/checkout@v4
@@ -47,15 +47,15 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
-      - name: Release sırlarını doğrula
+      - name: GitHub OIDC release kimliğini al
         shell: bash
         run: |
-          test -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" || { echo "ANDROID_KEYSTORE_BASE64 eksik"; exit 1; }
-          test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "ANDROID_KEYSTORE_PASSWORD eksik"; exit 1; }
-          test -n "$GOOGLE_MAPS_ANDROID_API_KEY" || { echo "GOOGLE_MAPS_ANDROID_API_KEY eksik"; exit 1; }
-          test -f google-services.json || { echo "google-services.json eksik"; exit 1; }
+          test -n "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" || { echo "GitHub OIDC token isteği kullanılamıyor"; exit 1; }
+          OIDC_TOKEN="$(curl -fsSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=draborngate-release" | jq -r '.value')"
+          test -n "$OIDC_TOKEN" && test "$OIDC_TOKEN" != "null"
+          echo "::add-mask::$OIDC_TOKEN"
+          echo "DKD_RELEASE_OIDC_TOKEN=$OIDC_TOKEN" >> "$GITHUB_ENV"
 
       - name: Bağımlılıkları, sesleri ve TypeScript'i doğrula
         run: |
@@ -66,20 +66,63 @@ jobs:
           test -f assets/sounds/gate_alert.wav
 
       - name: Android release projesini üret
+        env:
+          GOOGLE_MAPS_ANDROID_API_KEY: ${{ env.GOOGLE_MAPS_ANDROID_API_KEY || 'dkd_release_placeholder_key' }}
         run: npx expo prebuild --clean --platform android
 
-      - name: İmzalama anahtarını hazırla
+      - name: Kalıcı imzalama anahtarını özel kasadan hazırla
         shell: bash
         run: |
-          mkdir -p "$HOME/.gradle" signing-backup
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/draborngate-release.keystore
-          test -s android/app/draborngate-release.keystore
+          set -euo pipefail
+          mkdir -p "$HOME/.gradle" signing-work
+          METADATA="signing-work/signing.json"
+          KEYSTORE="android/app/draborngate-release.keystore"
+          AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
+
+          if curl -fsSL -H "$AUTH_HEADER" "$DKD_RELEASE_VAULT_URL/signing/metadata" -o "$METADATA"; then
+            curl -fsSL -H "$AUTH_HEADER" "$DKD_RELEASE_VAULT_URL/signing/keystore" -o "$KEYSTORE"
+            STORE_PASSWORD="$(jq -r '.storePassword' "$METADATA")"
+            KEY_ALIAS="$(jq -r '.alias' "$METADATA")"
+            echo "Mevcut kalıcı DraBornGate keystore özel kasadan alındı."
+          else
+            STORE_PASSWORD="$(openssl rand -hex 24)"
+            KEY_ALIAS="$ANDROID_KEY_ALIAS"
+            keytool -genkeypair -v \
+              -keystore "$KEYSTORE" \
+              -storepass "$STORE_PASSWORD" \
+              -keypass "$STORE_PASSWORD" \
+              -alias "$KEY_ALIAS" \
+              -keyalg RSA \
+              -keysize 4096 \
+              -validity 10000 \
+              -dname "CN=DraBornGate, OU=DrabornEagle, O=DrabornEagle, L=Ankara, ST=Ankara, C=TR"
+            CREATED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            jq -n \
+              --arg alias "$KEY_ALIAS" \
+              --arg password "$STORE_PASSWORD" \
+              --arg createdAt "$CREATED_AT" \
+              --arg version "$APP_VERSION" \
+              '{alias:$alias,storePassword:$password,keyPassword:$password,createdAt:$createdAt,firstAppVersion:$version,androidVersionCode:1}' > "$METADATA"
+            curl -fsSL -X PUT -H "$AUTH_HEADER" -H "Content-Type: application/octet-stream" --data-binary "@$KEYSTORE" "$DKD_RELEASE_VAULT_URL/signing/keystore"
+            curl -fsSL -X PUT -H "$AUTH_HEADER" -H "Content-Type: application/json" --data-binary "@$METADATA" "$DKD_RELEASE_VAULT_URL/signing/metadata"
+            echo "İlk ve kalıcı DraBornGate keystore üretildi; özel Supabase kasasına kaydedildi."
+          fi
+
+          test -s "$KEYSTORE"
+          test -n "$STORE_PASSWORD" && test "$STORE_PASSWORD" != "null"
+          test -n "$KEY_ALIAS" && test "$KEY_ALIAS" != "null"
+          echo "::add-mask::$STORE_PASSWORD"
+          echo "ANDROID_KEYSTORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+
           cat >> "$HOME/.gradle/gradle.properties" <<EOF
-          DKD_UPLOAD_STORE_FILE=$GITHUB_WORKSPACE/android/app/draborngate-release.keystore
-          DKD_UPLOAD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD
-          DKD_UPLOAD_KEY_ALIAS=$ANDROID_KEY_ALIAS
-          DKD_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD
+          DKD_UPLOAD_STORE_FILE=$GITHUB_WORKSPACE/$KEYSTORE
+          DKD_UPLOAD_STORE_PASSWORD=$STORE_PASSWORD
+          DKD_UPLOAD_KEY_ALIAS=$KEY_ALIAS
+          DKD_UPLOAD_KEY_PASSWORD=$STORE_PASSWORD
           EOF
+
           node <<'NODE'
           const fs = require('fs');
           const file = 'android/app/build.gradle';
@@ -104,19 +147,17 @@ jobs:
           test -s "$APK"
           OUT="DraBornGate-v${APP_VERSION}-release.apk"
           cp "$APK" "$OUT"
-          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner" verify --verbose --print-certs "$OUT" | tee dkd_apk_signature_v${APP_VERSION}.txt
-          cp android/app/draborngate-release.keystore signing-backup/DraBornGate-original-signing.keystore
-          {
-            echo "DraBornGate v${APP_VERSION} kalıcı imzalama anahtarı"
-            echo "Alias: ${ANDROID_KEY_ALIAS}"
-            echo "Android versionCode: 1"
-            echo "Oluşturma kaynağı: GitHub Actions secret ANDROID_KEYSTORE_BASE64"
-            echo "Parola bu yedeğe dahil edilmedi. ANDROID_KEYSTORE_PASSWORD secret değeri ayrıca güvenli saklanmalıdır."
-            echo
-            keytool -list -v -keystore android/app/draborngate-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" | grep -E 'Alias name:|Creation date:|Owner:|Issuer:|Valid from:|SHA1:|SHA256:' || true
-          } > signing-backup/DraBornGate-keystore-info.txt
-          cp dkd_apk_signature_v${APP_VERSION}.txt signing-backup/
-          (cd signing-backup && zip -9 ../DraBornGate-v${APP_VERSION}-keystore-backup.zip ./*)
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner"
+          "$APKSIGNER" verify --verbose --print-certs "$OUT" | tee "dkd_apk_signature_v${APP_VERSION}.txt"
+          keytool -list -v -keystore android/app/draborngate-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" | grep -E 'Alias name:|Creation date:|Owner:|Issuer:|Valid from:|SHA1:|SHA256:' | tee -a "dkd_apk_signature_v${APP_VERSION}.txt"
+
+      - name: APK ve imza raporunu özel kasaya yükle
+        shell: bash
+        run: |
+          AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
+          curl -fsSL -X PUT -H "$AUTH_HEADER" -H "Content-Type: application/vnd.android.package-archive" --data-binary "@DraBornGate-v${APP_VERSION}-release.apk" "$DKD_RELEASE_VAULT_URL/release/apk?version=${APP_VERSION}"
+          curl -fsSL -X PUT -H "$AUTH_HEADER" -H "Content-Type: text/plain" --data-binary "@dkd_apk_signature_v${APP_VERSION}.txt" "$DKD_RELEASE_VAULT_URL/release/signature?version=${APP_VERSION}"
+          echo "APK ve imza raporu özel Supabase release kasasına yüklendi."
 
       - name: DraBornGate Release APK yükle
         uses: actions/upload-artifact@v4
@@ -128,10 +169,8 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: İmzalama keystore yedeğini yükle
-        uses: actions/upload-artifact@v4
-        with:
-          name: DraBornGate-Signing-Keystore-v${{ env.APP_VERSION }}
-          path: DraBornGate-v${{ env.APP_VERSION }}-keystore-backup.zip
-          if-no-files-found: error
-          retention-days: 90
+      - name: Kalıcı keystore kasasını doğrula
+        shell: bash
+        run: |
+          curl -fsSL -H "Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN" "$DKD_RELEASE_VAULT_URL/status"
+          echo "Keystore GitHub deposuna veya genel artifact alanına konulmadı; özel Supabase kasasında korunuyor."
