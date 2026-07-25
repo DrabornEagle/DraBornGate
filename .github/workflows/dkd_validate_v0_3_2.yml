@@ -54,10 +54,11 @@ jobs:
         id: prebuild
         shell: bash
         env:
+          CI: "1"
           GOOGLE_MAPS_ANDROID_API_KEY: dkd_validation_placeholder_key
         run: |
           set +e
-          npx expo prebuild --clean --platform android --non-interactive 2>&1 | tee dkd_native_prebuild_v0_3_3.log
+          npx expo prebuild --clean --platform android 2>&1 | tee dkd_native_prebuild_v0_3_3.log
           code=${PIPESTATUS[0]}
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           exit 0
