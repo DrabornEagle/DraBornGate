@@ -39,6 +39,7 @@ jobs:
           test -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" || { echo "ANDROID_KEYSTORE_BASE64 eksik"; exit 1; }
           test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "ANDROID_KEYSTORE_PASSWORD eksik"; exit 1; }
           test -n "$GOOGLE_MAPS_ANDROID_API_KEY" || { echo "GOOGLE_MAPS_ANDROID_API_KEY eksik"; exit 1; }
+          test -f google-services.json || { echo "google-services.json eksik"; exit 1; }
       - name: Bağımlılıkları kur ve doğrula
         run: |
           npm install --no-audit --no-fund
@@ -71,11 +72,11 @@ jobs:
           chmod +x gradlew
           ./gradlew bundleRelease --no-daemon --stacktrace
       - name: AAB adını düzenle
-        run: cp android/app/build/outputs/bundle/release/app-release.aab DraBornGate-v0.3.3-release.aab
+        run: cp android/app/build/outputs/bundle/release/app-release.aab DraBornGate-v0.3.4-release.aab
       - name: DraBornGate Release AAB yükle
         uses: actions/upload-artifact@v4
         with:
-          name: DraBornGate-Release-AAB-v0.3.3
-          path: DraBornGate-v0.3.3-release.aab
+          name: DraBornGate-Release-AAB-v0.3.4
+          path: DraBornGate-v0.3.4-release.aab
           if-no-files-found: error
           retention-days: 14
