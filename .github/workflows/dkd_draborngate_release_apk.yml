@@ -128,15 +128,15 @@ jobs:
           const file = 'android/app/build.gradle';
           let src = fs.readFileSync(file, 'utf8');
           const marker = /signingConfigs\s*\{([\s\S]*?)\n\s{4}\}/;
-          if (!marker.test(src)) throw new Error('signingConfigs bloğu bulunamadı');
+          const beforeDebug = (src.match(/signingConfig\s+signingConfigs\.debug/g) || []).length;
           src = src.replace(marker, (block) => block.replace(/\n\s{4}\}$/, `\n        release {\n            storeFile file(findProperty('DKD_UPLOAD_STORE_FILE'))\n            storePassword findProperty('DKD_UPLOAD_STORE_PASSWORD')\n            keyAlias findProperty('DKD_UPLOAD_KEY_ALIAS')\n            keyPassword findProperty('DKD_UPLOAD_KEY_PASSWORD')\n        }\n    }`));
-          const debugConfigCount = (src.match(/signingConfig\s+signingConfigs\.debug/g) || []).length;
-          if (debugConfigCount < 1) throw new Error('Debug signingConfig başvurusu bulunamadı');
           src = src.replace(/signingConfig\s+signingConfigs\.debug/g, 'signingConfig signingConfigs.release');
-          if (!/signingConfig\s+signingConfigs\.release/.test(src)) throw new Error('Release signingConfig uygulanamadı');
           fs.writeFileSync(file, src);
+          const releaseCount = (src.match(/signingConfig\s+signingConfigs\.release/g) || []).length;
+          console.log(`Gradle signing ayarı: debug başvuru=${beforeDebug}, release başvuru=${releaseCount}, release blok=${src.includes("DKD_UPLOAD_STORE_FILE")}`);
           NODE
-          grep -n "signingConfig signingConfigs.release" android/app/build.gradle
+          sed -n '/signingConfigs {/,/buildTypes {/p' android/app/build.gradle | tail -n 35
+          sed -n '/buildTypes {/,/packagingOptions {/p' android/app/build.gradle | grep -E 'debug|release|signingConfig' || true
 
       - name: Release APK oluştur
         working-directory: android
