@@ -19,12 +19,13 @@ export function CollapsibleCategory({
   badge?: string;
   icon: keyof typeof Ionicons.glyphMap;
   tone?: string;
-  open: boolean;
+  open?: boolean;
   onToggle: () => void;
 }>) {
+  const isOpen = Boolean(open);
   return <View style={styles.wrap}>
     <AnimatedPressable onPress={onToggle}>
-      <View style={[styles.header, open && { borderColor: `${tone}88`, backgroundColor: `${tone}12` }]}>
+      <View style={[styles.header, isOpen && { borderColor: `${tone}88`, backgroundColor: `${tone}12` }]}>
         <View style={[styles.icon, { backgroundColor: `${tone}20`, borderColor: `${tone}55` }]}>
           <Ionicons name={icon} size={25} color={tone} />
         </View>
@@ -35,12 +36,12 @@ export function CollapsibleCategory({
           </View>
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
-        <View style={[styles.chevron, open && { backgroundColor: `${tone}1C` }]}>
-          <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={23} color={open ? tone : colors.textMuted} />
+        <View style={[styles.chevron, isOpen && { backgroundColor: `${tone}1C` }]}>
+          <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={23} color={isOpen ? tone : colors.textMuted} />
         </View>
       </View>
     </AnimatedPressable>
-    {open ? <FadeInView distance={8} style={styles.body}>{children}</FadeInView> : null}
+    {isOpen ? <FadeInView distance={8} style={styles.body}>{children}</FadeInView> : null}
   </View>;
 }
 
