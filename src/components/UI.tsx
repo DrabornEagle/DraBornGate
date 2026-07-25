@@ -53,8 +53,8 @@ export function StatusPill({ status }: { status: PassStatus }) {
   return <View style={[styles.status, { borderColor: `${meta.color}66`, backgroundColor: `${meta.color}14` }]}><PulseDot color={meta.color} size={7} /><Ionicons name={meta.icon} size={15} color={meta.color} /><Text style={[styles.statusText, { color: meta.color }]}>{meta.label}</Text></View>;
 }
 
-export function LiveBadge({ label = 'CANLI' }: { label?: string }) {
-  return <View style={styles.live}><PulseDot color={colors.green} /><Text style={styles.liveText}>{label}</Text></View>;
+export function LiveBadge({ label = 'CANLI', compact = false }: { label?: string; compact?: boolean }) {
+  return <View style={[styles.live, compact && styles.liveCompact]}><PulseDot color={colors.green} size={compact ? 7 : 9} /><Text style={[styles.liveText, compact && styles.liveTextCompact]}>{label}</Text></View>;
 }
 
 export function MetricCard({ label, value, icon, tone }: { label: string; value: string; icon: keyof typeof Ionicons.glyphMap; tone: string }) {
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   orb: { position: 'absolute', width: 270, height: 270, borderRadius: 270, opacity: .1 }, cyanOrb: { backgroundColor: colors.cyan, right: -150, top: -70 }, purpleOrb: { backgroundColor: colors.purple, left: -180, bottom: 70 }, orangeOrb: { backgroundColor: colors.orange, right: -180, bottom: -90 },
   panel: { backgroundColor: 'rgba(13,32,51,.95)', borderRadius: radius.lg, borderWidth: 1, borderColor: colors.borderStrong, padding: spacing.md, overflow: 'hidden' }, accent: { position: 'absolute', left: 18, right: 18, top: 0, height: 2, borderBottomLeftRadius: 3, borderBottomRightRadius: 3, backgroundColor: 'rgba(55,216,255,.34)' },
   section: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm, gap: 10 }, sectionTitle: { flex: 1, color: colors.text, fontSize: 22, lineHeight: 28, fontWeight: '900', letterSpacing: -.35 }, sectionAction: { color: colors.cyan, fontSize: 14, fontWeight: '900' },
-  status: { minHeight: 36, paddingHorizontal: 11, borderRadius: radius.pill, borderWidth: 1, flexDirection: 'row', gap: 5, alignItems: 'center' }, statusText: { fontSize: 12, fontWeight: '900' }, live: { paddingHorizontal: 12, height: 38, borderRadius: radius.pill, backgroundColor: 'rgba(67,231,162,.13)', borderWidth: 1, borderColor: 'rgba(67,231,162,.38)', flexDirection: 'row', gap: 7, alignItems: 'center' }, liveText: { color: colors.green, fontSize: 12, fontWeight: '900', letterSpacing: .6 },
+  status: { minHeight: 36, paddingHorizontal: 11, borderRadius: radius.pill, borderWidth: 1, flexDirection: 'row', gap: 5, alignItems: 'center' }, statusText: { fontSize: 12, fontWeight: '900' }, live: { paddingHorizontal: 12, height: 38, borderRadius: radius.pill, backgroundColor: 'rgba(67,231,162,.13)', borderWidth: 1, borderColor: 'rgba(67,231,162,.38)', flexDirection: 'row', gap: 7, alignItems: 'center' }, liveText: { color: colors.green, fontSize: 12, fontWeight: '900', letterSpacing: .6 }, liveCompact: { height: 28, paddingHorizontal: 9, gap: 5 }, liveTextCompact: { fontSize: 9, letterSpacing: .4 },
   metric: { flex: 1, minHeight: 128, padding: 13 }, metricIcon: { width: 41, height: 41, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 11 }, metricValue: { color: colors.text, fontSize: 25, fontWeight: '900' }, metricLabel: { color: colors.textSoft, fontSize: 13, lineHeight: 17, marginTop: 4, fontWeight: '700' },
   empty: { alignItems: 'center', paddingVertical: 29 }, emptyIcon: { width: 62, height: 62, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(55,216,255,.14)', marginBottom: 14 }, emptyTitle: { color: colors.text, fontSize: 19, fontWeight: '900', textAlign: 'center' }, emptyText: { color: colors.textSoft, fontSize: 14, textAlign: 'center', marginTop: 7, lineHeight: 21, maxWidth: 300 },
 });

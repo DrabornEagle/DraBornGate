@@ -1,11 +1,11 @@
-# DraBornGate v0.3.5
+# DraBornGate v0.3.7
 
 DraBornGate; kurye geçişi, AirPass, VisitorPass, site sakini, güvenlik, site kuralları, aidat ve site finans işlemlerini aynı güvenli site platformunda birleştiren Expo / React Native uygulamasıdır.
 
 ## Güncel sürüm bilgileri
 
-- Uygulama sürümü: `0.3.5`
-- Demo veri sürümü: `0.3.5`
+- Uygulama sürümü: `0.3.7`
+- Demo veri sürümü: `0.3.7`
 - Android paket adı: `com.draborneagle.draborngate`
 - Android `versionCode`: `1`
 - Bildirim kanalı: `draborngate-core`
@@ -16,13 +16,14 @@ DraBornGate; kurye geçişi, AirPass, VisitorPass, site sakini, güvenlik, site 
 
 Android `versionCode`, APK çıktısı alınacak sürüme kadar `1` olarak korunur. Uygulama sürümü ve demo veri sürümü birlikte artırılır.
 
-## v0.3.5 düzeltmesi
+## v0.3.7 güvenlik ve bildirim düzeltmeleri
 
-- Expo SDK 53 ve sonrasında Android uzak bildirimleri Expo Go içinde desteklenmediği için oluşan kırmızı açılış ekranı giderildi.
-- `expo-notifications` artık uygulama açılırken statik olarak yüklenmez.
-- Expo Go algılandığında native uzak bildirim modülü güvenli biçimde atlanır; uygulamanın diğer bölümleri çalışmaya devam eder.
-- Development APK ve release APK içinde FCM cihaz anahtarı, Android bildirim kanalı ve uzak bildirim sistemi normal şekilde çalışır.
-- Gerçek uzak bildirim testi Expo Go ile değil, development veya release APK ile yapılır.
+- Güvenlik, yetkili olduğu sitelerde kurye geçiş kodunu kart üzerinde her zaman görebilir.
+- “Kodu Eşleştir” düğmesi modern kod doğrulama ve başarı penceresini açar.
+- Sipariş ekran görüntüsü dikkat animasyonuyla gösterilir ve tam ekran açılır.
+- Bildirim merkezi 5 kayıtla açılır; “Daha Fazla”, “Tümünü Oku” ve “Tümünü Temizle” işlemlerini destekler.
+- Kurye Paketleri kartı yalnızca aktif paketi olmayan kullanıcıya hareketli uyarı verir.
+- `SafeAreaView` tamamen `react-native-safe-area-context` üzerinden kullanılır.
 
 ## Ana modüller
 
@@ -105,7 +106,7 @@ Android `versionCode`, APK çıktısı alınacak sürüme kadar `1` olarak korun
 
 ## Demo verileri
 
-Demo varsayılan olarak yüklenmez. Profil ekranından v0.3.5 demo paketi yüklenebilir, yeniden kurulabilir, güncellenebilir veya yalnızca demo kayıtları silinebilir. Gerçek kayıtlar demo işlemlerinden etkilenmez.
+Demo varsayılan olarak yüklenmez. Profil ekranından v0.3.7 demo paketi yüklenebilir, yeniden kurulabilir, güncellenebilir veya yalnızca demo kayıtları silinebilir. Gerçek kayıtlar demo işlemlerinden etkilenmez.
 
 ## Doğrulama
 
@@ -122,38 +123,15 @@ Release iş akışları:
 - `.github/workflows/dkd_draborngate_release_apk.yml`
 - `.github/workflows/dkd_draborngate_release_aab.yml`
 
-## Termux: önce yedek, sonra v0.3.5 ile eşitle
+## Termux: önce yedek, sonra v0.3.7 ile GitHub main’e eşitle
+
+Tek komut:
 
 ```bash
-pkg update -y
-pkg install git nodejs-lts zip -y
-termux-setup-storage
-mkdir -p ~/projects
-
-if [ ! -d ~/projects/DraBornGate/.git ]; then
-  git clone https://github.com/DrabornEagle/DraBornGate.git ~/projects/DraBornGate
-fi
-
-cd ~/projects/DraBornGate
-git fetch origin --prune
-
-TS="$(date +%Y%m%d_%H%M%S)"
-git archive \
-  --format=zip \
-  --output="/sdcard/Download/DraBornGate_v0.3.4_before_v0.3.5_${TS}.zip" \
-  origin/backup/v0.3.4-before-v0.3.5-expogo-fix-2026-07-25
-
-git stash push -u -m "DraBornGate_local_before_v0.3.5_${TS}" || true
-git checkout main
-git reset --hard origin/main
-rm -f package-lock.json
-npm install --no-audit --no-fund
-npm run typecheck
-
-node -p '"Sürüm: " + require("./package.json").version'
-echo "Commit: $(git rev-parse --short HEAD)"
-git status --short
+cd /sdcard/Download && curl -L -o DraBornGate-v0.3.7-Termux.sh https://raw.githubusercontent.com/DrabornEagle/DraBornGate/main/scripts/dkd_update_v0_3_7_termux.sh && chmod +x DraBornGate-v0.3.7-Termux.sh && bash DraBornGate-v0.3.7-Termux.sh
 ```
+
+Komut, mevcut `~/DraBornGate` klasörünü önce `/sdcard/Download` içine ZIP olarak yedekler; ardından yerel `main` dalını GitHub `origin/main` ile birebir eşitler, bağımlılıkları kurar, TypeScript kontrolünü çalıştırır ve Expo Go’yu temiz önbellekle başlatır.
 
 ## GitHub yedekleri
 
@@ -163,4 +141,4 @@ git status --short
 
 ## v0.4 öncesi durum
 
-v0.3.5; v0.3.4 geçiş güvenliği ve raporlama özelliklerini korur, ayrıca Expo Go açılışını bozan Android uzak bildirim modülü yükleme hatasını giderir. Gerçek FCM testi development/release APK üzerinde, iki ayrı telefonda kurye–güvenlik senaryosuyla yapılmalıdır.
+v0.3.7; geçiş güvenliği, görünür güvenlik kodu, karttan kod eşleştirme, bildirim temizleme/sayfalama ve release APK/AAB iş akışlarını birlikte doğrular. Gerçek FCM ve kurye–güvenlik kod eşleşmesi iki ayrı telefonda release APK ile test edilmelidir.
