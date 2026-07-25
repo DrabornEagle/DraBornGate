@@ -29,6 +29,7 @@ jobs:
           cat .dkd_payload/part_* | base64 --decode > /tmp/draborngate-v0.3.7.tar.gz
           echo "963b544d5fdf43a27dce606575d07f36dd2addfe0506e1b7199f2d8b7351b269  /tmp/draborngate-v0.3.7.tar.gz" | sha256sum -c -
           tar --no-same-owner -xzf /tmp/draborngate-v0.3.7.tar.gz -C "$GITHUB_WORKSPACE"
+          sed -i 's/StyleSheet\.absoluteFillObject/StyleSheet.absoluteFill/g' src/components/TimestampedPrivateImage.tsx
           rm -rf .dkd_payload
           rm -f \
             .github/workflows/android-apk.yml \
@@ -51,22 +52,8 @@ jobs:
       - name: Bağımlılıkları kur
         run: npm install --no-audit --no-fund
 
-      - name: TypeScript doğrula ve raporla
-        id: typecheck
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run typecheck 2>&1 | tee /tmp/dkd_typecheck_v0_3_7.log
-
-      - name: TypeScript raporunu yükle
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: DraBornGate-v0.3.7-Typecheck-Report
-          path: /tmp/dkd_typecheck_v0_3_7.log
-          if-no-files-found: error
-          retention-days: 3
+      - name: TypeScript doğrula
+        run: npm run typecheck
 
       - name: Sürüm ve kapsam doğrulaması
         shell: bash
@@ -81,11 +68,11 @@ jobs:
           if (pkg.version !== expected || app.version !== expected || app.extra?.appVersion !== expected || app.extra?.demoDataVersion !== expected) throw new Error('v0.3.7 sürüm eşleşmesi bozuk');
           if (app.android.versionCode !== 1 || !version.includes("ANDROID_VERSION_CODE = 1")) throw new Error('Android versionCode 1 değil');
           for (const [file, tokens] of Object.entries({
-            './src/components/TimestampedPrivateImage.tsx': ['react-native-safe-area-context', 'Animated.loop'],
+            './src/components/TimestampedPrivateImage.tsx': ['react-native-safe-area-context', 'Animated.loop', 'StyleSheet.absoluteFill'],
             './src/components/DkdNotificationCenter.tsx': ['TÜMÜNÜ TEMİZLE', 'DAHA FAZLA'],
             './src/components/PassCard.tsx': ['GEÇİŞ KODU', 'KODU EŞLEŞTİR'],
             './src/screens/SecurityHome.tsx': ['Eşleşme Gerçekleşti', 'Kurye Geliyor'],
-            './src/screens/CourierCenterV032.tsx': ['hasActivePackage', 'attention'],
+            './src/screens/CourierCenterV032.tsx': ['hasCourierPackage', 'attention'],
             './supabase/migrations/20260725223000_draborngate_v0_3_7_security_code_notifications.sql': ['dkd_gate_clear_notifications', 'dkd_gate_mark_all_notifications_read']
           })) {
             const source = fs.readFileSync(file, 'utf8');
@@ -107,9 +94,3 @@ jobs:
             git commit -m "DraBornGate v0.3.7 güvenlik ve bildirim düzeltmeleri"
             git push origin "HEAD:${{ github.head_ref || github.ref_name }}"
           fi
-
-      - name: TypeScript sonucunu zorunlu tut
-        if: always()
-        shell: bash
-        run: |
-          test "${{ steps.typecheck.outcome }}" = "success"
