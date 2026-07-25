@@ -2,7 +2,7 @@ name: DraBornGate v0.3.3 Validate
 
 on:
   push:
-    branches: [main, release/v0.3.3-build]
+    branches: [main, release/v0.3.3-build, hotfix/v0.3.3-native-prebuild-validation]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -17,7 +17,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - name: Kaynak kodu al
         uses: actions/checkout@v4
@@ -50,6 +50,35 @@ jobs:
           test "${{ steps.typecheck.outputs.exit_code }}" = "0"
       - name: Android Expo dışa aktarma testi
         run: npx expo export --platform android --output-dir dist --max-workers 2 --no-bytecode
+      - name: Native Android yapılandırmasını üret
+        id: prebuild
+        shell: bash
+        env:
+          CI: "1"
+          GOOGLE_MAPS_ANDROID_API_KEY: dkd_validation_placeholder_key
+        run: |
+          set +e
+          npx expo prebuild --clean --platform android 2>&1 | tee dkd_native_prebuild_v0_3_3.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Native prebuild raporunu yükle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dkd-native-prebuild-v0-3-3
+          path: dkd_native_prebuild_v0_3_3.log
+          if-no-files-found: error
+          retention-days: 7
+      - name: Native prebuild sonucunu doğrula
+        run: |
+          cat dkd_native_prebuild_v0_3_3.log
+          test "${{ steps.prebuild.outputs.exit_code }}" = "0"
+      - name: Native proje çıktısını doğrula
+        run: |
+          test -f android/gradlew
+          test -f android/app/build.gradle
+          grep -R "com.draborneagle.draborngate" android/app/build.gradle android/app/src/main/AndroidManifest.xml
       - name: Sürüm ve v0.3.3 kapsam doğrulaması
         run: |
           node - <<'NODE'
@@ -79,5 +108,5 @@ jobs:
           walk('./src'); sourceFiles.push('./App.tsx','./app.json','./app.config.js');
           const forbidden=/\biban\b|bank_reference|receipt_path|subscriptionMedia|dekont/iu;
           for(const file of sourceFiles) if(forbidden.test(fs.readFileSync(file,'utf8'))) throw new Error(`Eski alternatif ödeme kalıntısı: ${file}`);
-          console.log('DraBornGate v0.3.3, Android versionCode 1 ve Google Play hazırlıkları doğrulandı.');
+          console.log('DraBornGate v0.3.3, Android versionCode 1, Expo IAP ve native Android yapılandırması doğrulandı.');
           NODE
