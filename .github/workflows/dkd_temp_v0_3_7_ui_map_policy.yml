@@ -79,15 +79,15 @@ jobs:
           if (pkg.dependencies['react-native-webview'] !== '13.16.1') throw new Error('react-native-webview sürümü eksik');
           const checks = {
             'App.tsx': ["role === 'courier' && tab === 'passes'"],
-            'src/components/SiteLocationPicker.tsx': ['OpenStreetMap', 'react-native-webview', 'Leaflet'],
-            'src/components/NotificationSoundPicker.tsx': ['Bildirim Sesi', 'SEÇİLİ'],
+            'src/components/SiteLocationPicker.tsx': ['OpenStreetMap', 'react-native-webview', 'leaflet@1.9.4'],
+            'src/components/NotificationSoundPicker.tsx': ['Bildirim sesini sen seç', 'DİNLE'],
             'src/screens/ProfileScreen.tsx': ['NotificationSoundPicker'],
             'src/screens/ManagementProCenter.tsx': ['Ad soyad veya plaka ara', 'DAHA FAZLA'],
-            'src/screens/PassesScreen.tsx': ['colorfulVariant', 'setVisibleCount((value) => value + 5)'],
+            'src/screens/PassesScreen.tsx': ['colorfulVariant', 'setLimit((value) => value + 5)', 'DAHA FAZLA'],
             'src/components/PassCard.tsx': ['KODU EŞLEŞTİR', 'colorfulVariant'],
             'src/screens/SecurityHome.tsx': ['Reddet'],
-            'store_assets/google_play/PLAY_STORE_READINESS_V0.3.7.md': ['Privacy Policy URL', 'Account Deletion URL'],
-            'scripts/dkd_sync_v0_3_7_ui_map_policy_fixes_termux.sh': ['git reset --hard origin/main']
+            'store_assets/google_play/PLAY_STORE_READINESS_V0.3.7.md': ['https://www.draborneagle.com/DraBornGate/privacy/', 'https://www.draborneagle.com/DraBornGate/account-deletion/'],
+            'scripts/dkd_sync_v0_3_7_ui_map_policy_fixes_termux.sh': ['git reset --hard "origin/$BRANCH"']
           };
           for (const [file, tokens] of Object.entries(checks)) {
             const source = fs.readFileSync(file, 'utf8');
