@@ -48,10 +48,25 @@ jobs:
           test "${workflows[0]}" = "dkd_draborngate_release_aab.yml"
           test "${workflows[1]}" = "dkd_draborngate_release_apk.yml"
 
-      - name: Bağımlılıkları kur ve TypeScript doğrula
+      - name: Bağımlılıkları kur
+        run: npm install --no-audit --no-fund
+
+      - name: TypeScript doğrula ve raporla
+        id: typecheck
+        continue-on-error: true
+        shell: bash
         run: |
-          npm install --no-audit --no-fund
-          npm run typecheck
+          set -o pipefail
+          npm run typecheck 2>&1 | tee /tmp/dkd_typecheck_v0_3_7.log
+
+      - name: TypeScript raporunu yükle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DraBornGate-v0.3.7-Typecheck-Report
+          path: /tmp/dkd_typecheck_v0_3_7.log
+          if-no-files-found: error
+          retention-days: 3
 
       - name: Sürüm ve kapsam doğrulaması
         shell: bash
@@ -88,7 +103,13 @@ jobs:
           git add -A
           if git diff --cached --quiet; then
             echo "Değişiklik yok."
-            exit 0
+          else
+            git commit -m "DraBornGate v0.3.7 güvenlik ve bildirim düzeltmeleri"
+            git push origin "HEAD:${{ github.head_ref || github.ref_name }}"
           fi
-          git commit -m "DraBornGate v0.3.7 güvenlik ve bildirim düzeltmeleri"
-          git push origin "HEAD:${{ github.head_ref || github.ref_name }}"
+
+      - name: TypeScript sonucunu zorunlu tut
+        if: always()
+        shell: bash
+        run: |
+          test "${{ steps.typecheck.outcome }}" = "success"
