@@ -43,24 +43,37 @@ jobs:
           WELCOME_URL: "https://d2jqrm6oza8nb6.cloudfront.net/datasets/4a1bf1ba-73e4-4d11-a1ce-44b217527492.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiODFhYjRhZjM4ZjU0MmFjNCIsImJ1Y2tldCI6InJ1bndheS1kYXRhc2V0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc4NTIxNzkwN30.AIg6eww_3rwDbgxStL8xzSGLAAJS7NUd5E4_h0GPxK4"
         run: |
           set -euo pipefail
-          mkdir -p assets/branding
-          curl -fL --retry 3 --connect-timeout 20 "$ICON_URL" -o assets/branding/draborngate-app-icon.png
-          curl -fL --retry 3 --connect-timeout 20 "$WELCOME_URL" -o assets/branding/draborngate-welcome.png
+          mkdir -p assets/branding /tmp/dkd-branding
+          curl -fL --retry 3 --connect-timeout 20 "$ICON_URL" -o /tmp/dkd-branding/draborngate-app-icon.source
+          curl -fL --retry 3 --connect-timeout 20 "$WELCOME_URL" -o /tmp/dkd-branding/draborngate-welcome.source
+          python -m pip install --disable-pip-version-check --quiet Pillow==11.3.0
           python - <<'PY'
           from pathlib import Path
-          import struct
-          expected = {
-              Path('assets/branding/draborngate-app-icon.png'): (1536, 1536),
-              Path('assets/branding/draborngate-welcome.png'): (864, 1536),
+          from PIL import Image
+
+          assets = {
+              Path('/tmp/dkd-branding/draborngate-app-icon.source'): (
+                  Path('assets/branding/draborngate-app-icon.png'),
+                  (1536, 1536),
+              ),
+              Path('/tmp/dkd-branding/draborngate-welcome.source'): (
+                  Path('assets/branding/draborngate-welcome.png'),
+                  (864, 1536),
+              ),
           }
-          for path, size in expected.items():
-              raw = path.read_bytes()
-              if raw[:8] != b'\x89PNG\r\n\x1a\n':
-                  raise SystemExit(f'{path} PNG değil')
-              width, height = struct.unpack('>II', raw[16:24])
-              print(path, width, height, len(raw))
-              if (width, height) != size or len(raw) < 50000:
-                  raise SystemExit(f'{path} beklenen boyutta değil')
+
+          for source, (target, expected_size) in assets.items():
+              with Image.open(source) as image:
+                  image.load()
+                  print(source.name, image.format, image.size, image.mode, source.stat().st_size)
+                  if image.size != expected_size:
+                      raise SystemExit(f'{source} beklenen boyutta değil: {image.size}')
+                  image.convert('RGB').save(target, format='PNG', compress_level=6)
+              with Image.open(target) as verified:
+                  verified.load()
+                  if verified.format != 'PNG' or verified.size != expected_size:
+                      raise SystemExit(f'{target} PNG doğrulaması başarısız')
+                  print(target, verified.format, verified.size, target.stat().st_size)
           PY
 
       - name: v0.3.8 dönüşüm scriptini aç
@@ -106,4 +119,4 @@ jobs:
               -d '{"ref":"main"}'
           done
 
-# dkd-trigger-v038-5
+# dkd-trigger-v038-6
