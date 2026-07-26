@@ -39,8 +39,8 @@ jobs:
       - name: Marka görsellerini tam çözünürlükte al
         shell: bash
         env:
-          ICON_URL: "https://media.canva.com/v2/document-image/hash:-1160581115/height:1536/id:DAHQcWlYOa0/type:B/width:1536?brand=BAHAlrSItdY&csig=AAAAAAAAAAAAAAAAAAAAAAbEdJ5mxXdmtwpwpLfUieW3NrxYziM3Ys41Chr6Zl-t&disableexport=T&exp=1785033563&fallback=https%3A%2F%2Fs3.amazonaws.com%2Fdocument-export.canva.com%2FlYOa0%2FDAHQcWlYOa0%2F1%2Fthumbnail%2F0001.png%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3DAKIAQYCGKMUHYGFFNMW3%252F20260725%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20260725T015454Z%26X-Amz-Expires%3D89069%26X-Amz-Signature%3D7d8f39428bd3bebaab5705d7eb5d2bf1ec68d142b6675231ece70621a7164074%26X-Amz-SignedHeaders%3Dhost%26response-expires%3DSun%252C%252026%2520Jul%25202026%252002%253A39%253A23%2520GMT&osig=AAAAAAAAAAAAAAAAAAAAAFlkXFSEqYnPaeh_n4wNqWGkpvNbDFjBaLpYnRlbl2cM&page=1&signed=brand%2Cdisableexport%2Cfallback%2Cpage%2Cversion&signer=document-rpc&version=1"
-          WELCOME_URL: "https://media.canva.com/v2/document-image/hash:1414523458/height:1536/id:DAHQcbAUMCI/type:B/width:864?brand=BAHAlrSItdY&csig=AAAAAAAAAAAAAAAAAAAAAEwHSkqEuBXVPTTj17cBSoheB57J3OvpoZ-4lgy_JzMR&disableexport=T&exp=1785033660&fallback=https%3A%2F%2Fs3.amazonaws.com%2Fdocument-export.canva.com%2FAUMCI%2FDAHQcbAUMCI%2F1%2Fthumbnail%2F0001.png%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3DAKIAQYCGKMUHYGFFNMW3%252F20260725%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20260725T131430Z%26X-Amz-Expires%3D48390%26X-Amz-Signature%3D162a9401f9e841593538ff6cc0d9be9889e85e394cb63228bf39e725e5f7fd8d%26X-Amz-SignedHeaders%3Dhost%26response-expires%3DSun%252C%252026%2520Jul%25202026%252002%253A41%253A00%2520GMT&osig=AAAAAAAAAAAAAAAAAAAAAIX8ZA6Y9R59sQ_6HbSTxh5lCAoorjigjnYVF-Y3ivMn&page=1&signed=brand%2Cdisableexport%2Cfallback%2Cpage%2Cversion&signer=document-rpc&version=1"
+          ICON_URL: "https://s3.amazonaws.com/document-export.canva.com/lYOa0/DAHQcWlYOa0/1/thumbnail/0001.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAQYCGKMUHYGFFNMW3%2F20260726%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260726T015454Z&X-Amz-Expires=3712&X-Amz-Signature=64c264afd2b829860caedb30955a943654c507b3c61c90b347334faf69eee0b6&X-Amz-SignedHeaders=host&response-expires=Sun%2C%2026%20Jul%202026%2002%3A56%3A46%20GMT"
+          WELCOME_URL: "https://s3.amazonaws.com/document-export.canva.com/AUMCI/DAHQcbAUMCI/1/thumbnail/0001.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAQYCGKMUHYGFFNMW3%2F20260725%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260725T131430Z&X-Amz-Expires=49473&X-Amz-Signature=3d9501a93192db206da89f46096e2f6120bbdbe4e3b92e3f696efe5015485605&X-Amz-SignedHeaders=host&response-expires=Sun%2C%2026%20Jul%202026%2002%3A59%3A03%20GMT"
         run: |
           set -euo pipefail
           mkdir -p assets/branding
@@ -106,4 +106,4 @@ jobs:
               -d '{"ref":"main"}'
           done
 
-# dkd-trigger-v038-2
+# dkd-trigger-v038-3
