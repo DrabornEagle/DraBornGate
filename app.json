@@ -2,7 +2,7 @@
   "expo": {
     "name": "DraBornGate",
     "slug": "draborngate",
-    "version": "0.3.9",
+    "version": "0.3.10",
     "orientation": "portrait",
     "scheme": "draborngate",
     "userInterfaceStyle": "dark",
@@ -65,7 +65,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "DraBornGate site konumunu haritada seçmek ve akıllı geçiş mesafesini kontrol etmek için konumunu yalnızca uygulama açıkken kullanır.",
+          "locationWhenInUsePermission": "DraBornGate site konumunu haritada seçmek ve akıllı geçiş mesafesini tek sefer kontrol etmek için konumunu yalnızca uygulama açıkken kullanır.",
           "isAndroidBackgroundLocationEnabled": false,
           "isIosBackgroundLocationEnabled": false
         }
@@ -87,8 +87,8 @@
       ]
     ],
     "extra": {
-      "appVersion": "0.3.9",
-      "demoDataVersion": "0.3.9",
+      "appVersion": "0.3.10",
+      "demoDataVersion": "0.3.10",
       "androidVersionCode": 1,
       "privacyPolicyUrl": "https://www.draborneagle.com/DraBornGate/privacy/",
       "accountDeletionUrl": "https://www.draborneagle.com/DraBornGate/account-deletion/",
