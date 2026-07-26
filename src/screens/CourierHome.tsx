@@ -9,11 +9,10 @@ import { PassCard } from '../components/PassCard';
 import { RacingMotorcycle } from '../components/RacingMotorcycle';
 import { EmptyState, LiveBadge, MetricCard, Panel, SectionTitle } from '../components/UI';
 import { distanceMeters } from '../lib/airpass';
-import { showGateNotification } from '../lib/notifications';
 import { useGate } from '../store/GateContext';
 import { colors, gradients, radius, spacing } from '../theme';
 
-type GatePopup = 'near' | 'arrived' | undefined;
+type GatePopup = 'arrived' | undefined;
 
 type CourierHomeProps = {
   onCreatePass: () => void;
@@ -46,12 +45,10 @@ export function CourierHome({ onCreatePass, onOpenPasses, onOpenSettings }: Cour
       ?? gates.find((item) => item.siteId === active.siteId && item.name === active.gate)
     : undefined;
 
-  const [tracking, setTracking] = useState(false);
   const [distance, setDistance] = useState<number | undefined>(active?.lastDistanceM);
   const [coords, setCoords] = useState<{ latitude: number; longitude: number }>();
   const [popup, setPopup] = useState<GatePopup>();
   const [working, setWorking] = useState(false);
-  const promptedPass = useRef<string | undefined>(undefined);
   const attention = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -65,52 +62,8 @@ export function CourierHome({ onCreatePass, onOpenPasses, onOpenSettings }: Cour
 
   useEffect(() => {
     setDistance(active?.lastDistanceM);
-    if (!active) setTracking(false);
+    if (!active) setCoords(undefined);
   }, [active?.id, active?.lastDistanceM]);
-
-  useEffect(() => {
-    if (!tracking || !active || selectedGate?.latitude == null || selectedGate.longitude == null) return;
-    let subscription: Location.LocationSubscription | undefined;
-
-    void (async () => {
-      const permission = await Location.requestForegroundPermissionsAsync();
-      if (!permission.granted) {
-        setTracking(false);
-        Alert.alert('Konum izni gerekli', 'Akıllı Geçiş, kapıya olan mesafeyi yalnızca uygulama açıkken kontrol eder.');
-        return;
-      }
-
-      subscription = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.High, distanceInterval: 4, timeInterval: 3000 },
-        (position) => {
-          const current = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          };
-          const meters = distanceMeters(current, {
-            latitude: selectedGate.latitude!,
-            longitude: selectedGate.longitude!,
-          });
-
-          setCoords(current);
-          setDistance(meters);
-          void updateAirPass(active.id, current.latitude, current.longitude, meters, false).catch(() => undefined);
-
-          if (meters <= 30 && promptedPass.current !== active.id && !active.airpassSentAt) {
-            promptedPass.current = active.id;
-            void showGateNotification(
-              'Akıllı Geçiş hazır',
-              `${selectedGate.name} kapısına ${meters} metre kaldı. Güvenliğe göndermek ister misin?`,
-              { passId: active.id, distance: meters },
-            );
-            setPopup('near');
-          }
-        },
-      );
-    })();
-
-    return () => subscription?.remove();
-  }, [active, selectedGate, tracking, updateAirPass]);
 
   const nearestGate = useMemo(() => {
     if (!coords) return undefined;
@@ -123,14 +76,37 @@ export function CourierHome({ onCreatePass, onOpenPasses, onOpenSettings }: Cour
       .sort((first, second) => first.distance - second.distance)[0];
   }, [coords, gates]);
 
-  const sendAirPassNow = async () => {
-    if (!active || !coords || distance == null) return;
+  const checkLocationOnce = async () => {
+    if (!active || selectedGate?.latitude == null || selectedGate.longitude == null || working) return;
     setWorking(true);
     try {
-      await updateAirPass(active.id, coords.latitude, coords.longitude, distance, true);
-      setPopup(undefined);
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Konum izni gerekli', 'Konum Kontrolü Yap özelliği konumunu yalnızca bu işlem sırasında bir kez kontrol eder.');
+        return;
+      }
+
+      const servicesEnabled = await Location.hasServicesEnabledAsync();
+      if (!servicesEnabled) throw new Error('Telefonun konum hizmetini açıp yeniden dene.');
+
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const current = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      };
+      const meters = distanceMeters(current, {
+        latitude: selectedGate.latitude,
+        longitude: selectedGate.longitude,
+      });
+
+      setCoords(current);
+      setDistance(meters);
+      await updateAirPass(active.id, current.latitude, current.longitude, meters, true);
+      Alert.alert('Konum güvenliğe gönderildi', `${selectedGate.name} kapısına olan mesafen ${meters} metre olarak bir kez kontrol edildi ve güvenliğe gönderildi.`);
     } catch (error) {
-      Alert.alert('Gönderilemedi', error instanceof Error ? error.message : 'Tekrar dene.');
+      Alert.alert('Konum kontrolü yapılamadı', error instanceof Error ? error.message : 'Tekrar dene.');
     } finally {
       setWorking(false);
     }
@@ -200,7 +176,7 @@ export function CourierHome({ onCreatePass, onOpenPasses, onOpenSettings }: Cour
         </FadeInView>
 
         <FadeInView delay={180}>
-          <SectionTitle title="Akıllı Geçiş" action={tracking ? 'KONUM AKTİF' : 'HAZIR'} />
+          <SectionTitle title="Akıllı Geçiş" action={working ? 'KONTROL EDİLİYOR' : active?.airpassSentAt ? 'GÖNDERİLDİ' : 'HAZIR'} />
           {active && selectedGate?.latitude != null && selectedGate.longitude != null ? (
             <Animated.View style={pulse}>
               <LinearGradient colors={['rgba(13,91,126,.98)', 'rgba(54,45,121,.98)', 'rgba(8,28,48,.99)']} style={s.airPanel}>
@@ -226,12 +202,8 @@ export function CourierHome({ onCreatePass, onOpenPasses, onOpenSettings }: Cour
                   </FloatingView>
                   <View style={s.heroCopy}>
                     <Text style={s.airTitle}>{selectedGate.name}</Text>
-                    <Text style={s.airText}>{distance == null ? 'Mesafe ölçümü başlatılmadı' : `${distance} metre kaldı`}</Text>
-                    <Text style={s.airMeta}>
-                      {distance != null && distance <= 30
-                        ? 'KONUM DOĞRULANDI • GEÇİŞ HAZIR'
-                        : selectedGate.entryPoint || selectedGate.stage || 'Kapı konumu kayıtlı'}
-                    </Text>
+                    <Text style={s.airText}>{distance == null ? 'Konum kontrolü bekleniyor' : `${distance} metre kaldı`}</Text>
+                    {distance != null && distance <= 30 ? <Text style={s.airMeta}>KONUM DOĞRULANDI • GEÇİŞ HAZIR</Text> : null}
                   </View>
                 </View>
 
@@ -242,28 +214,18 @@ export function CourierHome({ onCreatePass, onOpenPasses, onOpenSettings }: Cour
                   </View>
                 ) : null}
 
-                <View style={s.airActions}>
-                  <AnimatedPressable containerStyle={s.actionWrap} onPress={() => setTracking((value) => !value)}>
-                    <LinearGradient
-                      colors={tracking ? [colors.orange, colors.red] : [colors.cyan, colors.purple]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={s.secondaryButton}
-                    >
-                      <Ionicons name={tracking ? 'pause' : 'locate'} size={22} color={colors.background} />
-                      <Text style={s.secondaryText}>{tracking ? 'TAKİBİ DURDUR' : 'KONUM KONTROLÜNÜ BAŞLAT'}</Text>
-                    </LinearGradient>
-                  </AnimatedPressable>
-
-                  {coords && distance != null ? (
-                    <AnimatedPressable containerStyle={s.actionWrap} onPress={() => void sendAirPassNow()} disabled={working}>
-                      <LinearGradient colors={gradients.primary} style={s.airSend}>
-                        <Ionicons name="shield-checkmark" size={19} color={colors.white} />
-                        <Text style={s.airSendText}>GÜVENLİĞE GÖNDER</Text>
-                      </LinearGradient>
-                    </AnimatedPressable>
-                  ) : null}
-                </View>
+                <AnimatedPressable onPress={() => void checkLocationOnce()} disabled={working}>
+                  <LinearGradient
+                    colors={working ? ['rgba(105,119,132,.92)', 'rgba(66,78,94,.96)'] : [colors.cyan, colors.purple]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={s.secondaryButton}
+                  >
+                    <Ionicons name={working ? 'hourglass' : 'locate'} size={22} color={colors.background} />
+                    <Text style={s.secondaryText}>{working ? 'KONUM KONTROL EDİLİYOR' : 'KONUM KONTROLÜ YAP'}</Text>
+                    {!working ? <Ionicons name="shield-checkmark" size={21} color={colors.background} /> : null}
+                  </LinearGradient>
+                </AnimatedPressable>
 
                 {['waiting', 'approved'].includes(active.status) ? (
                   <AnimatedPressable onPress={() => void markArrived()} disabled={working}>
@@ -295,7 +257,7 @@ export function CourierHome({ onCreatePass, onOpenPasses, onOpenSettings }: Cour
               title="Akıllı Geçiş beklemede"
               description={active
                 ? 'Seçilen kapının konum koordinatı bulunmuyor.'
-                : 'Aktif Kurye Geçişi oluştuğunda kapıya yaklaşma kontrolü burada açılır.'}
+                : 'Aktif Kurye Geçişi oluştuğunda tek seferlik konum kontrolü burada açılır.'}
             />
           )}
         </FadeInView>
@@ -348,49 +310,24 @@ export function CourierHome({ onCreatePass, onOpenPasses, onOpenSettings }: Cour
 
       <Modal visible={Boolean(popup)} transparent animationType="fade" onRequestClose={() => !working && setPopup(undefined)}>
         <SafeAreaView style={s.modalOverlay} edges={['top', 'bottom', 'left', 'right']}>
-          <LinearGradient
-            colors={popup === 'arrived'
-              ? ['rgba(24,98,81,.99)', 'rgba(19,48,76,.99)', 'rgba(43,35,103,.99)']
-              : ['rgba(17,83,117,.99)', 'rgba(39,42,105,.99)', 'rgba(10,27,47,.99)']}
-            style={s.popup}
-          >
+          <LinearGradient colors={['rgba(24,98,81,.99)', 'rgba(19,48,76,.99)', 'rgba(43,35,103,.99)']} style={s.popup}>
             <FloatingView style={s.popupIcon} distance={6}>
-              <Ionicons name={popup === 'arrived' ? 'checkmark-done' : 'navigate'} size={46} color={popup === 'arrived' ? colors.green : colors.cyan} />
+              <Ionicons name="checkmark-done" size={46} color={colors.green} />
             </FloatingView>
-            <Text style={s.popupKicker}>{popup === 'arrived' ? 'KAPIYA VARIŞ BİLDİRİLDİ' : 'AKILLI GEÇİŞ HAZIR'}</Text>
-            <Text style={s.popupTitle}>{popup === 'arrived' ? 'Güvenlik Seni Bekliyor' : 'Kapıya 30 Metre Kaldı'}</Text>
-            <Text style={s.popupText}>
-              {popup === 'arrived'
-                ? `Varış kaydın güvenliğe gönderildi. Görevliye ${active?.approvalCode ?? '6 haneli'} tek kullanımlık kodunu söyle.`
-                : 'Konum doğrulandı. Kapı mesafesini şimdi güvenlik paneline gönderebilirsin.'}
-            </Text>
-            {popup === 'arrived' ? (
-              <View style={s.popupCode}>
-                <Text style={s.popupCodeLabel}>TEK KULLANIMLIK KOD</Text>
-                <Text style={s.popupCodeValue}>{active?.approvalCode ?? '------'}</Text>
-              </View>
-            ) : null}
+            <Text style={s.popupKicker}>KAPIYA VARIŞ BİLDİRİLDİ</Text>
+            <Text style={s.popupTitle}>Güvenlik Seni Bekliyor</Text>
+            <Text style={s.popupText}>Varış kaydın güvenliğe gönderildi. Görevliye {active?.approvalCode ?? '6 haneli'} tek kullanımlık kodunu söyle.</Text>
+            <View style={s.popupCode}>
+              <Text style={s.popupCodeLabel}>TEK KULLANIMLIK KOD</Text>
+              <Text style={s.popupCodeValue}>{active?.approvalCode ?? '------'}</Text>
+            </View>
             <View style={s.popupActions}>
-              {popup === 'near' ? (
-                <>
-                  <AnimatedPressable containerStyle={s.popupAction} disabled={working} onPress={() => setPopup(undefined)}>
-                    <View style={s.popupCancel}><Text style={s.popupCancelText}>ŞİMDİLİK DEĞİL</Text></View>
-                  </AnimatedPressable>
-                  <AnimatedPressable containerStyle={s.popupAction} disabled={working} onPress={() => void sendAirPassNow()}>
-                    <LinearGradient colors={gradients.success} style={s.popupConfirm}>
-                      <Ionicons name="shield-checkmark" size={20} color={colors.background} />
-                      <Text style={s.popupConfirmText}>GÜVENLİĞE GÖNDER</Text>
-                    </LinearGradient>
-                  </AnimatedPressable>
-                </>
-              ) : (
-                <AnimatedPressable containerStyle={s.popupAction} onPress={() => setPopup(undefined)}>
-                  <LinearGradient colors={gradients.success} style={s.popupConfirm}>
-                    <Text style={s.popupConfirmText}>TAMAM • KODU GÖSTER</Text>
-                    <Ionicons name="arrow-forward" size={20} color={colors.background} />
-                  </LinearGradient>
-                </AnimatedPressable>
-              )}
+              <AnimatedPressable containerStyle={s.popupAction} onPress={() => setPopup(undefined)}>
+                <LinearGradient colors={gradients.success} style={s.popupConfirm}>
+                  <Text style={s.popupConfirmText}>TAMAM • KODU GÖSTER</Text>
+                  <Ionicons name="arrow-forward" size={20} color={colors.background} />
+                </LinearGradient>
+              </AnimatedPressable>
             </View>
           </LinearGradient>
         </SafeAreaView>
@@ -426,12 +363,8 @@ const s = StyleSheet.create({
   airMeta: { color: colors.green, fontSize: 10, fontWeight: '900', marginTop: 5, letterSpacing: .4 },
   nearHint: { minHeight: 42, borderRadius: 15, backgroundColor: 'rgba(255,179,92,.13)', borderWidth: 1, borderColor: 'rgba(255,179,92,.30)', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 11 },
   nearText: { color: colors.orange, fontSize: 11, fontWeight: '800' },
-  airActions: { flexDirection: 'row', gap: 8 },
-  actionWrap: { flex: 1 },
-  secondaryButton: { minHeight: 58, borderRadius: 19, borderWidth: 1.5, borderColor: 'rgba(255,255,255,.72)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 9 },
-  secondaryText: { color: colors.background, fontSize: 11, lineHeight: 15, fontWeight: '900', textAlign: 'center' },
-  airSend: { minHeight: 56, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderColor: 'rgba(255,255,255,.25)' },
-  airSendText: { color: colors.white, fontSize: 10, fontWeight: '900', textAlign: 'center' },
+  secondaryButton: { minHeight: 62, borderRadius: 20, borderWidth: 1.5, borderColor: 'rgba(255,255,255,.72)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingHorizontal: 12 },
+  secondaryText: { color: colors.background, fontSize: 12, lineHeight: 16, fontWeight: '900', textAlign: 'center' },
   arrived: { height: 60, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,.45)' },
   arrivedText: { color: colors.background, fontSize: 12, fontWeight: '900' },
   codeReady: { minHeight: 62, borderRadius: 19, borderWidth: 1, borderColor: 'rgba(139,107,255,.62)', backgroundColor: 'rgba(139,107,255,.16)', flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 13 },
@@ -458,8 +391,6 @@ const s = StyleSheet.create({
   popupCodeValue: { color: colors.white, fontSize: 35, fontWeight: '900', letterSpacing: 7, marginTop: 3 },
   popupActions: { width: '100%', flexDirection: 'row', gap: 9, marginTop: 18 },
   popupAction: { flex: 1 },
-  popupCancel: { minHeight: 55, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,.25)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
-  popupCancelText: { color: colors.textSoft, fontSize: 10, fontWeight: '900', textAlign: 'center' },
   popupConfirm: { minHeight: 55, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 8 },
   popupConfirmText: { color: colors.background, fontSize: 10, fontWeight: '900', textAlign: 'center' },
 });
