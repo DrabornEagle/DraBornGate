@@ -2,6 +2,11 @@ name: DraBornGate Release APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .dkd_release/trigger_apk_v039.txt
 
 permissions:
   contents: read
@@ -41,6 +46,7 @@ jobs:
           set -euo pipefail
           APP_VERSION="$(node -p 'require("./package.json").version')"
           echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
+          test "$APP_VERSION" = "0.3.9"
 
       - name: GitHub OIDC release kimliğini al
         shell: bash
@@ -55,6 +61,7 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npm run typecheck
+          bash scripts/dkd_google_play_policy_gate.sh
 
       - name: Android release projesini üret
         env:
@@ -113,6 +120,14 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --stacktrace
 
+      - name: APK'yi hazırla ve Google Play politikasını doğrula
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="DraBornGate-v${APP_VERSION}-release.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "$APK"
+          bash scripts/dkd_google_play_policy_gate.sh "$APK" | tee "dkd_google_play_policy_v${APP_VERSION}.txt"
+
       - name: APK imzasını kalıcı keystore ile doğrula
         id: signature
         shell: bash
@@ -120,7 +135,6 @@ jobs:
           set -euo pipefail
           APK="DraBornGate-v${APP_VERSION}-release.apk"
           REPORT="dkd_apk_signature_v${APP_VERSION}.txt"
-          cp android/app/build/outputs/apk/release/app-release.apk "$APK"
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner"
           "$APKSIGNER" verify --verbose --print-certs "$APK" | tee "$REPORT"
           "$APKSIGNER" verify --print-certs "$APK" > signing-work/apksigner.txt
@@ -160,6 +174,7 @@ jobs:
           path: |
             DraBornGate-v${{ env.APP_VERSION }}-release.apk
             dkd_apk_signature_v${{ env.APP_VERSION }}.txt
+            dkd_google_play_policy_v${{ env.APP_VERSION }}.txt
             signing-work/apksigner.txt
             signing-work/keytool.txt
           if-no-files-found: error
