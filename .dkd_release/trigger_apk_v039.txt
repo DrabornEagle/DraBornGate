@@ -1,6 +1,6 @@
 DraBornGate Release APK
 version=0.3.9
 android_version_code=1
-triggered_at=2026-07-26T17:53:00+03:00
-attempt=2
+triggered_at=2026-07-26T18:01:00+03:00
+attempt=3
 keystore=persistent-supabase-vault
