@@ -106,3 +106,5 @@ jobs:
               "https://api.github.com/repos/${{ github.repository }}/actions/workflows/$workflow/dispatches" \
               -d '{"ref":"main"}'
           done
+
+# dkd-trigger-v038
