@@ -3,13 +3,15 @@ set -euo pipefail
 
 APK_PATH="${1:-}"
 EXPECTED_PACKAGE="com.draborneagle.draborngate"
-MIN_TARGET_SDK=35
-NEXT_TARGET_SDK=36
+EXPECTED_VERSION="0.3.11"
+EXPECTED_VERSION_CODE=1
+MIN_TARGET_SDK=36
 
 node <<'NODE'
 const fs = require('fs');
 const app = JSON.parse(fs.readFileSync('app.json', 'utf8')).expo;
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+const version = fs.readFileSync('src/config/version.ts', 'utf8');
 const requiredUrls = ['privacyPolicyUrl', 'accountDeletionUrl', 'termsUrl'];
 const blocked = new Set(app.android?.blockedPermissions ?? []);
 const requested = new Set(app.android?.permissions ?? []);
@@ -20,8 +22,10 @@ function fail(message) {
 }
 
 if (app.android?.package !== 'com.draborneagle.draborngate') fail('Android paket adı değişmiş.');
-if (app.version !== pkg.version) fail('app.json ve package.json sürümleri eşit değil.');
-if (!Number.isInteger(app.android?.versionCode) || app.android.versionCode < 1) fail('Android versionCode en az 1 olmalı.');
+if (app.version !== '0.3.11' || pkg.version !== '0.3.11') fail('Uygulama sürümü 0.3.11 değil.');
+if (!version.includes("APP_VERSION = '0.3.11'")) fail('Merkezi APP_VERSION 0.3.11 değil.');
+if (app.android?.versionCode !== 1) fail('Android versionCode 1 değil.');
+if (app.android?.allowBackup !== false) fail('android.allowBackup false olmalı.');
 for (const key of requiredUrls) {
   const value = app.extra?.[key];
   if (typeof value !== 'string' || !value.startsWith('https://')) fail(`${key} geçerli HTTPS adresi değil.`);
@@ -35,18 +39,22 @@ for (const permission of [
   'android.permission.READ_MEDIA_IMAGES',
   'android.permission.READ_MEDIA_VIDEO',
   'android.permission.RECORD_AUDIO',
+  'android.permission.SYSTEM_ALERT_WINDOW',
 ]) {
   if (!blocked.has(permission)) fail(`${permission} blockedPermissions listesinde değil.`);
 }
 if (!pkg.dependencies?.['expo-iap']) fail('Dijital paket ve abonelikler için Google Play Billing entegrasyonu eksik.');
+if (!pkg.dependencies?.['expo-splash-screen']) fail('Native splash ekranı paketi eksik.');
 if (!app.plugins?.some((item) => item === 'expo-iap')) fail('expo-iap config plugin eksik.');
+if (!app.plugins?.some((item) => Array.isArray(item) && item[0] === 'expo-splash-screen')) fail('expo-splash-screen config plugin eksik.');
+if (!app.plugins?.includes('./scripts/dkd_with_android_security.js')) fail('Android güvenlik config plugin eksik.');
 if (process.exitCode) process.exit(process.exitCode);
 console.log(`Yapılandırma politika kontrolü geçti: ${app.version} (${app.android.versionCode})`);
 NODE
 
 mapfile -t POLICY_URLS < <(node -e "const app=require('./app.json').expo; console.log(app.extra.privacyPolicyUrl); console.log(app.extra.accountDeletionUrl); console.log(app.extra.termsUrl)")
 for url in "${POLICY_URLS[@]}"; do
-  HTTP_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' --max-time 30 --retry 2 --retry-delay 2 -A 'DraBornGate-GooglePlay-Policy-Check/0.3.9' "$url")"
+  HTTP_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' --max-time 30 --retry 2 --retry-delay 2 -A 'DraBornGate-GooglePlay-Policy-Check/0.3.11' "$url")"
   if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
     echo "POLİTİKA HATASI: Yayın sayfası erişilebilir değil ($HTTP_CODE): $url" >&2
     exit 1
@@ -61,28 +69,44 @@ if [ -n "$APK_PATH" ]; then
   AAPT="$ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/aapt"
   test -x "$AAPT"
   BADGING="$($AAPT dump badging "$APK_PATH")"
+  XMLTREE="$($AAPT dump xmltree "$APK_PATH" AndroidManifest.xml)"
+
   echo "$BADGING" | grep -F "package: name='$EXPECTED_PACKAGE'" >/dev/null
+  echo "$BADGING" | grep -F "versionCode='$EXPECTED_VERSION_CODE'" >/dev/null
+  echo "$BADGING" | grep -F "versionName='$EXPECTED_VERSION'" >/dev/null
+
   TARGET_SDK="$(printf '%s\n' "$BADGING" | sed -n "s/.*targetSdkVersion:'\([0-9][0-9]*\)'.*/\1/p" | head -n 1)"
   test -n "$TARGET_SDK"
   if [ "$TARGET_SDK" -lt "$MIN_TARGET_SDK" ]; then
-    echo "POLİTİKA HATASI: targetSdkVersion $TARGET_SDK; Google Play için en az $MIN_TARGET_SDK gerekli." >&2
+    echo "POLİTİKA HATASI: targetSdkVersion $TARGET_SDK; yayın hedefi en az API $MIN_TARGET_SDK olmalı." >&2
     exit 1
   fi
-  if [ "$TARGET_SDK" -lt "$NEXT_TARGET_SDK" ]; then
-    echo "UYARI: targetSdkVersion $TARGET_SDK bugün uygundur; 31 Ağustos 2026 sonrası API $NEXT_TARGET_SDK gerekecek."
-  else
-    echo "targetSdkVersion $TARGET_SDK: 31 Ağustos 2026 gereksinimine hazır."
-  fi
-  if printf '%s\n' "$BADGING" | grep -F "android.permission.ACCESS_BACKGROUND_LOCATION" >/dev/null; then
-    echo "POLİTİKA HATASI: APK arka plan konum izni içeriyor." >&2
-    exit 1
-  fi
-  for permission in android.permission.MANAGE_EXTERNAL_STORAGE android.permission.READ_MEDIA_IMAGES android.permission.READ_MEDIA_VIDEO android.permission.RECORD_AUDIO; do
+  echo "targetSdkVersion $TARGET_SDK: Android 16 / API 36 şartına hazır."
+
+  for permission in \
+    android.permission.ACCESS_BACKGROUND_LOCATION \
+    android.permission.MANAGE_EXTERNAL_STORAGE \
+    android.permission.READ_MEDIA_IMAGES \
+    android.permission.READ_MEDIA_VIDEO \
+    android.permission.RECORD_AUDIO \
+    android.permission.SYSTEM_ALERT_WINDOW; do
     if printf '%s\n' "$BADGING" | grep -F "$permission" >/dev/null; then
-      echo "POLİTİKA HATASI: APK gereksiz hassas izin içeriyor: $permission" >&2
+      echo "POLİTİKA HATASI: APK gereksiz veya hassas izin içeriyor: $permission" >&2
       exit 1
     fi
   done
+
+  if ! printf '%s\n' "$XMLTREE" | grep -E 'A: android:allowBackup\(0x01010280\)=\(type 0x12\)0x0' >/dev/null; then
+    echo "POLİTİKA HATASI: Derlenmiş manifestte android:allowBackup=false doğrulanamadı." >&2
+    exit 1
+  fi
+
+  if printf '%s\n' "$XMLTREE" | grep -F 'android.permission.SYSTEM_ALERT_WINDOW' >/dev/null; then
+    echo "POLİTİKA HATASI: Derlenmiş manifest SYSTEM_ALERT_WINDOW içeriyor." >&2
+    exit 1
+  fi
+
+  echo "Derlenmiş manifest: allowBackup=false ve SYSTEM_ALERT_WINDOW yok."
 fi
 
 echo "DraBornGate Google Play otomatik politika kapısı başarıyla geçti."
