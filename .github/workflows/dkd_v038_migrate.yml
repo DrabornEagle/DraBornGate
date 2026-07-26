@@ -39,8 +39,8 @@ jobs:
       - name: Marka görsellerini tam çözünürlükte al
         shell: bash
         env:
-          ICON_URL: "https://s3.amazonaws.com/document-export.canva.com/lYOa0/DAHQcWlYOa0/1/thumbnail/0001.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAQYCGKMUHYGFFNMW3%2F20260726%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260726T015454Z&X-Amz-Expires=3712&X-Amz-Signature=64c264afd2b829860caedb30955a943654c507b3c61c90b347334faf69eee0b6&X-Amz-SignedHeaders=host&response-expires=Sun%2C%2026%20Jul%202026%2002%3A56%3A46%20GMT"
-          WELCOME_URL: "https://s3.amazonaws.com/document-export.canva.com/AUMCI/DAHQcbAUMCI/1/thumbnail/0001.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAQYCGKMUHYGFFNMW3%2F20260725%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260725T131430Z&X-Amz-Expires=49473&X-Amz-Signature=3d9501a93192db206da89f46096e2f6120bbdbe4e3b92e3f696efe5015485605&X-Amz-SignedHeaders=host&response-expires=Sun%2C%2026%20Jul%202026%2002%3A59%3A03%20GMT"
+          ICON_URL: "https://design-manipulation-download.canva.com/ac9db555-04e8-4610-8c05-65a1beec75f4/0000-6924795091707074147.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAQYCGKMUHWASWGM4Q%2F20260726%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260726T003126Z&X-Amz-Expires=10384&X-Amz-Signature=3f22ad2d264107a4d361255bbd7fcea95ad313292e792d2644e91646e3bbeeca&X-Amz-SignedHeaders=host%3Bx-amz-expected-bucket-owner&response-expires=Sun%2C%2026%20Jul%202026%2003%3A24%3A30%20GMT"
+          WELCOME_URL: "https://design-manipulation-download.canva.com/b251ab25-678a-48bb-af90-f7311c013c65/0000-4784459370968286005.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAQYCGKMUHWASWGM4Q%2F20260725%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260725T105508Z&X-Amz-Expires=59953&X-Amz-Signature=fdc00c03c88ae450a33e23e6b0836ccb087daded98b9c0fbb0a1c04559bb2e0f&X-Amz-SignedHeaders=host%3Bx-amz-expected-bucket-owner&response-expires=Sun%2C%2026%20Jul%202026%2003%3A34%3A21%20GMT"
         run: |
           set -euo pipefail
           mkdir -p assets/branding
@@ -106,4 +106,4 @@ jobs:
               -d '{"ref":"main"}'
           done
 
-# dkd-trigger-v038-3
+# dkd-trigger-v038-4
