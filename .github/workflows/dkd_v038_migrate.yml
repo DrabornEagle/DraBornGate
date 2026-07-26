@@ -1,0 +1,108 @@
+name: DraBornGate v0.3.8 Migration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/dkd_v038_migrate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+  id-token: write
+
+concurrency:
+  group: dkd-v038-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Node.js 22 kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Python 3.12 kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Marka görsellerini tam çözünürlükte al
+        shell: bash
+        env:
+          ICON_URL: "https://media.canva.com/v2/document-image/hash:-1160581115/height:1536/id:DAHQcWlYOa0/type:B/width:1536?brand=BAHAlrSItdY&csig=AAAAAAAAAAAAAAAAAAAAAAbEdJ5mxXdmtwpwpLfUieW3NrxYziM3Ys41Chr6Zl-t&disableexport=T&exp=1785033563&fallback=https%3A%2F%2Fs3.amazonaws.com%2Fdocument-export.canva.com%2FlYOa0%2FDAHQcWlYOa0%2F1%2Fthumbnail%2F0001.png%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3DAKIAQYCGKMUHYGFFNMW3%252F20260725%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20260725T015454Z%26X-Amz-Expires%3D89069%26X-Amz-Signature%3D7d8f39428bd3bebaab5705d7eb5d2bf1ec68d142b6675231ece70621a7164074%26X-Amz-SignedHeaders%3Dhost%26response-expires%3DSun%252C%252026%2520Jul%25202026%252002%253A39%253A23%2520GMT&osig=AAAAAAAAAAAAAAAAAAAAAFlkXFSEqYnPaeh_n4wNqWGkpvNbDFjBaLpYnRlbl2cM&page=1&signed=brand%2Cdisableexport%2Cfallback%2Cpage%2Cversion&signer=document-rpc&version=1"
+          WELCOME_URL: "https://media.canva.com/v2/document-image/hash:1414523458/height:1536/id:DAHQcbAUMCI/type:B/width:864?brand=BAHAlrSItdY&csig=AAAAAAAAAAAAAAAAAAAAAEwHSkqEuBXVPTTj17cBSoheB57J3OvpoZ-4lgy_JzMR&disableexport=T&exp=1785033660&fallback=https%3A%2F%2Fs3.amazonaws.com%2Fdocument-export.canva.com%2FAUMCI%2FDAHQcbAUMCI%2F1%2Fthumbnail%2F0001.png%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3DAKIAQYCGKMUHYGFFNMW3%252F20260725%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20260725T131430Z%26X-Amz-Expires%3D48390%26X-Amz-Signature%3D162a9401f9e841593538ff6cc0d9be9889e85e394cb63228bf39e725e5f7fd8d%26X-Amz-SignedHeaders%3Dhost%26response-expires%3DSun%252C%252026%2520Jul%25202026%252002%253A41%253A00%2520GMT&osig=AAAAAAAAAAAAAAAAAAAAAIX8ZA6Y9R59sQ_6HbSTxh5lCAoorjigjnYVF-Y3ivMn&page=1&signed=brand%2Cdisableexport%2Cfallback%2Cpage%2Cversion&signer=document-rpc&version=1"
+        run: |
+          set -euo pipefail
+          mkdir -p assets/branding
+          curl -fL --retry 3 --connect-timeout 20 "$ICON_URL" -o assets/branding/draborngate-app-icon.png
+          curl -fL --retry 3 --connect-timeout 20 "$WELCOME_URL" -o assets/branding/draborngate-welcome.png
+          python - <<'PY'
+          from pathlib import Path
+          import struct
+          expected = {
+              Path('assets/branding/draborngate-app-icon.png'): (1536, 1536),
+              Path('assets/branding/draborngate-welcome.png'): (864, 1536),
+          }
+          for path, size in expected.items():
+              raw = path.read_bytes()
+              if raw[:8] != b'\x89PNG\r\n\x1a\n':
+                  raise SystemExit(f'{path} PNG değil')
+              width, height = struct.unpack('>II', raw[16:24])
+              print(path, width, height, len(raw))
+              if (width, height) != size or len(raw) < 50000:
+                  raise SystemExit(f'{path} beklenen boyutta değil')
+          PY
+
+      - name: v0.3.8 dönüşüm scriptini aç
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat scripts/.dkd_v038_script/part-* | base64 -d | gzip -d > scripts/dkd_apply_v038.py
+          python -m py_compile scripts/dkd_apply_v038.py
+
+      - name: v0.3.8 değişikliklerini uygula
+        run: python scripts/dkd_apply_v038.py
+
+      - name: Bağımlılık ve tip kontrolü
+        run: |
+          npm install --no-audit --no-fund
+          npm run typecheck
+          npx expo config --type public > /tmp/expo-config.json
+
+      - name: v0.3.8 ana repoya yaz
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "DraBornGate Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "DraBornGate v0.3.8 UI, harita ve release güncellemesi [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: APK ve AAB release workflowlarını başlat
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sleep 8
+          for workflow in dkd_draborngate_release_apk.yml dkd_draborngate_release_aab.yml; do
+            curl -fL -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/workflows/$workflow/dispatches" \
+              -d '{"ref":"main"}'
+          done
