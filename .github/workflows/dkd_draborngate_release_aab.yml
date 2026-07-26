@@ -50,7 +50,7 @@ jobs:
         run: |
           set -euo pipefail
           OIDC_TOKEN="$(curl -fsSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=draborngate-release" | jq -r '.value')"
-          test -n "$OIDIDC_TOKEN" && test "$OIDC_TOKEN" != "null"
+          test -n "$OIDC_TOKEN" && test "$OIDC_TOKEN" != "null"
           echo "::add-mask::$OIDC_TOKEN"
           echo "DKD_RELEASE_OIDC_TOKEN=$OIDC_TOKEN" >> "$GITHUB_ENV"
 
@@ -177,4 +177,4 @@ jobs:
         run: |
           test "${{ steps.signature.outputs.match }}" = "true"
 
-# dkd-aab-trigger-v038-2
+# dkd-aab-trigger-v038-3
