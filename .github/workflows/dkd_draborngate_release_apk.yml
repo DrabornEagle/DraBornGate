@@ -1,6 +1,10 @@
 name: DraBornGate Release APK
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/dkd_draborngate_release_apk.yml'
   workflow_dispatch:
 
 permissions:
@@ -150,7 +154,7 @@ jobs:
           "$APKSIGNER" verify --verbose --print-certs "$OUT" | tee "$REPORT"
           "$APKSIGNER" verify --print-certs "$OUT" > signing-work/apksigner.txt
           keytool -list -v -keystore android/app/draborngate-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" > signing-work/keytool.txt
-          APK_CERT="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' signing-work/apksigner.txt | sed -n '1p' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          APK_CERT="$(sed -n -E 's/^(V[0-9]+ Signer|Signer #[0-9]+): certificate SHA-256 digest: //p' signing-work/apksigner.txt | sed -n '1p' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
           KEY_CERT="$(sed -n 's/^[[:space:]]*SHA256: //p' signing-work/keytool.txt | sed -n '1p' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
           APK_SHA256="$(sha256sum "$OUT" | awk '{print $1}')"
           {
