@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   searchButton: { width: 56, height: 56, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.magenta },
   mapFrame: { height: 300, borderRadius: radius.lg, borderWidth: 1.5, borderColor: colors.borderStrong, overflow: 'hidden', backgroundColor: '#E9E6DD' },
   map: { flex: 1, backgroundColor: '#E9E6DD' },
-  loading: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E9E6DD', gap: 8 },
+  loading: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E9E6DD', gap: 8 },
   loadingText: { color: '#14283A', fontSize: 11, fontWeight: '900' },
   expand: { position: 'absolute', right: 11, top: 11, width: 52, height: 52, borderRadius: 17, backgroundColor: 'rgba(12,30,47,.94)', borderWidth: 1.5, borderColor: 'rgba(55,216,255,.78)', alignItems: 'center', justifyContent: 'center' },
   mapHint: { position: 'absolute', left: 10, right: 10, bottom: 10, minHeight: 38, borderRadius: radius.pill, paddingHorizontal: 12, backgroundColor: 'rgba(5,15,27,.86)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
