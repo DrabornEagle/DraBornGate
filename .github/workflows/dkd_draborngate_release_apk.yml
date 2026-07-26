@@ -180,13 +180,15 @@ jobs:
           echo "match=$MATCH" >> "$GITHUB_OUTPUT"
           test "$MATCH" = "true"
 
-      - name: APK'yi özel Supabase kasasına yedekle
+      - name: APK'yi özel Supabase kasasına yedeklemeyi dene
+        continue-on-error: true
         shell: bash
         run: |
           AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
-          curl --fail --show-error --max-time 180 -X PUT -H "$AUTH_HEADER" -H "Content-Type: application/vnd.android.package-archive" --data-binary "@DraBornGate-v${APP_VERSION}-release.apk" "$DKD_RELEASE_VAULT_URL/release/apk?version=${APP_VERSION}"
+          curl --fail --show-error --retry 3 --retry-all-errors --max-time 240 -X PUT -H "$AUTH_HEADER" -H "Content-Type: application/vnd.android.package-archive" --data-binary "@DraBornGate-v${APP_VERSION}-release.apk" "$DKD_RELEASE_VAULT_URL/release/apk?version=${APP_VERSION}"
 
       - name: DraBornGate Release APK yükle
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: DraBornGate-Release-APK-v${{ env.APP_VERSION }}
