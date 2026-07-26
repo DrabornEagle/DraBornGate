@@ -107,6 +107,22 @@ jobs:
           courier.write_text(courier_text.replace(old_courier, 'const promptedPass = useRef<string | undefined>(undefined);', 1), encoding='utf-8')
           PY
 
+      - name: Geçici dosyaları temizle ve sürüm prosedürünü düzelt
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf scripts/__pycache__ .dkd_release/v038-assets
+          python - <<'PY'
+          from pathlib import Path
+          release_doc = Path('docs/RELEASE_PROCESS.md')
+          release_text = release_doc.read_text(encoding='utf-8')
+          release_text = release_text.replace(
+              '4. Android `versionCode`, APK hedef sürümüne kadar `1` kalır.',
+              '4. Android `versionCode` her Google Play sürümünde artırılır; DraBornGate v0.3.8 için değer `2`dir.',
+          )
+          release_doc.write_text(release_text, encoding='utf-8')
+          PY
+
       - name: Bağımlılık ve tip kontrolü
         id: dkd_validation
         shell: bash
@@ -192,4 +208,4 @@ jobs:
               -d '{"ref":"main"}'
           done
 
-# dkd-trigger-v038-10
+# dkd-trigger-v038-11
