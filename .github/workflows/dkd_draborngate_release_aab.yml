@@ -180,13 +180,15 @@ jobs:
           echo "match=$MATCH" >> "$GITHUB_OUTPUT"
           test "$MATCH" = "true"
 
-      - name: AAB'yi özel Supabase kasasına yedekle
+      - name: AAB'yi özel Supabase kasasına yedeklemeyi dene
+        continue-on-error: true
         shell: bash
         run: |
           AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
-          curl --fail --show-error --max-time 180 -X PUT -H "$AUTH_HEADER" -H "Content-Type: application/octet-stream" --data-binary "@DraBornGate-v${APP_VERSION}-release.aab" "$DKD_RELEASE_VAULT_URL/release/aab?version=${APP_VERSION}"
+          curl --fail --show-error --retry 3 --retry-all-errors --max-time 240 -X PUT -H "$AUTH_HEADER" -H "Content-Type: application/octet-stream" --data-binary "@DraBornGate-v${APP_VERSION}-release.aab" "$DKD_RELEASE_VAULT_URL/release/aab?version=${APP_VERSION}"
 
       - name: DraBornGate Release AAB yükle
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: DraBornGate-Release-AAB-v${{ env.APP_VERSION }}
