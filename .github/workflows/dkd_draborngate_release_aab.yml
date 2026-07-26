@@ -2,6 +2,11 @@ name: DraBornGate Release AAB
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .dkd_release/trigger_aab_v039.txt
 
 permissions:
   contents: read
@@ -14,7 +19,7 @@ concurrency:
 jobs:
   release-aab:
     runs-on: ubuntu-latest
-    timeout-minutes: 70
+    timeout-minutes: 75
     env:
       CI: "1"
       DKD_RELEASE_VAULT_URL: https://guuwomvszlwhkmstewfl.supabase.co/functions/v1/dkd-gate-release-vault
@@ -41,6 +46,7 @@ jobs:
           set -euo pipefail
           APP_VERSION="$(node -p 'require("./package.json").version')"
           echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
+          test "$APP_VERSION" = "0.3.9"
 
       - name: GitHub OIDC release kimliğini al
         shell: bash
@@ -55,6 +61,7 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npm run typecheck
+          bash scripts/dkd_google_play_policy_gate.sh
 
       - name: Android release projesini üret
         env:
@@ -107,11 +114,20 @@ jobs:
           }
           EOF_SIGNING
 
-      - name: Release AAB oluştur
+      - name: Release AAB ve politika kontrol APK'sini oluştur
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew bundleRelease --no-daemon --stacktrace
+          ./gradlew bundleRelease assembleRelease --no-daemon --stacktrace
+
+      - name: AAB'yi hazırla ve Google Play politikasını doğrula
+        shell: bash
+        run: |
+          set -euo pipefail
+          AAB="DraBornGate-v${APP_VERSION}-release.aab"
+          POLICY_APK="android/app/build/outputs/apk/release/app-release.apk"
+          cp android/app/build/outputs/bundle/release/app-release.aab "$AAB"
+          bash scripts/dkd_google_play_policy_gate.sh "$POLICY_APK" | tee "dkd_google_play_policy_v${APP_VERSION}.txt"
 
       - name: AAB imzasını kalıcı keystore ile doğrula
         id: signature
@@ -120,7 +136,6 @@ jobs:
           set -euo pipefail
           AAB="DraBornGate-v${APP_VERSION}-release.aab"
           REPORT="dkd_aab_signature_v${APP_VERSION}.txt"
-          cp android/app/build/outputs/bundle/release/app-release.aab "$AAB"
           jarsigner -verify -verbose -certs "$AAB" | tee "$REPORT"
           keytool -printcert -jarfile "$AAB" > signing-work/aab-cert.txt
           keytool -list -v -keystore android/app/draborngate-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" > signing-work/keytool.txt
@@ -159,6 +174,7 @@ jobs:
           path: |
             DraBornGate-v${{ env.APP_VERSION }}-release.aab
             dkd_aab_signature_v${{ env.APP_VERSION }}.txt
+            dkd_google_play_policy_v${{ env.APP_VERSION }}.txt
             signing-work/aab-cert.txt
             signing-work/keytool.txt
           if-no-files-found: error
