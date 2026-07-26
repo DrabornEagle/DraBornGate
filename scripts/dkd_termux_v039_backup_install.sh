@@ -41,15 +41,17 @@ git fetch origin --prune
 git checkout -B main origin/main
 git reset --hard origin/main
 git clean -fd
-npm install --no-audit --no-fund
+npm install --no-audit --no-fund --package-lock=false
 npm run typecheck
 
 LOCAL_SHA="$(git rev-parse HEAD)"
 REMOTE_SHA="$(git rev-parse origin/main)"
 VERSION="$(node -p 'require("./package.json").version')"
+WORKTREE_STATUS="$(git status --porcelain)"
 
 [ "$VERSION" = "$EXPECTED_VERSION" ]
 [ "$LOCAL_SHA" = "$REMOTE_SHA" ]
+[ -z "$WORKTREE_STATUS" ]
 
 echo
 echo "DraBornGate kaynak kurulumu tamamlandı."
@@ -57,7 +59,7 @@ echo "Sürüm: $VERSION"
 echo "Lokal SHA:  $LOCAL_SHA"
 echo "GitHub SHA: $REMOTE_SHA"
 echo "Geri alma dalı: origin/$BACKUP_BRANCH"
-echo "Lokal ve GitHub birebir eşit."
+echo "Lokal ve GitHub birebir eşit; çalışma ağacı temiz."
 
 APK_FILE="$DOWNLOAD_DIR/DraBornGate-v${EXPECTED_VERSION}-release.apk"
 if [ -s "$APK_FILE" ]; then
