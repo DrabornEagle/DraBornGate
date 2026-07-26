@@ -1,0 +1,5 @@
+DraBornGate Release APK
+version=0.3.11
+android_version_code=1
+triggered_at=2026-07-27T00:30:00+03:00
+keystore=persistent-supabase-vault
