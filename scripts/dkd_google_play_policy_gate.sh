@@ -44,6 +44,16 @@ if (process.exitCode) process.exit(process.exitCode);
 console.log(`Yapılandırma politika kontrolü geçti: ${app.version} (${app.android.versionCode})`);
 NODE
 
+mapfile -t POLICY_URLS < <(node -e "const app=require('./app.json').expo; console.log(app.extra.privacyPolicyUrl); console.log(app.extra.accountDeletionUrl); console.log(app.extra.termsUrl)")
+for url in "${POLICY_URLS[@]}"; do
+  HTTP_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' --max-time 30 --retry 2 --retry-delay 2 -A 'DraBornGate-GooglePlay-Policy-Check/0.3.9' "$url")"
+  if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
+    echo "POLİTİKA HATASI: Yayın sayfası erişilebilir değil ($HTTP_CODE): $url" >&2
+    exit 1
+  fi
+  echo "Yayın sayfası erişilebilir ($HTTP_CODE): $url"
+done
+
 if [ -n "$APK_PATH" ]; then
   test -s "$APK_PATH"
   BUILD_TOOLS_VERSION="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -V | tail -n 1)"
