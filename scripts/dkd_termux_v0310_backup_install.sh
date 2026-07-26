@@ -41,6 +41,7 @@ git fetch origin --prune
 git checkout -B main origin/main
 git reset --hard origin/main
 git clean -fd
+rm -rf .expo
 npm install --no-audit --no-fund --package-lock=false
 npm run typecheck
 
@@ -63,3 +64,7 @@ echo "Lokal SHA:  $LOCAL_SHA"
 echo "GitHub SHA: $REMOTE_SHA"
 echo "Geri dönüş yedeği: origin/$BACKUP_BRANCH"
 echo "Lokal ve GitHub birebir eşit; çalışma ağacı temiz."
+echo
+echo "Expo Go testi için:"
+echo "cd \"$REPO_DIR\" && npm run start:termux"
+echo "Kurulu DraBornGate APK ikonunu değil, Expo Go içindeki projeyi aç."
