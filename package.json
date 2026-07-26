@@ -6,6 +6,7 @@
   "description": "DraBornGate kurye ve ziyaretçi geçişi, site finansı, profesyonel raporlama, paket ve abonelik platformu",
   "scripts": {
     "start": "expo start",
+    "start:termux": "EXPO_NO_DEV_TOOLS=1 expo start --clear --localhost",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
