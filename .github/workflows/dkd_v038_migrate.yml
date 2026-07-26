@@ -87,9 +87,24 @@ jobs:
         run: python scripts/dkd_apply_v038.py
 
       - name: Bağımlılık ve tip kontrolü
+        shell: bash
         run: |
+          set -euo pipefail
           npm install --no-audit --no-fund
-          npm run typecheck
+          set +e
+          npm run typecheck > dkd_typecheck_v038.log 2>&1
+          dkd_typecheck_status=$?
+          set -e
+          cat dkd_typecheck_v038.log
+          if [ "$dkd_typecheck_status" -ne 0 ]; then
+            git config user.name "DraBornGate Release Bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add -A
+            git commit -m "debug: v0.3.8 uygulanmış kaynak ve tip kontrolü [skip ci]"
+            git push --force origin HEAD:debug/v0.3.8-migrated
+            exit "$dkd_typecheck_status"
+          fi
+          rm -f dkd_typecheck_v038.log
           npx expo config --type public > /tmp/expo-config.json
 
       - name: v0.3.8 ana repoya yaz
@@ -119,4 +134,4 @@ jobs:
               -d '{"ref":"main"}'
           done
 
-# dkd-trigger-v038-6
+# dkd-trigger-v038-7
