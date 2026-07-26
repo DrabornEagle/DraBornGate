@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.8
+
+- DraBornGate marka ikonu ve Login öncesi BAŞLA ekranı eklendi.
+- Akıllı Geçiş, kod doğrulama, kayıt türleri, günlük rapor ve site haritası yenilendi.
+- Play Store sürüm kodu 2 oldu; release workflowları APK ve AAB olarak iki dosyaya temizlendi.
+
 ## 0.3.7
 
 - Kurye Geçiş Merkezi ekranındaki global bildirim zili kaldırıldı.

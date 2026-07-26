@@ -43,14 +43,14 @@ const statusMeta: Record<PassStatus, { label: string; color: string; icon: keyof
   approved: { label: 'İncelendi', color: colors.green, icon: 'shield-checkmark' },
   rejected: { label: 'Reddedildi', color: colors.red, icon: 'close-circle' },
   arrived: { label: 'Kapıda', color: colors.cyan, icon: 'navigate' },
-  completed: { label: 'Tamamlandı', color: colors.purple, icon: 'checkmark-done' },
+  completed: { label: 'Tamamlandı', color: colors.green, icon: 'checkmark-done' },
   cancelled: { label: 'İptal edildi', color: colors.red, icon: 'trash' },
   expired: { label: 'Süresi doldu', color: colors.textMuted, icon: 'hourglass' },
 };
 
 export function StatusPill({ status }: { status: PassStatus }) {
   const meta = statusMeta[status];
-  return <View style={[styles.status, { borderColor: `${meta.color}66`, backgroundColor: `${meta.color}14` }]}><PulseDot color={meta.color} size={7} /><Ionicons name={meta.icon} size={15} color={meta.color} /><Text style={[styles.statusText, { color: meta.color }]}>{meta.label}</Text></View>;
+  const completed = status === 'completed'; return <View style={[styles.status, { borderColor: completed ? 'rgba(67,231,162,.78)' : `${meta.color}66`, backgroundColor: completed ? 'rgba(5,24,34,.94)' : `${meta.color}14` }]}><PulseDot color={meta.color} size={7} /><Ionicons name={meta.icon} size={15} color={completed ? colors.white : meta.color} /><Text style={[styles.statusText, { color: completed ? colors.white : meta.color }]}>{meta.label}</Text></View>;
 }
 
 export function LiveBadge({ label = 'CANLI', compact = false }: { label?: string; compact?: boolean }) {

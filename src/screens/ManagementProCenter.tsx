@@ -47,6 +47,7 @@ export function ManagementProCenter() {
   const [report, setReport] = useState<Report>();
   const [entryReport, setEntryReport] = useState<EntryReport>();
   const [entryLimit, setEntryLimit] = useState(5);
+  const [dailyLimit, setDailyLimit] = useState(3);
   const [entrySearch, setEntrySearch] = useState('');
   const [selected, setSelected] = useState('');
   const [cycle, setCycle] = useState<BillingCycle>('monthly');
@@ -81,6 +82,7 @@ export function ManagementProCenter() {
       setReport(reportResult.data as Report);
       setEntryReport(entriesResult.data as EntryReport);
       setEntryLimit(5);
+      setDailyLimit(3);
       setSelected((current) => current && next.plans.some((plan) => plan.code === current) ? current : next.effective_plan?.code || next.plans?.[0]?.code || '');
       if (next.subscription?.billing_cycle) setCycle(next.subscription.billing_cycle);
     } catch (caught) { Alert.alert('Merkez yüklenemedi', caught instanceof Error ? caught.message : 'Tekrar dene.'); }
@@ -109,6 +111,8 @@ export function ManagementProCenter() {
   const normalizedEntrySearch = entrySearch.trim().toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ');
   const filteredEntries = normalizedEntrySearch ? entries.filter((item) => `${item.courier_name} ${item.courier_plate ?? ''}`.toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ').includes(normalizedEntrySearch)) : entries;
   const visibleEntries = filteredEntries.slice(0, entryLimit);
+  const dailyRows = report?.daily ?? [];
+  const visibleDailyRows = dailyRows.slice(0, dailyLimit);
   useEffect(() => { setEntryLimit(5); }, [entrySearch]);
   const busiestHours = (report?.hourly ?? []).filter((item) => item.total > 0).sort((a, b) => b.total - a.total).slice(0, 6);
 
@@ -131,7 +135,7 @@ export function ManagementProCenter() {
       {visibleEntries.length < filteredEntries.length ? <AnimatedPressable onPress={() => setEntryLimit((value) => value + 5)}><View style={s.more}><Ionicons name="chevron-down" size={20} color={colors.cyan} /><Text style={s.moreText}>DAHA FAZLA</Text><Text style={s.moreCount}>{filteredEntries.length - visibleEntries.length} kayıt kaldı</Text></View></AnimatedPressable> : null}
 
       <SectionTitle title="Gün gün hareket" />
-      <Panel style={s.listPanel} gradient>{(report.daily ?? []).map((item) => <ReportLine key={item.date} title={dateLabel(item.date)} value={`${item.courier} kurye • ${item.completed} tamamlandı • ${item.visitor} ziyaretçi`} tone={item.completed ? colors.green : colors.cyan} />)}</Panel>
+      <Panel style={s.listPanel} gradient>{visibleDailyRows.map((item) => <ReportLine key={item.date} title={dateLabel(item.date)} value={`${item.courier} kurye • ${item.completed} tamamlandı • ${item.visitor} ziyaretçi`} tone={item.completed ? colors.green : colors.cyan} />)}</Panel>{visibleDailyRows.length < dailyRows.length ? <AnimatedPressable onPress={() => setDailyLimit((value) => value + 5)}><View style={s.more}><Ionicons name="chevron-down" size={20} color={colors.cyan} /><Text style={s.moreText}>DAHA FAZLA</Text><Text style={s.moreCount}>5 kayıt daha göster</Text></View></AnimatedPressable> : null}
       <SectionTitle title="Yoğun saatler" />
       {busiestHours.length ? <Panel style={s.listPanel} gradient>{busiestHours.map((item) => <ReportLine key={item.hour} title={`${String(item.hour).padStart(2, '0')}:00 — ${String((item.hour + 1) % 24).padStart(2, '0')}:00`} value={`${item.total} geçiş`} tone={colors.purple} />)}</Panel> : <EmptyState icon="time-outline" title="Saatlik veri yok" description="Geçişler oluştuğunda yoğun saatler hesaplanır." />}
       <SectionTitle title="Kapı performansı" />
