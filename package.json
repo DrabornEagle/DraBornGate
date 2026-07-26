@@ -5,6 +5,7 @@
   "main": "index.ts",
   "description": "DraBornGate kurye ve ziyaretçi geçişi, site finansı, profesyonel raporlama, paket ve abonelik platformu",
   "scripts": {
+    "postinstall": "node scripts/dkd_apply_v039_source_patches.js",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
