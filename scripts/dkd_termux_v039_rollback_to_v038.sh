@@ -31,10 +31,18 @@ git fetch origin --prune
 git checkout -B rollback-v0.3.8 "origin/$BACKUP_BRANCH"
 git reset --hard "origin/$BACKUP_BRANCH"
 git clean -fd
-npm install --no-audit --no-fund
+npm install --no-audit --no-fund --package-lock=false
 npm run typecheck
+
+ROLLBACK_SHA="$(git rev-parse HEAD)"
+BACKUP_SHA="$(git rev-parse origin/$BACKUP_BRANCH)"
+WORKTREE_STATUS="$(git status --porcelain)"
+
+[ "$ROLLBACK_SHA" = "$BACKUP_SHA" ]
+[ -z "$WORKTREE_STATUS" ]
 
 echo
 echo "DraBornGate v0.3.8 yedeğine dönüldü."
 echo "Geri alma öncesi yedek: $ROLLBACK_BACKUP"
-echo "Aktif commit: $(git rev-parse HEAD)"
+echo "Aktif commit: $ROLLBACK_SHA"
+echo "Yedek dalı ile eşit ve çalışma ağacı temiz."
