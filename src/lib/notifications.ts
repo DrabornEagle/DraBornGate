@@ -5,10 +5,10 @@ import { APP_VERSION } from '../config/version';
 import { supabase } from './supabase';
 
 const IS_EXPO_GO = Constants.appOwnership === 'expo' || (Constants as { executionEnvironment?: string }).executionEnvironment === 'storeClient';
-const SOUND_STORAGE_KEY = 'dkd_gate_notification_sound_v1';
+const SOUND_STORAGE_KEY = 'dkd_gate_notification_sound_v2';
 
 type NotificationsModule = typeof import('expo-notifications');
-export type GateNotificationSoundKey = 'bell' | 'chime' | 'digital' | 'alert' | 'silent';
+export type GateNotificationSoundKey = 'system' | 'bell' | 'chime' | 'digital' | 'alert' | 'pulse' | 'signal' | 'silent';
 export type GateNotificationSoundOption = {
   key: GateNotificationSoundKey;
   title: string;
@@ -19,11 +19,14 @@ export type GateNotificationSoundOption = {
 };
 
 export const GATE_NOTIFICATION_SOUND_OPTIONS: GateNotificationSoundOption[] = [
-  { key: 'bell', title: 'Kapı Zili', description: 'Belirgin, çift tonlu klasik zil', sound: 'gate_bell.wav', channelId: 'draborngate-user-bell-v1', vibration: [0, 180, 90, 180] },
-  { key: 'chime', title: 'Yumuşak Melodi', description: 'Sakin ve modern üç notalı bildirim', sound: 'gate_chime.wav', channelId: 'draborngate-user-chime-v1', vibration: [0, 150, 80, 150] },
-  { key: 'digital', title: 'Dijital Geçiş', description: 'Kısa, teknolojik ve hızlı ton', sound: 'gate_digital.wav', channelId: 'draborngate-user-digital-v1', vibration: [0, 110, 60, 110] },
-  { key: 'alert', title: 'Güvenlik Uyarısı', description: 'Daha güçlü ve dikkat çekici ton', sound: 'gate_alert.wav', channelId: 'draborngate-user-alert-v1', vibration: [0, 320, 100, 320, 100, 320] },
-  { key: 'silent', title: 'Sessiz', description: 'Sadece görsel bildirim ve titreşim', sound: null, channelId: 'draborngate-user-silent-v1', vibration: [0, 160, 90, 160] },
+  { key: 'system', title: 'Telefonun Varsayılan Sesi', description: 'Android bildirim ayarlarında seçili olan sistem sesi', sound: 'default', channelId: 'draborngate-user-system-v2', vibration: [0, 180, 80, 180] },
+  { key: 'bell', title: 'Premium Kapı Zili', description: 'Uzun, belirgin ve yüksek üç aşamalı klasik zil', sound: 'gate_bell_v2.wav', channelId: 'draborngate-user-bell-v2', vibration: [0, 220, 90, 260, 90, 300] },
+  { key: 'chime', title: 'Kristal Melodi', description: 'Modern, temiz ve uzun yükselen melodi', sound: 'gate_chime_v2.wav', channelId: 'draborngate-user-chime-v2', vibration: [0, 170, 70, 190, 70, 230] },
+  { key: 'digital', title: 'Dijital Geçiş', description: 'Teknolojik, hızlı ve daha güçlü dijital ton', sound: 'gate_digital_v2.wav', channelId: 'draborngate-user-digital-v2', vibration: [0, 120, 55, 140, 55, 180] },
+  { key: 'alert', title: 'Güvenlik Uyarısı', description: 'En yüksek dikkat seviyesinde uzun güvenlik tonu', sound: 'gate_alert_v2.wav', channelId: 'draborngate-user-alert-v2', vibration: [0, 340, 100, 340, 100, 440] },
+  { key: 'pulse', title: 'Neon Nabız', description: 'Modern ve ritmik beş aşamalı bildirim melodisi', sound: 'gate_pulse_v2.wav', channelId: 'draborngate-user-pulse-v2', vibration: [0, 130, 60, 160, 60, 220] },
+  { key: 'signal', title: 'Akıllı Sinyal', description: 'Uzun, yükselen ve uzaktan kolay duyulan sinyal', sound: 'gate_signal_v2.wav', channelId: 'draborngate-user-signal-v2', vibration: [0, 190, 70, 220, 70, 300] },
+  { key: 'silent', title: 'Sessiz', description: 'Yalnızca görsel bildirim ve titreşim', sound: null, channelId: 'draborngate-user-silent-v2', vibration: [0, 160, 90, 160] },
 ];
 
 let prepared = false;
