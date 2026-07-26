@@ -1,6 +1,10 @@
 name: DraBornGate Release AAB
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/dkd_draborngate_release_aab.yml'
   workflow_dispatch:
 
 permissions:
@@ -114,24 +118,61 @@ jobs:
           chmod +x gradlew
           ./gradlew bundleRelease --no-daemon --stacktrace
 
-      - name: AAB adını ve imza raporunu hazırla
+      - name: AAB adını ve kalıcı imza raporunu hazırla
+        id: signature
         shell: bash
         run: |
           set -euo pipefail
-          cp android/app/build/outputs/bundle/release/app-release.aab "DraBornGate-v${APP_VERSION}-release.aab"
-          jarsigner -verify -verbose -certs "DraBornGate-v${APP_VERSION}-release.aab" | tee "dkd_aab_signature_v${APP_VERSION}.txt"
+          AAB="DraBornGate-v${APP_VERSION}-release.aab"
+          REPORT="dkd_aab_signature_v${APP_VERSION}.txt"
+          cp android/app/build/outputs/bundle/release/app-release.aab "$AAB"
+          jarsigner -verify -verbose -certs "$AAB" | tee "$REPORT"
+          keytool -printcert -jarfile "$AAB" > signing-work/aab-cert.txt
           keytool -list -v -keystore android/app/draborngate-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" > signing-work/keytool.txt
-          KEY_CERT="$(awk -F': ' '/SHA256:/{print $2; exit}' signing-work/keytool.txt | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          AAB_CERT="$(sed -n 's/^[[:space:]]*SHA256: //p' signing-work/aab-cert.txt | sed -n '1p' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          KEY_CERT="$(sed -n 's/^[[:space:]]*SHA256: //p' signing-work/keytool.txt | sed -n '1p' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          AAB_SHA256="$(sha256sum "$AAB" | awk '{print $1}')"
+          test -n "$AAB_CERT"
           test -n "$KEY_CERT"
-          echo "Kalıcı DraBornGate sertifikası: $KEY_CERT" | tee -a "dkd_aab_signature_v${APP_VERSION}.txt"
-          sha256sum "DraBornGate-v${APP_VERSION}-release.aab" | tee -a "dkd_aab_signature_v${APP_VERSION}.txt"
+          {
+            echo
+            echo "AAB sertifika SHA-256: $AAB_CERT"
+            echo "Kalıcı keystore sertifika SHA-256: $KEY_CERT"
+            echo "AAB dosya SHA-256: $AAB_SHA256"
+          } | tee -a "$REPORT"
+          MATCH=false
+          if [ "$AAB_CERT" = "$KEY_CERT" ]; then
+            MATCH=true
+            echo "Kalıcı DraBornGate imzası eşleşti: $KEY_CERT" | tee -a "$REPORT"
+          else
+            echo "İmza eşleşmesi başarısız: AAB=$AAB_CERT KEYSTORE=$KEY_CERT" | tee -a "$REPORT"
+          fi
+          echo "match=$MATCH" >> "$GITHUB_OUTPUT"
+
+      - name: AAB'yi özel Supabase kasasına yedeklemeyi dene
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
+          test -s "DraBornGate-v${APP_VERSION}-release.aab" || exit 0
+          curl --fail --show-error --max-time 180 -X PUT -H "$AUTH_HEADER" -H "Content-Type: application/octet-stream" --data-binary "@DraBornGate-v${APP_VERSION}-release.aab" "$DKD_RELEASE_VAULT_URL/release/aab?version=${APP_VERSION}"
 
       - name: DraBornGate Release AAB yükle
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: DraBornGate-Release-AAB-v${{ env.APP_VERSION }}
           path: |
             DraBornGate-v${{ env.APP_VERSION }}-release.aab
             dkd_aab_signature_v${{ env.APP_VERSION }}.txt
+            signing-work/aab-cert.txt
+            signing-work/keytool.txt
           if-no-files-found: error
           retention-days: 30
+
+      - name: Kalıcı imza eşleşmesini zorunlu tut
+        if: always()
+        shell: bash
+        run: |
+          test "${{ steps.signature.outputs.match }}" = "true"
