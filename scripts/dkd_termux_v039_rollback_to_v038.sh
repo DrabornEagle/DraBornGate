@@ -2,13 +2,15 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/DrabornEagle/DraBornGate.git"
-REPO_DIR="$HOME/DraBornGate"
+REPO_DIR="$HOME/projects/DraBornGate"
+REPO_PARENT="$(dirname "$REPO_DIR")"
+REPO_NAME="$(basename "$REPO_DIR")"
 DOWNLOAD_DIR="$HOME/storage/downloads"
 BACKUP_BRANCH="backup-v0.3.8-20260726"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 
 pkg install -y git nodejs-lts zip unzip
-mkdir -p "$DOWNLOAD_DIR"
+mkdir -p "$REPO_PARENT" "$DOWNLOAD_DIR"
 
 if [ ! -d "$REPO_DIR/.git" ]; then
   git clone "$REPO_URL" "$REPO_DIR"
@@ -17,13 +19,13 @@ fi
 cd "$REPO_DIR"
 CURRENT_VERSION="$(node -p 'try { require("./package.json").version } catch (_) { "bilinmiyor" }')"
 ROLLBACK_BACKUP="$DOWNLOAD_DIR/DraBornGate-v${CURRENT_VERSION}-before-rollback-${STAMP}.zip"
-cd "$HOME"
-zip -qr "$ROLLBACK_BACKUP" DraBornGate \
-  -x 'DraBornGate/node_modules/*' \
-     'DraBornGate/.expo/*' \
-     'DraBornGate/android/.gradle/*' \
-     'DraBornGate/android/app/build/*' \
-     'DraBornGate/.git/objects/*'
+cd "$REPO_PARENT"
+zip -qr "$ROLLBACK_BACKUP" "$REPO_NAME" \
+  -x "$REPO_NAME/node_modules/*" \
+     "$REPO_NAME/.expo/*" \
+     "$REPO_NAME/android/.gradle/*" \
+     "$REPO_NAME/android/app/build/*" \
+     "$REPO_NAME/.git/objects/*"
 
 cd "$REPO_DIR"
 git remote set-url origin "$REPO_URL"
