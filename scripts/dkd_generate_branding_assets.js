@@ -8,6 +8,7 @@ const SOURCE = path.join(BRANDING, 'draborngate-app-icon.png');
 const SAFE_ICON = path.join(BRANDING, 'draborngate-app-icon-safe.png');
 const FOREGROUND_ICON = path.join(BRANDING, 'draborngate-app-icon-foreground.png');
 const BLANK_SPLASH = path.join(BRANDING, 'draborngate-splash-blank.png');
+const TRANSPARENT_SPLASH = path.join(BRANDING, 'draborngate-splash-transparent.png');
 
 function createCanvas(width, height, rgba) {
   const png = new PNG({ width, height });
@@ -64,8 +65,8 @@ function ensureBrandingAssets() {
   drawScaled(source, foreground, 0.62);
   writePng(FOREGROUND_ICON, foreground);
 
-  const splash = createCanvas(16, 16, [2, 7, 13, 255]);
-  writePng(BLANK_SPLASH, splash);
+  writePng(BLANK_SPLASH, createCanvas(16, 16, [2, 7, 13, 255]));
+  writePng(TRANSPARENT_SPLASH, createCanvas(16, 16, [0, 0, 0, 0]));
 }
 
 if (require.main === module) ensureBrandingAssets();
