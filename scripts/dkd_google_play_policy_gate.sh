@@ -46,7 +46,9 @@ NODE
 
 if [ -n "$APK_PATH" ]; then
   test -s "$APK_PATH"
-  AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt -o -name aapt2 | sort -V | tail -n 1)"
+  BUILD_TOOLS_VERSION="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -V | tail -n 1)"
+  test -n "$BUILD_TOOLS_VERSION"
+  AAPT="$ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/aapt"
   test -x "$AAPT"
   BADGING="$($AAPT dump badging "$APK_PATH")"
   echo "$BADGING" | grep -F "package: name='$EXPECTED_PACKAGE'" >/dev/null
