@@ -2,7 +2,9 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/DrabornEagle/DraBornGate.git"
-REPO_DIR="$HOME/DraBornGate"
+REPO_DIR="$HOME/projects/DraBornGate"
+REPO_PARENT="$(dirname "$REPO_DIR")"
+REPO_NAME="$(basename "$REPO_DIR")"
 DOWNLOAD_DIR="$HOME/storage/downloads"
 BACKUP_BRANCH="backup-v0.3.9-20260726-2235"
 EXPECTED_VERSION="0.3.10"
@@ -10,6 +12,7 @@ STAMP="$(date +%Y%m%d-%H%M%S)"
 
 pkg update -y
 pkg install -y git nodejs-lts zip unzip
+mkdir -p "$REPO_PARENT"
 
 if [ ! -d "$DOWNLOAD_DIR" ]; then
   echo "Termux depolama iznini onayla."
@@ -22,13 +25,13 @@ if [ -d "$REPO_DIR/.git" ]; then
   cd "$REPO_DIR"
   OLD_VERSION="$(node -p 'try { require("./package.json").version } catch (_) { "bilinmiyor" }')"
   BACKUP_FILE="$DOWNLOAD_DIR/DraBornGate-v${OLD_VERSION}-before-v${EXPECTED_VERSION}-${STAMP}.zip"
-  cd "$HOME"
-  zip -qr "$BACKUP_FILE" DraBornGate \
-    -x 'DraBornGate/node_modules/*' \
-       'DraBornGate/.expo/*' \
-       'DraBornGate/android/.gradle/*' \
-       'DraBornGate/android/app/build/*' \
-       'DraBornGate/.git/objects/*'
+  cd "$REPO_PARENT"
+  zip -qr "$BACKUP_FILE" "$REPO_NAME" \
+    -x "$REPO_NAME/node_modules/*" \
+       "$REPO_NAME/.expo/*" \
+       "$REPO_NAME/android/.gradle/*" \
+       "$REPO_NAME/android/app/build/*" \
+       "$REPO_NAME/.git/objects/*"
   echo "Önceki lokal sürüm yedeklendi: $BACKUP_FILE"
 else
   rm -rf "$REPO_DIR"
