@@ -78,9 +78,21 @@ jobs:
           echo "DKD_RELEASE_OIDC_TOKEN=$OIDC_TOKEN" >> "$GITHUB_ENV"
 
       - name: Bağımlılıkları ve TypeScript'i doğrula
+        shell: bash
         run: |
+          set -uo pipefail
           npm install --no-audit --no-fund --package-lock=false
-          npm run typecheck
+          mkdir -p .dkd_release
+          set +e
+          npm run typecheck 2>&1 | tee .dkd_release/latest_typecheck.log
+          TYPECHECK_STATUS=${PIPESTATUS[0]}
+          set -e
+          git add .dkd_release/latest_typecheck.log
+          git commit -m "ci: TypeScript doğrulama çıktısını güncelle"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
+          test "$TYPECHECK_STATUS" -eq 0
           bash scripts/dkd_google_play_policy_gate.sh
 
       - name: Android release projesini üret
