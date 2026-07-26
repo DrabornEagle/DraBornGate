@@ -30,7 +30,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - name: Python 3.12 kur
         uses: actions/setup-python@v5
@@ -107,4 +106,4 @@ jobs:
               -d '{"ref":"main"}'
           done
 
-# dkd-trigger-v038
+# dkd-trigger-v038-2
