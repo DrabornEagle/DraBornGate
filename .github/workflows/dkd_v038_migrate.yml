@@ -86,6 +86,27 @@ jobs:
       - name: v0.3.8 değişikliklerini uygula
         run: python scripts/dkd_apply_v038.py
 
+      - name: TypeScript 6 uyumluluk düzeltmeleri
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          picker = Path('src/components/SiteLocationPicker.tsx')
+          picker_text = picker.read_text(encoding='utf-8')
+          old_picker = '...StyleSheet.absoluteFillObject'
+          if old_picker not in picker_text:
+              raise SystemExit('SiteLocationPicker absoluteFillObject kalıbı bulunamadı')
+          picker.write_text(picker_text.replace(old_picker, '...StyleSheet.absoluteFill', 1), encoding='utf-8')
+
+          courier = Path('src/screens/CourierHome.tsx')
+          courier_text = courier.read_text(encoding='utf-8')
+          old_courier = 'const promptedPass = useRef<string>();'
+          if old_courier not in courier_text:
+              raise SystemExit('CourierHome useRef kalıbı bulunamadı')
+          courier.write_text(courier_text.replace(old_courier, 'const promptedPass = useRef<string | undefined>(undefined);', 1), encoding='utf-8')
+          PY
+
       - name: Bağımlılık ve tip kontrolü
         id: dkd_validation
         shell: bash
@@ -171,4 +192,4 @@ jobs:
               -d '{"ref":"main"}'
           done
 
-# dkd-trigger-v038-9
+# dkd-trigger-v038-10
