@@ -1,0 +1,5 @@
+
+> draborngate@0.3.9 typecheck
+> tsc --noEmit
+
+src/components/SiteLocationPicker.tsx(238,28): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
