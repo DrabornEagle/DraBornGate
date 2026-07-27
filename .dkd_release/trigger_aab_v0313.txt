@@ -2,10 +2,10 @@ DraBornGate v0.3.13
 Android versionCode: 3
 Workflow: DraBornGate Release AAB
 TriggeredAt: 2026-07-27
-Attempt: 5
+Attempt: 6
 Includes: AD_ID permission, Google UMP consent, animated pass-rights card, animated support button, profile badge cleanup, API 36 policy audit
 Ad mode: Google safe test ads until production AdMob IDs are configured
-Supabase vault: working v4 structure plus AAB route in edge function v6
-Diagnostics: validation log enabled, vault download retries enabled
+Supabase vault: edge function v7 signed direct upload URL
+Upload mode: direct PUT to Supabase Storage, no large file through Edge Function gateway
 Install fix: obsolete v0.3.12 one-time patches removed from postinstall
 Backup branch: backup/draborngate-v0.3.12-before-v0.3.13
