@@ -1,4 +1,4 @@
-// DKD_V0314_PLAY_BILLING
+// DKD_V0315_PLAY_BILLING
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -67,7 +67,7 @@ export function GooglePlaySubscriptionButton({ plan, cycle, scope, siteId, onVer
 function NativePurchase({ plan, cycle, scope, siteId, onVerified }: { plan: GooglePlayPlan; cycle: BillingCycle; scope: 'site' | 'courier'; siteId?: string; onVerified?: () => void }) {
   const iap = require('expo-iap') as any;
   const basePlanId = cycle === 'weekly' ? plan.play_weekly_base_plan_id : cycle === 'monthly' ? plan.play_monthly_base_plan_id : plan.play_yearly_base_plan_id;
-  const { connected, products, fetchProducts, requestPurchase, finishTransaction, purchaseInProgress } = iap.useIAP({
+  const { connected, products, subscriptions, fetchProducts, requestPurchase, finishTransaction, purchaseInProgress } = iap.useIAP({
     onPurchaseSuccess: async (purchase: any) => {
       try {
         const purchaseToken = purchase.purchaseToken || purchase.purchaseTokenAndroid || purchase.transactionId;
@@ -107,7 +107,9 @@ function NativePurchase({ plan, cycle, scope, siteId, onVerified }: { plan: Goog
           ? dkdResult
           : Array.isArray(dkdResult?.products)
             ? dkdResult.products
-            : [];
+            : Array.isArray(dkdResult?.subscriptions)
+              ? dkdResult.subscriptions
+              : [];
         setDkdFetchedProducts(dkdResultProducts);
       } catch (error) {
         if (dkdActive) setDkdQueryError(dkdErrorMessage(error));
@@ -120,12 +122,17 @@ function NativePurchase({ plan, cycle, scope, siteId, onVerified }: { plan: Goog
 
   const dkdCatalog = useMemo(() => {
     const dkdById = new Map<string, DkdPlayProduct>();
-    for (const item of [...(Array.isArray(products) ? products : []), ...dkdFetchedProducts]) {
+    const dkdSources = [
+      ...(Array.isArray(products) ? products : []),
+      ...(Array.isArray(subscriptions) ? subscriptions : []),
+      ...dkdFetchedProducts,
+    ];
+    for (const item of dkdSources) {
       const id = dkdProductId(item);
       if (id) dkdById.set(id, item);
     }
     return [...dkdById.values()];
-  }, [products, dkdFetchedProducts]);
+  }, [products, subscriptions, dkdFetchedProducts]);
 
   const product = useMemo(
     () => dkdCatalog.find((item) => dkdProductId(item) === plan.play_product_id),
@@ -144,9 +151,10 @@ function NativePurchase({ plan, cycle, scope, siteId, onVerified }: { plan: Goog
     if (!product) {
       const dkdReturned = dkdCatalog.map(dkdProductId).filter(Boolean).join(', ') || 'ürün dönmedi';
       const dkdDetail = dkdQueryError ? `\nSorgu hatası: ${dkdQueryError}` : '';
+      const dkdSourceDetail = `\nKaynak sayıları: abonelik=${Array.isArray(subscriptions) ? subscriptions.length : 0}, ürün=${Array.isArray(products) ? products.length : 0}, doğrudan=${dkdFetchedProducts.length}`;
       return Alert.alert(
         'Google Play ürünü bulunamadı',
-        `İstenen ürün: ${plan.play_product_id}\nTemel plan: ${basePlanId}\nGoogle Play’den dönen: ${dkdReturned}${dkdDetail}\n\nKapalı test ülkesinin test hesabının Play ülkesiyle eşleştiğini, test davetinin kabul edildiğini ve aynı hesabın lisans test kullanıcısı olduğunu kontrol et.`,
+        `İstenen ürün: ${plan.play_product_id}\nTemel plan: ${basePlanId}\nGoogle Play’den dönen: ${dkdReturned}${dkdSourceDetail}${dkdDetail}\n\nKapalı test ülkesinin test hesabının Play ülkesiyle eşleştiğini, test davetinin kabul edildiğini ve uygulamanın aynı hesapla Play Store’dan yüklendiğini kontrol et.`,
         [{ text: 'KAPAT', style: 'cancel' }, { text: 'TEKRAR SORGULA', onPress: dkdRetry }],
       );
     }
