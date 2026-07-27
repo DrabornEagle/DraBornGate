@@ -1,7 +1,11 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
 
-DKD_REPO_DIR="${1:-$HOME/projects/DraBornGate}"
+DKD_DEFAULT_REPO_DIR="$HOME/Projects/DraBornGate"
+if [ ! -d "$DKD_DEFAULT_REPO_DIR/.git" ] && [ -d "$HOME/projects/DraBornGate/.git" ]; then
+  DKD_DEFAULT_REPO_DIR="$HOME/projects/DraBornGate"
+fi
+DKD_REPO_DIR="${1:-$DKD_DEFAULT_REPO_DIR}"
 DKD_DOWNLOAD_DIR="/sdcard/Download/DraBornGate_Yedekler"
 DKD_BACKUP_BRANCH="backup/draborngate-v0.3.13-before-v0.3.14"
 DKD_TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
@@ -35,4 +39,4 @@ test "$(node -p 'require("./package.json").version')" = "0.3.13"
 test "$(node -p 'require("./app.json").expo.android.versionCode')" = "3"
 DKD_ROLLBACK_SHA="$(git rev-parse HEAD)"
 
-printf '\nYerel proje v0.3.13 yedeğine döndü.\nSHA: %s\nGeri alma öncesi ZIP: %s\nGitHub main değiştirilmedi.\n' "$DKD_ROLLBACK_SHA" "$DKD_CURRENT_ZIP"
+printf '\nYerel proje v0.3.13 yedeğine döndü.\nSHA: %s\nGeri alma öncesi ZIP: %s\nProje yolu: %s\nGitHub main değiştirilmedi.\n' "$DKD_ROLLBACK_SHA" "$DKD_CURRENT_ZIP" "$DKD_REPO_DIR"
