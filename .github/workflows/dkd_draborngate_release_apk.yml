@@ -183,6 +183,15 @@ jobs:
             echo "APK dosya SHA-256: $APK_SHA256"
           } | tee -a "$REPORT"
 
+      - name: Supabase yüklemesi için OIDC kimliğini yenile
+        shell: bash
+        run: |
+          set -euo pipefail
+          FRESH_OIDC_TOKEN="$(curl -fsSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=draborngate-release" | jq -r '.value')"
+          test -n "$FRESH_OIDC_TOKEN" && test "$FRESH_OIDC_TOKEN" != "null"
+          echo "::add-mask::$FRESH_OIDC_TOKEN"
+          echo "DKD_RELEASE_OIDC_TOKEN=$FRESH_OIDC_TOKEN" >> "$GITHUB_ENV"
+
       - name: APK'yi Supabase özel release kasasına yükle
         shell: bash
         run: |
