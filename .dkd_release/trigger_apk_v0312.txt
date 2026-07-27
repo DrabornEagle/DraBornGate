@@ -2,3 +2,5 @@ DraBornGate v0.3.12
 Android versionCode: 2
 Workflow: DraBornGate Release APK
 TriggeredAt: 2026-07-27
+Attempt: 2
+Includes: rewarded ads, support center, privacy disclosure, Gradle diagnostics
