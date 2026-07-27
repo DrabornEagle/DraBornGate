@@ -158,9 +158,11 @@ jobs:
 
       - name: Release APK oluştur
         working-directory: android
+        shell: bash
         run: |
+          set -o pipefail
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee "../dkd_gradle_apk_v${APP_VERSION}.log"
 
       - name: APK'yi hazırla ve Google Play politikasını doğrula
         shell: bash
@@ -210,6 +212,7 @@ jobs:
           name: DraBornGate-Release-APK-v${{ env.APP_VERSION }}
           path: |
             DraBornGate-v${{ env.APP_VERSION }}-release.apk
+            dkd_gradle_apk_v${{ env.APP_VERSION }}.log
             dkd_apk_signature_v${{ env.APP_VERSION }}.txt
             dkd_google_play_policy_v${{ env.APP_VERSION }}.txt
             signing-work/apksigner.txt
