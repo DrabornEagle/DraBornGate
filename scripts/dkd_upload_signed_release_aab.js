@@ -3,10 +3,10 @@ const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
 async function dkdMain() {
-  const dkdAabPath = process.argv[2];
+  const dkdReleasePath = process.argv[2];
   const dkdSignedJsonPath = process.argv[3];
-  if (!dkdAabPath || !dkdSignedJsonPath) {
-    throw new Error('Kullanım: node scripts/dkd_upload_signed_release_aab.js <aab> <signed-json>');
+  if (!dkdReleasePath || !dkdSignedJsonPath) {
+    throw new Error('Kullanım: node scripts/dkd_upload_signed_release_aab.js <dosya> <signed-json>');
   }
 
   const dkdSigned = JSON.parse(fs.readFileSync(dkdSignedJsonPath, 'utf8'));
@@ -21,15 +21,16 @@ async function dkdMain() {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
 
-  const dkdBytes = fs.readFileSync(dkdAabPath);
-  if (dkdBytes.byteLength < 1024 * 1024) throw new Error('AAB dosyası beklenenden küçük.');
+  const dkdBytes = fs.readFileSync(dkdReleasePath);
+  if (dkdBytes.byteLength < 1) throw new Error('Yüklenecek release dosyası boş.');
+  const dkdContentType = process.env.DKD_RELEASE_CONTENT_TYPE
+    || (dkdReleasePath.endsWith('.json') ? 'application/json' : 'application/octet-stream');
 
   const { data: dkdData, error: dkdError } = await dkdSupabase.storage
     .from(dkdBucket)
     .uploadToSignedUrl(dkdObjectPath, dkdToken, dkdBytes, {
-      contentType: 'application/octet-stream',
+      contentType: dkdContentType,
       cacheControl: '3600',
-      upsert: true,
     });
 
   if (dkdError) throw dkdError;
@@ -38,7 +39,8 @@ async function dkdMain() {
     bucket: dkdBucket,
     path: dkdData?.path || dkdObjectPath,
     size: dkdBytes.byteLength,
-    file: path.basename(dkdAabPath),
+    file: path.basename(dkdReleasePath),
+    contentType: dkdContentType,
   }));
 }
 
