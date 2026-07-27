@@ -2,5 +2,5 @@ DraBornGate v0.3.12
 Android versionCode: 2
 Workflow: DraBornGate Release AAB
 TriggeredAt: 2026-07-27
-Attempt: 3
-Includes: Kotlin 2.3, AdMob App ID, rewarded ads, support center, privacy disclosure
+Attempt: 4
+Includes: Google Ads 16.3.3, Kotlin 2.1.20, AdMob App ID, rewarded ads, support center, privacy disclosure
