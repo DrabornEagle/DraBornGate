@@ -5,22 +5,29 @@ DKD_AAB_PATH="${1:?AAB dosya yolu gerekli}"
 DKD_APP_VERSION="${2:?Uygulama sürümü gerekli}"
 DKD_RELEASE_VAULT_URL="${3:?Release vault URL gerekli}"
 DKD_RELEASE_OIDC_TOKEN="${4:?OIDC token gerekli}"
+DKD_ANDROID_VERSION_CODE="$(node -p 'require("./app.json").expo.android.versionCode')"
+DKD_PACKAGE_NAME="$(node -p 'require("./app.json").expo.android.package')"
+DKD_CONFIG_VERSION="$(node -p 'require("./app.json").expo.version')"
 DKD_PART_SIZE_BYTES=4000000
 DKD_PARTS_DIR="aab-parts-v${DKD_APP_VERSION}"
 DKD_MANIFEST="DraBornGate-v${DKD_APP_VERSION}-release.aab.manifest.json"
 DKD_REPORT="dkd_supabase_aab_upload_v${DKD_APP_VERSION}.txt"
 DKD_AUTH_HEADER="Authorization: Bearer ${DKD_RELEASE_OIDC_TOKEN}"
 
+test "$DKD_CONFIG_VERSION" = "$DKD_APP_VERSION"
+test "$DKD_ANDROID_VERSION_CODE" -gt 0
+test -n "$DKD_PACKAGE_NAME"
+
 rm -rf "$DKD_PARTS_DIR"
 mkdir -p "$DKD_PARTS_DIR"
 test -s "$DKD_AAB_PATH"
 split -b "$DKD_PART_SIZE_BYTES" -d -a 3 "$DKD_AAB_PATH" "$DKD_PARTS_DIR/part-"
 
-node - "$DKD_AAB_PATH" "$DKD_PARTS_DIR" "$DKD_MANIFEST" "$DKD_APP_VERSION" "$DKD_PART_SIZE_BYTES" <<'NODE'
+node - "$DKD_AAB_PATH" "$DKD_PARTS_DIR" "$DKD_MANIFEST" "$DKD_APP_VERSION" "$DKD_ANDROID_VERSION_CODE" "$DKD_PACKAGE_NAME" "$DKD_PART_SIZE_BYTES" <<'NODE'
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const [aabPath, partsDir, manifestPath, version, partSize] = process.argv.slice(2);
+const [aabPath, partsDir, manifestPath, version, androidVersionCode, packageName, partSize] = process.argv.slice(2);
 const digest = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 const parts = fs.readdirSync(partsDir).sort().map((name) => {
   const file = path.join(partsDir, name);
@@ -34,8 +41,8 @@ const parts = fs.readdirSync(partsDir).sort().map((name) => {
 const manifest = {
   format: 'dkd-aab-parts-v2',
   version,
-  androidVersionCode: 4,
-  packageName: 'com.draborneagle.draborngate',
+  androidVersionCode: Number(androidVersionCode),
+  packageName,
   originalFile: `DraBornGate-v${version}-release.aab`,
   originalSize: fs.statSync(aabPath).size,
   originalSha256: digest(aabPath),
@@ -74,12 +81,14 @@ curl --fail --show-error --location --retry 5 --retry-all-errors --retry-delay 2
 DKD_EXPECTED_OBJECTS=$((DKD_UPLOADED + 1))
 test "$(jq '.objects | length' aab-chunks-status.json)" -eq "$DKD_EXPECTED_OBJECTS"
 test "$(jq '[.objects[] | select(.name == "manifest.json")] | length' aab-chunks-status.json)" -eq 1
+test "$(jq -r '.androidVersionCode' "$DKD_MANIFEST")" = "$DKD_ANDROID_VERSION_CODE"
+test "$(jq -r '.packageName' "$DKD_MANIFEST")" = "$DKD_PACKAGE_NAME"
 
 {
   echo "status=success"
   echo "version=$DKD_APP_VERSION"
-  echo "android_version_code=4"
-  echo "package=com.draborneagle.draborngate"
+  echo "android_version_code=$DKD_ANDROID_VERSION_CODE"
+  echo "package=$DKD_PACKAGE_NAME"
   echo "part_count=$DKD_UPLOADED"
   echo "storage_object_count=$DKD_EXPECTED_OBJECTS"
   echo "storage_folder=releases/v${DKD_APP_VERSION}/chunks"
