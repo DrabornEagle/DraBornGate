@@ -1,0 +1,5 @@
+DraBornGate Release AAB
+version=0.3.14
+android_version_code=4
+requested_at=2026-07-27T21:35:00+03:00
+reason=Google Play abonelik ve site yönetimi paket düzeltme yayını
