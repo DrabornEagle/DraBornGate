@@ -65,6 +65,9 @@ if (pkg.dependencies?.['expo-iap'] !== '4.7.0') fail('expo-iap 4.7.0 olarak sabi
 if (!(app.plugins || []).some((item) => pluginName(item) === 'expo-iap')) fail('expo-iap config plugin eksik.');
 if (!billing.includes('DKD_V0314_PLAY_BILLING')) fail('v0.3.14 Google Play Billing bileşeni uygulanmamış.');
 if (!billing.includes('dkdBasePlanId(item) === basePlanId')) fail('Satın alma öncesinde kesin temel plan eşleşmesi zorunlu değil.');
+if (!billing.includes('item?.subscriptionOffers')) fail('expo-iap normalize subscriptionOffers biçimi desteklenmiyor.');
+if (!billing.includes('subscriptionOfferDetailsAndroid')) fail('Android eski abonelik teklif biçimi desteklenmiyor.');
+if (!billing.includes('offerTokenAndroid')) fail('Normalize Android teklif belirteci desteklenmiyor.');
 if (billing.includes('|| offers[0]')) fail('Yanlış temel plana düşebilen ilk teklif fallback’i kaldırılmamış.');
 if (!billing.includes("supabase.functions.invoke('dkd-gate-play-verify'")) fail('Sunucu tarafı Google Play doğrulaması eksik.');
 for (const source of [courier, site]) {
