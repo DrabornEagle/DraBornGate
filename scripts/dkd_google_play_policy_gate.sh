@@ -3,13 +3,15 @@ set -euo pipefail
 
 APK_PATH="${1:-}"
 EXPECTED_PACKAGE="com.draborneagle.draborngate"
-EXPECTED_VERSION="0.3.11"
-EXPECTED_VERSION_CODE=1
+EXPECTED_VERSION="0.3.12"
+EXPECTED_VERSION_CODE=2
 MIN_TARGET_SDK=36
 
 node <<'NODE'
 const fs = require('fs');
-const app = JSON.parse(fs.readFileSync('app.json', 'utf8')).expo;
+const root = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+const app = root.expo;
+const ads = root['react-native-google-mobile-ads'] || {};
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const version = fs.readFileSync('src/config/version.ts', 'utf8');
 const requiredUrls = ['privacyPolicyUrl', 'accountDeletionUrl', 'termsUrl'];
@@ -22,10 +24,11 @@ function fail(message) {
 }
 
 if (app.android?.package !== 'com.draborneagle.draborngate') fail('Android paket adı değişmiş.');
-if (app.version !== '0.3.11' || pkg.version !== '0.3.11') fail('Uygulama sürümü 0.3.11 değil.');
-if (!version.includes("APP_VERSION = '0.3.11'")) fail('Merkezi APP_VERSION 0.3.11 değil.');
-if (app.android?.versionCode !== 1) fail('Android versionCode 1 değil.');
+if (app.version !== '0.3.12' || pkg.version !== '0.3.12') fail('Uygulama sürümü 0.3.12 değil.');
+if (!version.includes("APP_VERSION = '0.3.12'")) fail('Merkezi APP_VERSION 0.3.12 değil.');
+if (app.android?.versionCode !== 2) fail('Android versionCode 2 değil.');
 if (app.android?.allowBackup !== false) fail('android.allowBackup false olmalı.');
+if (app.androidNavigationBar?.backgroundColor !== '#00000000') fail('Android navigasyon arka planı şeffaf değil.');
 for (const key of requiredUrls) {
   const value = app.extra?.[key];
   if (typeof value !== 'string' || !value.startsWith('https://')) fail(`${key} geçerli HTTPS adresi değil.`);
@@ -44,17 +47,20 @@ for (const permission of [
   if (!blocked.has(permission)) fail(`${permission} blockedPermissions listesinde değil.`);
 }
 if (!pkg.dependencies?.['expo-iap']) fail('Dijital paket ve abonelikler için Google Play Billing entegrasyonu eksik.');
+if (!pkg.dependencies?.['react-native-google-mobile-ads']) fail('Ödüllü video için Google Mobile Ads paketi eksik.');
 if (!pkg.dependencies?.['expo-splash-screen']) fail('Native splash ekranı paketi eksik.');
 if (!app.plugins?.some((item) => item === 'expo-iap')) fail('expo-iap config plugin eksik.');
+if (!app.plugins?.some((item) => item === 'react-native-google-mobile-ads')) fail('Google Mobile Ads config plugin eksik.');
 if (!app.plugins?.some((item) => Array.isArray(item) && item[0] === 'expo-splash-screen')) fail('expo-splash-screen config plugin eksik.');
 if (!app.plugins?.includes('./scripts/dkd_with_android_security.js')) fail('Android güvenlik config plugin eksik.');
+if (typeof ads.android_app_id !== 'string' || !ads.android_app_id.startsWith('ca-app-pub-')) fail('AdMob Android uygulama kimliği eksik.');
 if (process.exitCode) process.exit(process.exitCode);
 console.log(`Yapılandırma politika kontrolü geçti: ${app.version} (${app.android.versionCode})`);
 NODE
 
 mapfile -t POLICY_URLS < <(node -e "const app=require('./app.json').expo; console.log(app.extra.privacyPolicyUrl); console.log(app.extra.accountDeletionUrl); console.log(app.extra.termsUrl)")
 for url in "${POLICY_URLS[@]}"; do
-  HTTP_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' --max-time 30 --retry 2 --retry-delay 2 -A 'DraBornGate-GooglePlay-Policy-Check/0.3.11' "$url")"
+  HTTP_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' --max-time 30 --retry 2 --retry-delay 2 -A 'DraBornGate-GooglePlay-Policy-Check/0.3.12' "$url")"
   if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
     echo "POLİTİKA HATASI: Yayın sayfası erişilebilir değil ($HTTP_CODE): $url" >&2
     exit 1
