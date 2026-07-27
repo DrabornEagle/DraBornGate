@@ -1,10 +1,11 @@
 {
   "name": "draborngate",
-  "version": "0.3.11",
+  "version": "0.3.12",
   "private": true,
   "main": "index.ts",
   "description": "DraBornGate kurye ve ziyaretçi geçişi, site finansı, profesyonel raporlama, paket ve abonelik platformu",
   "scripts": {
+    "postinstall": "node scripts/dkd_apply_v0312_source_update.js",
     "start": "expo start",
     "start:termux": "EXPO_NO_DEV_TOOLS=1 expo start --clear --localhost",
     "android": "expo start --android",
@@ -32,6 +33,7 @@
     "pngjs": "^7.0.0",
     "react": "19.2.3",
     "react-native": "0.86.0",
+    "react-native-google-mobile-ads": "^16.4.0",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-svg": "15.15.4",
     "react-native-url-polyfill": "^2.0.0",
