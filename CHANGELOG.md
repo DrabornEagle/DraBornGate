@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.15
+
+- Google Play abonelik sorgusundaki gerçek kök neden düzeltildi: `expo-iap` tarafından abonelikler için doldurulan `subscriptions` durumu artık ürün kataloğuna katılıyor.
+- `products`, `subscriptions` ve doğrudan `fetchProducts` sonuçları ürün kimliğine göre tek katalogda birleştiriliyor.
+- Kurye ve Site Yönetimi paketlerinin tamamı aynı düzeltilmiş Google Play Billing bileşenini kullanıyor.
+- Ürün sorgusu hata ekranına kaynak bazında tanılama sayıları eklendi.
+- Kesin ürün, temel plan ve teklif belirteci eşleşmesi ile Supabase sunucu doğrulaması korundu.
+- Android `versionCode` 5 oldu; v0.3.14 kaynakları güvenlik dalında yedeklendi.
+- v0.3.15 AAB/APK workflowları, Termux yedek-eşitleme ve v0.3.14 geri alma betikleri güncellendi.
+
+## 0.3.14
+
+- Google Play abonelik sorgusu ürün ve temel plan düzeyinde kesin eşleşmeye geçirildi.
+- `subscriptionOffers`, `subscriptionOfferDetailsAndroid` ve `subscriptionOfferDetails` teklif biçimleri desteklendi.
+- Yanlış temel plana düşebilen ilk teklif fallback’i kaldırıldı.
+- Kurye ve Site Yönetimi paketleri ortak doğrulanmış billing bileşenine geçirildi.
+- Android `versionCode` 4 oldu ve gerçek imzalı AAB üretildi.
+
 ## 0.3.8
 
 - DraBornGate marka ikonu ve Login öncesi BAŞLA ekranı eklendi.
@@ -30,7 +48,6 @@
 - React Native SafeAreaView kullanım uyarısı giderildi.
 - Yalnızca DraBornGate Release APK ve DraBornGate Release AAB iş akışları bırakıldı.
 - Uygulama ve demo sürümü 0.3.7 oldu; Android versionCode 1 olarak korundu.
-
 
 ## 0.2.0
 
