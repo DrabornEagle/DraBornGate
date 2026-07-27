@@ -73,7 +73,7 @@ jobs:
         shell: bash
         run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false @supabase/supabase-js@2.57.4
 
-      - name: AAB'yi 5 MB parçalarla Supabase Storage'a yedekle
+      - name: AAB'yi 4.000.000 baytlık parçalarla Supabase Storage'a yedekle
         shell: bash
         run: |
           set -euo pipefail
@@ -90,7 +90,7 @@ jobs:
           echo "size=$AAB_SIZE"
           echo "sha256=$AAB_SHA256"
 
-          split -b 5M -d -a 3 "$AAB_PATH" release-chunks/part-
+          split -b 4000000 -d -a 3 "$AAB_PATH" release-chunks/part-
           PARTS_JSON='[]'
           PART_COUNT=0
           AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
@@ -114,7 +114,7 @@ jobs:
             --arg file "DraBornGate-v${APP_VERSION}-release.aab" \
             --arg sha256 "$AAB_SHA256" \
             --argjson size "$AAB_SIZE" \
-            --argjson chunkSize 5242880 \
+            --argjson chunkSize 4000000 \
             --argjson partCount "$PART_COUNT" \
             --argjson parts "$PARTS_JSON" \
             '{format:"dkd-aab-chunks-v1",version:$version,file:$file,size:$size,sha256:$sha256,chunkSize:$chunkSize,partCount:$partCount,parts:$parts,reconstruct:"cat part-* > DraBornGate-v0.3.13-release.aab"}' \
