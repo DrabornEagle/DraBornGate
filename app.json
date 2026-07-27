@@ -2,7 +2,7 @@
   "expo": {
     "name": "DraBornGate",
     "slug": "draborngate",
-    "version": "0.3.12",
+    "version": "0.3.13",
     "orientation": "portrait",
     "scheme": "draborngate",
     "userInterfaceStyle": "dark",
@@ -23,7 +23,7 @@
     },
     "android": {
       "package": "com.draborneagle.draborngate",
-      "versionCode": 2,
+      "versionCode": 3,
       "allowBackup": false,
       "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "resize",
@@ -32,7 +32,8 @@
         "CAMERA",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "com.google.android.gms.permission.AD_ID"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#02070D",
@@ -58,7 +59,8 @@
             "compileSdkVersion": 36,
             "targetSdkVersion": 36,
             "buildToolsVersion": "36.0.0",
-            "kotlinVersion": "2.1.20"
+            "kotlinVersion": "2.1.20",
+            "extraProguardRules": "-keep class com.google.android.gms.internal.consent_sdk.** { *; }"
           }
         }
       ],
@@ -124,9 +126,9 @@
       "./scripts/dkd_with_android_security.js"
     ],
     "extra": {
-      "appVersion": "0.3.12",
-      "demoDataVersion": "0.3.12",
-      "androidVersionCode": 2,
+      "appVersion": "0.3.13",
+      "demoDataVersion": "0.3.13",
+      "androidVersionCode": 3,
       "privacyPolicyUrl": "https://www.draborneagle.com/DraBornGate/privacy/",
       "accountDeletionUrl": "https://www.draborneagle.com/DraBornGate/account-deletion/",
       "termsUrl": "https://www.draborneagle.com/DraBornGate/terms/",
@@ -139,6 +141,6 @@
     "delay_app_measurement_init": true,
     "optimize_initialization": true,
     "optimize_ad_loading": true,
-    "user_tracking_usage_description": "DraBornGate yalnızca izin verdiğinizde daha uygun reklamlar göstermek için cihaz verisini kullanabilir."
+    "user_tracking_usage_description": "DraBornGate reklam kimliğini yalnızca Google UMP gizlilik tercihinize uygun ödüllü reklam göstermek için kullanır."
   }
 }
