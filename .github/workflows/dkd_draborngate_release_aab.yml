@@ -46,7 +46,7 @@ jobs:
           git config user.name "DraBornGate Release Bot"
           git config user.email "actions@users.noreply.github.com"
           git add .dkd_release/latest_aab_run.txt
-          git commit -m "ci: v0.3.13 Supabase AAB backup run $GITHUB_RUN_ID kaydını güncelle"
+          git commit -m "ci: v0.3.13 Supabase parçalı AAB run $GITHUB_RUN_ID kaydını güncelle"
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
@@ -73,69 +73,75 @@ jobs:
         shell: bash
         run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false @supabase/supabase-js@2.57.4
 
-      - name: AAB'yi 5 MB parçalara ayır ve Supabase Storage'a yükle
+      - name: AAB'yi 5 MB parçalarla Supabase Storage'a yedekle
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p .dkd_release aab-parts
+          mkdir -p .dkd_release release-chunks signed-uploads
           REPORT=".dkd_release/dkd_supabase_aab_upload_latest.txt"
+          : > "$REPORT"
+          exec > >(tee -a "$REPORT") 2>&1
+
           AAB_PATH="$(find release-artifact -type f -name 'DraBornGate-v0.3.13-release.aab' -print -quit)"
           test -n "$AAB_PATH" && test -s "$AAB_PATH"
-          split -b 5M -d -a 3 "$AAB_PATH" aab-parts/part-
+          AAB_SIZE="$(stat -c '%s' "$AAB_PATH")"
+          AAB_SHA256="$(sha256sum "$AAB_PATH" | awk '{print $1}')"
+          echo "AAB=$AAB_PATH"
+          echo "size=$AAB_SIZE"
+          echo "sha256=$AAB_SHA256"
+
+          split -b 5M -d -a 3 "$AAB_PATH" release-chunks/part-
+          PARTS_JSON='[]'
+          PART_COUNT=0
           AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
 
-          for PART_PATH in aab-parts/part-*; do
-            PART_NAME="$(basename "$PART_PATH")"
-            curl --fail --show-error --location --retry 5 --retry-all-errors --retry-delay 2 --max-time 90 \
+          for DKD_CHUNK in release-chunks/part-*; do
+            DKD_PART="$(basename "$DKD_CHUNK")"
+            DKD_PART_SIZE="$(stat -c '%s' "$DKD_CHUNK")"
+            DKD_PART_SHA="$(sha256sum "$DKD_CHUNK" | awk '{print $1}')"
+            DKD_SIGNED_JSON="signed-uploads/${DKD_PART}.json"
+            curl --fail-with-body --show-error --location --retry 5 --retry-all-errors --retry-delay 2 --max-time 90 \
               -H "$AUTH_HEADER" \
-              "$DKD_RELEASE_VAULT_URL/release/aab-part-upload-url?version=${APP_VERSION}&part=${PART_NAME}" \
-              -o "signed-${PART_NAME}.json"
-            node scripts/dkd_upload_signed_release_aab.js "$PART_PATH" "signed-${PART_NAME}.json"
+              "$DKD_RELEASE_VAULT_URL/release/aab-part-upload-url?version=${APP_VERSION}&part=${DKD_PART}" \
+              -o "$DKD_SIGNED_JSON"
+            node scripts/dkd_upload_signed_release_file.js "$DKD_CHUNK" "$DKD_SIGNED_JSON" application/octet-stream
+            PARTS_JSON="$(jq --arg name "$DKD_PART" --argjson size "$DKD_PART_SIZE" --arg sha256 "$DKD_PART_SHA" '. + [{name:$name,size:$size,sha256:$sha256}]' <<< "$PARTS_JSON")"
+            PART_COUNT=$((PART_COUNT + 1))
           done
 
-          MANIFEST="DraBornGate-v${APP_VERSION}-release.aab.manifest.json"
-          node - "$AAB_PATH" aab-parts "$MANIFEST" "$APP_VERSION" <<'NODE'
-          const fs = require('fs');
-          const path = require('path');
-          const crypto = require('crypto');
-          const [aabPath, partsDir, manifestPath, version] = process.argv.slice(2);
-          const digest = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
-          const parts = fs.readdirSync(partsDir).sort().map((name) => {
-            const file = path.join(partsDir, name);
-            return { name, size: fs.statSync(file).size, sha256: digest(file) };
-          });
-          const manifest = {
-            format: 'dkd-aab-parts-v1',
-            version,
-            androidVersionCode: 3,
-            originalFile: `DraBornGate-v${version}-release.aab`,
-            originalSize: fs.statSync(aabPath).size,
-            originalSha256: digest(aabPath),
-            partSizeBytes: 5242880,
-            partCount: parts.length,
-            parts,
-            restore: 'Parçaları ad sırasıyla birleştir ve originalSha256 değerini doğrula.'
-          };
-          fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-          NODE
+          jq -n \
+            --arg version "$APP_VERSION" \
+            --arg file "DraBornGate-v${APP_VERSION}-release.aab" \
+            --arg sha256 "$AAB_SHA256" \
+            --argjson size "$AAB_SIZE" \
+            --argjson chunkSize 5242880 \
+            --argjson partCount "$PART_COUNT" \
+            --argjson parts "$PARTS_JSON" \
+            '{format:"dkd-aab-chunks-v1",version:$version,file:$file,size:$size,sha256:$sha256,chunkSize:$chunkSize,partCount:$partCount,parts:$parts,reconstruct:"cat part-* > DraBornGate-v0.3.13-release.aab"}' \
+            > release-chunks/manifest.json
 
-          curl --fail --show-error --location --retry 5 --retry-all-errors --retry-delay 2 --max-time 90 \
-            -X PUT -H "$AUTH_HEADER" -H "Content-Type: application/json" \
-            --data-binary "@$MANIFEST" \
-            "$DKD_RELEASE_VAULT_URL/release/aab-manifest?version=${APP_VERSION}" \
-            -o manifest-upload-response.json
+          curl --fail-with-body --show-error --location --retry 5 --retry-all-errors --retry-delay 2 --max-time 90 \
+            -H "$AUTH_HEADER" \
+            "$DKD_RELEASE_VAULT_URL/release/aab-manifest-upload-url?version=${APP_VERSION}" \
+            -o signed-uploads/manifest.json
+          node scripts/dkd_upload_signed_release_file.js release-chunks/manifest.json signed-uploads/manifest.json application/json
 
-          {
-            echo "status=success"
-            echo "run_id=$GITHUB_RUN_ID"
-            jq -r '"version=" + .version, "original_file=" + .originalFile, "original_size=" + (.originalSize|tostring), "original_sha256=" + .originalSha256, "part_count=" + (.partCount|tostring)' "$MANIFEST"
-            cat manifest-upload-response.json
-          } | tee "$REPORT"
+          curl --fail-with-body --show-error --location --retry 3 --retry-all-errors --retry-delay 2 --max-time 90 \
+            -H "$AUTH_HEADER" \
+            "$DKD_RELEASE_VAULT_URL/release/aab-chunks?version=${APP_VERSION}" \
+            -o release-chunks/remote-list.json
+          REMOTE_COUNT="$(jq '[.objects[] | select(.name | startswith("DraBornGate-v0.3.13-release.aab.part-"))] | length' release-chunks/remote-list.json)"
+          test "$REMOTE_COUNT" -eq "$PART_COUNT"
+          jq -e '.objects[] | select(.name == "manifest.json")' release-chunks/remote-list.json >/dev/null
+
+          echo "part_count=$PART_COUNT"
+          echo "remote_part_count=$REMOTE_COUNT"
+          echo "supabase_backup=success"
 
           git config user.name "DraBornGate Release Bot"
           git config user.email "actions@users.noreply.github.com"
           git add "$REPORT"
-          git commit -m "ci: v0.3.13 Supabase AAB parça yedeğini doğrula $GITHUB_RUN_ID"
+          git commit -m "ci: v0.3.13 Supabase parçalı AAB yedeğini doğrula $GITHUB_RUN_ID"
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
@@ -145,6 +151,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: DraBornGate-Supabase-AAB-Upload-v0.3.13
-          path: .dkd_release/dkd_supabase_aab_upload_latest.txt
-          if-no-files-found: error
+          path: |
+            .dkd_release/dkd_supabase_aab_upload_latest.txt
+            release-chunks/manifest.json
+            release-chunks/remote-list.json
+          if-no-files-found: warn
           retention-days: 30
