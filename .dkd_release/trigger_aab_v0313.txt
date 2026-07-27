@@ -2,11 +2,11 @@ DraBornGate v0.3.13
 Android versionCode: 3
 Workflow: DraBornGate Release AAB
 TriggeredAt: 2026-07-27
-Attempt: 14
+Attempt: 15
 Mode: Supabase AAB manifest finalize
 Source run: 30279086956
-Existing chunks: 13
-Manifest: SHA-256 verified reconstruction metadata
+Existing chunks: 17 x 4.000.000 byte standard
+Manifest: original SHA-256 + 17 part hashes
 Edge function: dkd-gate-release-vault v9
 Run record: enabled
 Backup branch: backup/draborngate-v0.3.12-before-v0.3.13
