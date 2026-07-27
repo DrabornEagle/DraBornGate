@@ -1,6 +1,6 @@
 DraBornGate Release AAB
 version=0.3.14
 android_version_code=4
-requested_at=2026-07-27T22:08:00+03:00
-attempt=3
-reason=Supabase yükleme öncesi OIDC kimliğini yenileyerek tam yayın
+requested_at=2026-07-27T19:35:07Z
+attempt=4
+reason=expo-iap subscriptionOffers uyumluluk düzeltmesi ve Supabase abonelik katalog sağlamlaştırması
