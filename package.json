@@ -1,11 +1,11 @@
 {
   "name": "draborngate",
-  "version": "0.3.13",
+  "version": "0.3.14",
   "private": true,
   "main": "index.ts",
   "description": "DraBornGate kurye ve ziyaretçi geçişi, site finansı, profesyonel raporlama, paket ve abonelik platformu",
   "scripts": {
-    "postinstall": "node scripts/dkd_run_v0313_update.js",
+    "postinstall": "node scripts/dkd_verify_v0314.js",
     "start": "expo start",
     "start:termux": "EXPO_NO_DEV_TOOLS=1 expo start --clear --localhost",
     "android": "expo start --android",
@@ -24,7 +24,7 @@
     "expo-build-properties": "~57.0.6",
     "expo-constants": "~57.0.5",
     "expo-haptics": "~57.0.1",
-    "expo-iap": "^4.7.0",
+    "expo-iap": "4.7.0",
     "expo-image-picker": "~57.0.6",
     "expo-linear-gradient": "~57.0.1",
     "expo-location": "~57.0.6",
