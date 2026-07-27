@@ -1,3 +1,4 @@
+// DKD_V0312_MODERN_NOTIFICATION_PERMISSION
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
@@ -80,6 +81,17 @@ async function ensureSoundChannel(option: GateNotificationSoundOption) {
   });
 }
 
+export async function getGateNotificationPermissionState() {
+  const Notifications = await getNotificationsModule();
+  if (!Notifications) return { granted: false, canAskAgain: false, status: 'unavailable' };
+  const dkdPermission = await Notifications.getPermissionsAsync();
+  return { granted: dkdPermission.granted, canAskAgain: dkdPermission.canAskAgain !== false, status: String(dkdPermission.status || 'undetermined') };
+}
+
+export async function requestGateNotificationPermission() {
+  return prepareGateNotifications(true);
+}
+
 export async function getGateNotificationSound(): Promise<GateNotificationSoundKey> {
   const saved = await AsyncStorage.getItem(SOUND_STORAGE_KEY);
   return optionByKey(saved).key;
@@ -127,14 +139,14 @@ export async function dispatchPendingGateNotifications() {
   }
 }
 
-export async function prepareGateNotifications() {
+export async function prepareGateNotifications(dkdRequestPermission = false) {
   if (prepared) return true;
   try {
     const Notifications = await getNotificationsModule();
     if (!Notifications) return false;
 
     const current = await Notifications.getPermissionsAsync();
-    const permission = current.granted ? current : await Notifications.requestPermissionsAsync();
+    const permission = current.granted ? current : dkdRequestPermission ? await Notifications.requestPermissionsAsync() : current;
     if (!permission.granted) return false;
 
     const selected = optionByKey(await AsyncStorage.getItem(SOUND_STORAGE_KEY));

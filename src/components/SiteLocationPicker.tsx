@@ -1,3 +1,4 @@
+// DKD_V0312_MODERN_LOCATION_PERMISSION
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -6,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { colors, radius } from '../theme';
 import { AnimatedPressable } from './Motion';
+import { DkdPermissionModal } from './DkdPermissionModal';
 
 export type GateMapPoint = { latitude: number; longitude: number };
 const DEFAULT_POINT: GateMapPoint = { latitude: 39.9334, longitude: 32.8597 };
@@ -45,6 +47,9 @@ export function SiteLocationPicker({ value, address, city, onChange }: { value?:
   const [mapError, setMapError] = useState('');
   const [mapKey, setMapKey] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const [dkdLocationPermissionOpen, setDkdLocationPermissionOpen] = useState(false);
+  const [dkdLocationCanAskAgain, setDkdLocationCanAskAgain] = useState(true);
+  const [dkdLocationWorking, setDkdLocationWorking] = useState(false);
   const point = value ?? DEFAULT_POINT;
   const html = useMemo(() => mapHtml(point, Boolean(value)), [mapKey]);
 
@@ -118,29 +123,47 @@ export function SiteLocationPicker({ value, address, city, onChange }: { value?:
     }
   };
 
+  const dkdReadCurrentLocation = async () => {
+    const dkdServicesEnabled = await Location.hasServicesEnabledAsync();
+    if (!dkdServicesEnabled) throw new Error('Telefonun konum hizmetini açıp yeniden dene.');
+    const dkdCurrent = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    setPoint({ latitude: dkdCurrent.coords.latitude, longitude: dkdCurrent.coords.longitude });
+  };
+
   const useMyLocation = async () => {
-    setSearching(true);
+    const dkdPermission = await Location.getForegroundPermissionsAsync();
+    if (dkdPermission.granted) {
+      setSearching(true);
+      try { await dkdReadCurrentLocation(); }
+      catch (dkdError) { Alert.alert('Konum alınamadı', dkdError instanceof Error ? dkdError.message : 'Tekrar dene.'); }
+      finally { setSearching(false); }
+      return;
+    }
+    setDkdLocationCanAskAgain(dkdPermission.canAskAgain !== false);
+    setDkdLocationPermissionOpen(true);
+  };
+
+  const dkdGrantLocationPermission = async () => {
+    setDkdLocationWorking(true);
     try {
-      const permission = await Location.requestForegroundPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(
-          'Konum izni gerekli',
-          'Konumumu Kullan özelliği için DraBornGate konum iznini yalnızca uygulama açıkken kullanır.',
-          [
-            { text: 'Vazgeç', style: 'cancel' },
-            { text: 'Ayarları Aç', onPress: () => void Linking.openSettings() },
-          ],
-        );
+      if (!dkdLocationCanAskAgain) {
+        await Linking.openSettings();
+        setDkdLocationPermissionOpen(false);
         return;
       }
-      const servicesEnabled = await Location.hasServicesEnabledAsync();
-      if (!servicesEnabled) throw new Error('Telefonun konum hizmetini açıp yeniden dene.');
-      const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setPoint({ latitude: current.coords.latitude, longitude: current.coords.longitude });
-    } catch (error) {
-      Alert.alert('Konum alınamadı', error instanceof Error ? error.message : 'Tekrar dene.');
+      const dkdPermission = await Location.requestForegroundPermissionsAsync();
+      if (!dkdPermission.granted) {
+        setDkdLocationCanAskAgain(dkdPermission.canAskAgain !== false);
+        return;
+      }
+      setDkdLocationPermissionOpen(false);
+      setSearching(true);
+      try { await dkdReadCurrentLocation(); }
+      finally { setSearching(false); }
+    } catch (dkdError) {
+      Alert.alert('Konum alınamadı', dkdError instanceof Error ? dkdError.message : 'Tekrar dene.');
     } finally {
-      setSearching(false);
+      setDkdLocationWorking(false);
     }
   };
 
@@ -219,6 +242,7 @@ export function SiteLocationPicker({ value, address, city, onChange }: { value?:
           </View>
         </SafeAreaView>
       </Modal>
+      <DkdPermissionModal visible={dkdLocationPermissionOpen} icon="location" eyebrow="KONUM İZNİ" title="Konumu güvenli şekilde kullan" description="DraBornGate konumunu yalnızca sen Konumumu Kullan düğmesine bastığında ve uygulama açıkken tek sefer kontrol eder." points={['Arka planda konum takibi yapılmaz', 'Konum yalnızca doğru site noktasını seçmek için kullanılır', 'İzni telefon ayarlarından istediğin zaman kapatabilirsin']} primaryLabel={dkdLocationCanAskAgain ? 'KONUMA İZİN VER' : 'AYARLARI AÇ'} onPrimary={dkdGrantLocationPermission} onClose={() => setDkdLocationPermissionOpen(false)} working={dkdLocationWorking} />
     </View>
   );
 }

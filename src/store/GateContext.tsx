@@ -1,3 +1,4 @@
+// DKD_V0312_COMPLETE_OPERATION_NOTIFICATIONS
 // DKD_V0312_GATE_CONTEXT
 import type { Session, User } from '@supabase/supabase-js';
 import React, { PropsWithChildren, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
@@ -132,6 +133,10 @@ const dkdOperationMessages: Record<string, { title: string; body: string }> = {
   dkd_gate_set_finance_visibility: { title: 'Finans görünürlüğü güncellendi', body: 'Site sakini finans görünümü değiştirildi.' },
   dkd_gate_load_demo_data: { title: 'Örnek veriler hazır', body: 'DraBornGate örnek verileri yüklendi.' },
   dkd_gate_delete_demo_data: { title: 'Örnek veriler silindi', body: 'Sana ait örnek kayıtlar kaldırıldı.' },
+  dkd_gate_create_courier_pass_v2: { title: 'Geçiş talebi gönderildi', body: 'Kurye geçiş talebin güvenliğe iletildi.' },
+  dkd_gate_update_courier_pass_status_v2: { title: 'Geçiş durumu güncellendi', body: 'Kurye geçiş kaydındaki son işlem tamamlandı.' },
+  dkd_gate_retry_courier_pass: { title: 'Geçiş talebi yeniden gönderildi', body: 'Talebin yeniden değerlendirilmek üzere güvenliğe iletildi.' },
+  dkd_gate_decide_visitor_pass: { title: 'Misafir geçişi güncellendi', body: 'Misafir kodu için seçtiğin işlem kaydedildi.' },
 };
 
 function relativeTime(value: string) {

@@ -1,14 +1,17 @@
+// DKD_V0312_PERMISSION_POPUPS
 // DKD_V0312_APP
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Linking, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AppTab, BottomDock } from './src/components/BottomDock';
 import { DkdNotificationBell } from './src/components/DkdNotificationCenter';
+import { DkdPermissionModal } from './src/components/DkdPermissionModal';
 import { AppBackground } from './src/components/UI';
 import { APP_VERSION } from './src/config/version';
 import { useGateRoles } from './src/hooks/useGateRoles';
+import { getGateNotificationPermissionState, requestGateNotificationPermission } from './src/lib/notifications';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { CourierCenterV032 } from './src/screens/CourierCenterV032';
 import { CourierHome } from './src/screens/CourierHome';
@@ -39,10 +42,23 @@ function AppContent() {
   const [courierCenterInitialTab, setCourierCenterInitialTab] = useState<'passes' | 'packages'>('passes');
   const [roleInitialized, setRoleInitialized] = useState(false);
   const [introPassed, setIntroPassed] = useState(false);
+  const [dkdNotificationPermissionOpen, setDkdNotificationPermissionOpen] = useState(false);
+  const [dkdNotificationPermissionLocked, setDkdNotificationPermissionLocked] = useState(false);
+  const [dkdNotificationPermissionWorking, setDkdNotificationPermissionWorking] = useState(false);
 
   useEffect(() => { if (!session || !profile || rolesLoading || roleInitialized) return; const preferred = roles.includes(profile.preferredRole) ? profile.preferredRole : roles[0] ?? 'courier'; setRole(preferred); setRoleInitialized(true); }, [profile, roleInitialized, roles, rolesLoading, session]);
   useEffect(() => { if (role && roles.length && !roles.includes(role)) { setRole(roles[0] ?? null); setTab('home'); } }, [role, roles]);
-  useEffect(() => { if (!session) { setRole(null); setRoleInitialized(false); setTab('home'); setShowCreatePass(false); } }, [session]);
+  useEffect(() => { if (!session) { setRole(null); setRoleInitialized(false); setTab('home'); setShowCreatePass(false); setDkdNotificationPermissionOpen(false); } }, [session]);
+  useEffect(() => {
+    if (!session || !introPassed) return;
+    let dkdActive = true;
+    void getGateNotificationPermissionState().then((dkdPermission) => {
+      if (!dkdActive || dkdPermission.granted || dkdPermission.status === 'unavailable') return;
+      setDkdNotificationPermissionLocked(!dkdPermission.canAskAgain);
+      setDkdNotificationPermissionOpen(true);
+    });
+    return () => { dkdActive = false; };
+  }, [introPassed, session?.user.id]);
   useEffect(() => { if (!session) return; void refresh(); }, [role, session, showCreatePass, tab]);
   useEffect(() => {
     if (!session) return;
@@ -54,6 +70,21 @@ function AppContent() {
   const changeRole = async (selected: UserRole) => { await selectRole(selected); setRole(selected); setRoleInitialized(true); setTab('home'); setShowCreatePass(false); await refresh(); };
   const openCourierPackages = () => { setCourierCenterInitialTab('packages'); setShowCreatePass(false); setTab('passes'); };
   const openCourierPasses = () => { setCourierCenterInitialTab('passes'); setShowCreatePass(false); setTab('passes'); };
+  const dkdEnableNotifications = async () => {
+    setDkdNotificationPermissionWorking(true);
+    try {
+      if (dkdNotificationPermissionLocked) {
+        await Linking.openSettings();
+        setDkdNotificationPermissionOpen(false);
+        return;
+      }
+      const dkdGranted = await requestGateNotificationPermission();
+      if (dkdGranted) setDkdNotificationPermissionOpen(false);
+      else setDkdNotificationPermissionLocked(true);
+    } finally {
+      setDkdNotificationPermissionWorking(false);
+    }
+  };
   if (!introPassed) return <LaunchScreen onStart={() => setIntroPassed(true)} />;
   if (!initialized || (session && (!profile || rolesLoading) && refreshing)) return <AppBackground><View style={styles.loading}><ActivityIndicator size="large" color={colors.cyan} /><Text style={styles.loadingTitle}>DraBornGate v{APP_VERSION}</Text><Text style={styles.loadingText}>Yetkili rollerin, site kayıtların ve geçiş merkezi hazırlanıyor</Text></View></AppBackground>;
   if (!session) return <AuthScreen />;
@@ -69,7 +100,7 @@ function AppContent() {
     return <ManagementAccessGate />;
   };
   const hideNotificationBell = showCreatePass || (role === 'courier' && tab === 'passes');
-  return <AppBackground><SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}><View style={styles.screen}>{error ? <View style={styles.error}><Text style={styles.errorText}>{error}</Text></View> : null}{render()}{!hideNotificationBell ? <DkdNotificationBell /> : null}</View>{!showCreatePass ? <BottomDock role={role} current={tab} onChange={setTab} /> : null}</SafeAreaView></AppBackground>;
+  return <><AppBackground><SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}><View style={styles.screen}>{error ? <View style={styles.error}><Text style={styles.errorText}>{error}</Text></View> : null}{render()}{!hideNotificationBell ? <DkdNotificationBell /> : null}</View>{!showCreatePass ? <BottomDock role={role} current={tab} onChange={setTab} /> : null}</SafeAreaView></AppBackground><DkdPermissionModal visible={dkdNotificationPermissionOpen} icon="notifications" eyebrow="BİLDİRİM İZNİ" title="Önemli işlemleri kaçırma" description="Geçiş, paket, destek ve güvenlik hareketlerini cihazında anında gösterebilmemiz için bildirim izni gerekir." points={['Geçiş talebi ve durum değişiklikleri', 'Paket, destek ve hesap işlemleri', 'Seçtiğin DraBornGate zil sesi']} primaryLabel={dkdNotificationPermissionLocked ? 'AYARLARI AÇ' : 'BİLDİRİMLERE İZİN VER'} onPrimary={dkdEnableNotifications} onClose={() => setDkdNotificationPermissionOpen(false)} working={dkdNotificationPermissionWorking} /></>;
 }
 
 export default function App() {
