@@ -2,8 +2,9 @@ DraBornGate v0.3.13
 Android versionCode: 3
 Workflow: DraBornGate Release AAB
 TriggeredAt: 2026-07-27
-Attempt: 8
+Attempt: 9
 Mode: Supabase Storage upload-only from signed GitHub artifact
 Source run: 30279086956
 Upload API: createSignedUploadUrl + uploadToSignedUrl
+Run record: enabled
 Backup branch: backup/draborngate-v0.3.12-before-v0.3.13
