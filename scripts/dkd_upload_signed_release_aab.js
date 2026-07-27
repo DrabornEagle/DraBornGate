@@ -29,6 +29,7 @@ async function dkdMain() {
     .uploadToSignedUrl(dkdObjectPath, dkdToken, dkdBytes, {
       contentType: 'application/octet-stream',
       cacheControl: '3600',
+      upsert: true,
     });
 
   if (dkdError) throw dkdError;
