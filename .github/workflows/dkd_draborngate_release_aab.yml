@@ -81,7 +81,7 @@ jobs:
           REPORT=".dkd_release/dkd_supabase_aab_upload_latest.txt"
           AAB_PATH="$(find release-artifact -type f -name 'DraBornGate-v0.3.13-release.aab' -print -quit)"
           test -n "$AAB_PATH" && test -s "$AAB_PATH"
-          split -b 5M -d -a 3 "$AAB_PATH" aab-parts/part-
+          split -b 4000000 -d -a 3 "$AAB_PATH" aab-parts/part-
           MANIFEST="DraBornGate-v${APP_VERSION}-release.aab.manifest.json"
 
           node - "$AAB_PATH" aab-parts "$MANIFEST" "$APP_VERSION" <<'NODE'
@@ -105,7 +105,7 @@ jobs:
             originalFile: `DraBornGate-v${version}-release.aab`,
             originalSize: fs.statSync(aabPath).size,
             originalSha256: digest(aabPath),
-            partSizeBytes: 5242880,
+            partSizeBytes: 4000000,
             partCount: parts.length,
             storageFolder: `releases/v${version}/chunks`,
             parts,
@@ -125,7 +125,7 @@ jobs:
             -H "$AUTH_HEADER" \
             "$DKD_RELEASE_VAULT_URL/release/aab-chunks?version=${APP_VERSION}" \
             -o aab-chunks-status.json
-          test "$(jq '.objects | length' aab-chunks-status.json)" -eq 14
+          test "$(jq '.objects | length' aab-chunks-status.json)" -eq 18
           test "$(jq '[.objects[] | select(.name == "manifest.json")] | length' aab-chunks-status.json)" -eq 1
 
           {
