@@ -1,7 +1,7 @@
-run_id=30281011949
+run_id=30281344738
 run_attempt=1
-source_sha=b5caaad4d67ad19dd9d0951e7681e8c0e70a1b4b
+source_sha=e68a9fc3dd48982b882d8c4c9cbd705ec52bdfc1
 workflow=DraBornGate Release AAB
-mode=supabase-upload-only
+mode=supabase-chunked-backup
 version=0.3.13
 android_version_code=3
