@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - .dkd_release/trigger_aab_v0311.txt
+      - .dkd_release/trigger_aab_v0312.txt
 
 permissions:
   contents: write
@@ -19,11 +19,13 @@ concurrency:
 jobs:
   release-aab:
     runs-on: ubuntu-latest
-    timeout-minutes: 80
+    timeout-minutes: 85
     env:
       CI: "1"
       DKD_RELEASE_VAULT_URL: https://guuwomvszlwhkmstewfl.supabase.co/functions/v1/dkd-gate-release-vault
       GOOGLE_MAPS_ANDROID_API_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_API_KEY }}
+      ADMOB_ANDROID_APP_ID: ${{ secrets.ADMOB_ANDROID_APP_ID }}
+      EXPO_PUBLIC_ADMOB_REWARDED_AD_UNIT_ID: ${{ secrets.ADMOB_REWARDED_AD_UNIT_ID }}
 
     steps:
       - name: Kaynak kodu al
@@ -47,7 +49,7 @@ jobs:
           git config user.name "DraBornGate Release Bot"
           git config user.email "actions@users.noreply.github.com"
           git add .dkd_release/latest_aab_run.txt .dkd_release/workflow_inventory.txt
-          git commit -m "ci: v0.3.11 AAB run $GITHUB_RUN_ID kaydını güncelle"
+          git commit -m "ci: v0.3.12 AAB run $GITHUB_RUN_ID kaydını güncelle"
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
@@ -69,8 +71,8 @@ jobs:
           set -euo pipefail
           APP_VERSION="$(node -p 'require("./package.json").version')"
           echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
-          test "$APP_VERSION" = "0.3.11"
-          test "$(node -p 'require("./app.json").expo.android.versionCode')" = "1"
+          test "$APP_VERSION" = "0.3.12"
+          test "$(node -p 'require("./app.json").expo.android.versionCode')" = "2"
 
       - name: GitHub OIDC release kimliğini al
         shell: bash
