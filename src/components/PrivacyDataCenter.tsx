@@ -31,6 +31,8 @@ export function PrivacyDataCenter() {
     <Info icon="person" title="Hesap ve profil" text="Ad soyad, e-posta, telefon, profil fotoğrafı, rol ve kurye bilgileri." />
     <Info icon="location" title="Konum ve site verileri" text="OpenStreetMap üzerinde site pini seçimi ve Akıllı Geçiş doğrulaması sırasında yalnızca uygulama açıkken konum." />
     <Info icon="receipt" title="Abonelik verileri" text="Kart bilgileri DraBornGate tarafından alınmaz. Dijital paketler yalnızca Google Play üzerinden işlenir; uygulamada banka transferi veya harici ödeme bağlantısı bulunmaz." />
+    <Info icon="play-circle" title="İsteğe bağlı ödüllü video" text="Video reklam yalnızca Geçiş Hakkı Kazan düğmesine açıkça bastığında gösterilir. Video tamamlanmadan ödül verilmez. DraBornGate v0.3.12 kişiselleştirilmemiş reklam isteği kullanır." />
+    <Info icon="headset" title="Destek talepleri" text="Destek formundaki ad, e-posta, plaka, sorun türü ve açıklama yalnızca talebi çözmek ve sana geri dönüş yapmak için saklanır." />
     <LinkButton icon="document-text" title="Gizlilik Politikası" onPress={() => void open(`${WEB_ROOT}/privacy/`)} />
     <LinkButton icon="reader" title="Kullanım Koşulları" onPress={() => void open(`${WEB_ROOT}/terms/`)} />
     <LinkButton icon="server" title="Veri Güvenliği Özeti" onPress={() => void open(`${WEB_ROOT}/data-safety/`)} />
