@@ -64,14 +64,14 @@ for (const permission of [
 if (pkg.dependencies?.['expo-iap'] !== '4.7.0') fail('expo-iap 4.7.0 olarak sabitlenmeli.');
 if (!(app.plugins || []).some((item) => pluginName(item) === 'expo-iap')) fail('expo-iap config plugin eksik.');
 if (!billing.includes('DKD_V0314_PLAY_BILLING')) fail('v0.3.14 Google Play Billing bileşeni uygulanmamış.');
-if (!billing.includes("dkdBasePlanId(item) === basePlanId")) fail('Satın alma öncesinde kesin temel plan eşleşmesi zorunlu değil.');
+if (!billing.includes('dkdBasePlanId(item) === basePlanId')) fail('Satın alma öncesinde kesin temel plan eşleşmesi zorunlu değil.');
 if (billing.includes('|| offers[0]')) fail('Yanlış temel plana düşebilen ilk teklif fallback’i kaldırılmamış.');
 if (!billing.includes("supabase.functions.invoke('dkd-gate-play-verify'")) fail('Sunucu tarafı Google Play doğrulaması eksik.');
-for (const id of ['draborngate.courier.plus', 'draborngate.courier.pro']) if (!courier.includes(id)) fail(`Kurye ürünü kaynakta yok: ${id}`);
-for (const id of ['draborngate.site.professional', 'draborngate.site.corporate']) if (!site.includes(id)) fail(`Site yönetimi ürünü kaynakta yok: ${id}`);
-for (const id of ['weekly-auto', 'monthly-auto', 'yearly-auto']) {
-  if (!courier.includes(id)) fail(`Kurye temel planı kaynakta yok: ${id}`);
-  if (!site.includes(id)) fail(`Site yönetimi temel planı kaynakta yok: ${id}`);
+for (const source of [courier, site]) {
+  if (!source.includes('GooglePlaySubscriptionButton')) fail('Abonelik ekranlarından biri ortak güvenli Google Play bileşenini kullanmıyor.');
+  for (const field of ['play_product_id', 'play_weekly_base_plan_id', 'play_monthly_base_plan_id', 'play_yearly_base_plan_id']) {
+    if (!source.includes(field)) fail(`Abonelik plan alanı kaynakta yok: ${field}`);
+  }
 }
 
 if (pkg.dependencies?.['react-native-google-mobile-ads'] !== '16.3.3') fail('Google Mobile Ads 16.3.3 sürümü kullanılmalı.');
