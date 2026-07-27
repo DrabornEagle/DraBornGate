@@ -51,7 +51,26 @@
     },
     "plugins": [
       "expo-iap",
-      "react-native-google-mobile-ads",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0",
+            "kotlinVersion": "2.3.0"
+          }
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "delayAppMeasurementInit": true,
+          "optimizeInitialization": true,
+          "optimizeAdLoading": true
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -118,6 +137,8 @@
   "react-native-google-mobile-ads": {
     "android_app_id": "ca-app-pub-3940256099942544~3347511713",
     "delay_app_measurement_init": true,
+    "optimize_initialization": true,
+    "optimize_ad_loading": true,
     "user_tracking_usage_description": "DraBornGate yalnızca izin verdiğinizde daha uygun reklamlar göstermek için cihaz verisini kullanabilir."
   }
 }
