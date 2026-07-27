@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { dkdGatherConsentForAds } from './dkdAdConsent';
 
 declare const require: (name: string) => any;
 
@@ -8,6 +9,7 @@ export async function dkdShowRewardedPassAd(): Promise<DkdRewardResult> {
   const dkdIsExpoGo = Constants.appOwnership === 'expo' || Constants.executionEnvironment === 'storeClient';
   if (dkdIsExpoGo) throw new Error('Ödüllü video yalnızca DraBornGate APK/AAB sürümünde çalışır.');
 
+  await dkdGatherConsentForAds();
   const dkdAds = require('react-native-google-mobile-ads') as any;
   const dkdMobileAds = dkdAds.default;
   const dkdAdUnitId = process.env.EXPO_PUBLIC_ADMOB_REWARDED_AD_UNIT_ID || dkdAds.TestIds.REWARDED;
