@@ -1,11 +1,11 @@
 {
   "name": "draborngate",
-  "version": "0.3.14",
+  "version": "0.3.15",
   "private": true,
   "main": "index.ts",
   "description": "DraBornGate kurye ve ziyaretçi geçişi, site finansı, profesyonel raporlama, paket ve abonelik platformu",
   "scripts": {
-    "postinstall": "node scripts/dkd_verify_v0314.js",
+    "postinstall": "node scripts/dkd_verify_v0315.js",
     "start": "expo start",
     "start:termux": "EXPO_NO_DEV_TOOLS=1 expo start --clear --localhost",
     "android": "expo start --android",
