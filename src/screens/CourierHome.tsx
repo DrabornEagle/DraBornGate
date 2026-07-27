@@ -1,3 +1,4 @@
+// DKD_V0312_COURIER_HOME
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
@@ -9,6 +10,7 @@ import { PassCard } from '../components/PassCard';
 import { RacingMotorcycle } from '../components/RacingMotorcycle';
 import { EmptyState, LiveBadge, MetricCard, Panel, SectionTitle } from '../components/UI';
 import { distanceMeters } from '../lib/airpass';
+import { useCourierPassRights } from '../hooks/useCourierPassRights';
 import { useGate } from '../store/GateContext';
 import { colors, gradients, radius, spacing } from '../theme';
 
@@ -36,6 +38,7 @@ export function CourierHome({ onCreatePass, onOpenPasses, onOpenSettings }: Cour
     updatePassStatus,
   } = useGate();
 
+  const { usage: dkdPassUsage } = useCourierPassRights();
   const own = passes.filter((pass) => pass.courierUserId === user?.id);
   const active = own.find((pass) => ['waiting', 'approved', 'arrived'].includes(pass.status));
   const completed = own.filter((pass) => pass.status === 'completed').length;
@@ -155,8 +158,8 @@ export function CourierHome({ onCreatePass, onOpenPasses, onOpenSettings }: Cour
               </FloatingView>
               <View style={s.heroCopy}>
                 <Text style={s.heroKicker}>Kurye Geçişi + Tek Kullanımlık Kod</Text>
-                <Text style={s.heroTitle}>Kod talep anında hazır.</Text>
-                <Text style={s.heroText}>Sipariş görselini okut, geçiş talebini gönder; kapıya gelince hazır kodunu güvenliğe söyle.</Text>
+                <Text style={s.heroTitle}>{dkdPassUsage?.unlimited ? 'Sınırsız Geçiş Hakkı' : `Toplam ${dkdPassUsage?.remaining ?? 0} Geçiş Hakkın Kaldı`}</Text>
+                <Text style={s.heroText}>{dkdPassUsage?.unlimited ? 'Profesyonel paketinle geçiş talebi sınırı bulunmuyor.' : `${dkdPassUsage?.plan_remaining ?? 0} paket hakkı ve ${dkdPassUsage?.bonus ?? 0} video ödülü kullanılabilir.`}</Text>
               </View>
             </View>
             <AnimatedPressable onPress={canCreate ? onCreatePass : onOpenSettings}>

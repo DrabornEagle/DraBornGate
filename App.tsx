@@ -1,3 +1,4 @@
+// DKD_V0312_APP
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -35,6 +36,7 @@ function AppContent() {
   const [role, setRole] = useState<UserRole | null>(null);
   const [tab, setTab] = useState<AppTab>('home');
   const [showCreatePass, setShowCreatePass] = useState(false);
+  const [courierCenterInitialTab, setCourierCenterInitialTab] = useState<'passes' | 'packages'>('passes');
   const [roleInitialized, setRoleInitialized] = useState(false);
   const [introPassed, setIntroPassed] = useState(false);
 
@@ -50,16 +52,18 @@ function AppContent() {
   }, [refresh, session]);
 
   const changeRole = async (selected: UserRole) => { await selectRole(selected); setRole(selected); setRoleInitialized(true); setTab('home'); setShowCreatePass(false); await refresh(); };
+  const openCourierPackages = () => { setCourierCenterInitialTab('packages'); setShowCreatePass(false); setTab('passes'); };
+  const openCourierPasses = () => { setCourierCenterInitialTab('passes'); setShowCreatePass(false); setTab('passes'); };
   if (!introPassed) return <LaunchScreen onStart={() => setIntroPassed(true)} />;
   if (!initialized || (session && (!profile || rolesLoading) && refreshing)) return <AppBackground><View style={styles.loading}><ActivityIndicator size="large" color={colors.cyan} /><Text style={styles.loadingTitle}>DraBornGate v{APP_VERSION}</Text><Text style={styles.loadingText}>Yetkili rollerin, site kayıtların ve geçiş merkezi hazırlanıyor</Text></View></AppBackground>;
   if (!session) return <AuthScreen />;
   if (!role) return <WelcomeScreen roles={roles} onSelectRole={(selected) => void changeRole(selected)} />;
   const render = () => {
-    if (showCreatePass && role === 'courier') return <CreatePassScreen onBack={() => setShowCreatePass(false)} onCreated={() => { setShowCreatePass(false); setTab('passes'); void refresh(); }} />;
-    if (tab === 'passes') { if (role === 'management') return <ManagementProCenter />; if (role === 'courier') return <CourierCenterV032 />; return <PassesScreen role={role} />; }
+    if (showCreatePass && role === 'courier') return <CreatePassScreen onBack={() => setShowCreatePass(false)} onOpenPackages={openCourierPackages} onCreated={() => { setShowCreatePass(false); setCourierCenterInitialTab('passes'); setTab('passes'); void refresh(); }} />;
+    if (tab === 'passes') { if (role === 'management') return <ManagementProCenter />; if (role === 'courier') return <CourierCenterV032 initialTab={courierCenterInitialTab} />; return <PassesScreen role={role} />; }
     if (tab === 'history') return <HistoryScreen role={role} />;
     if (tab === 'profile') return <ProfileScreen role={role} onSelectRole={(selected) => void changeRole(selected)} />;
-    if (role === 'courier') return <CourierHome onCreatePass={() => setShowCreatePass(true)} onOpenPasses={() => setTab('passes')} onOpenSettings={() => setTab('profile')} />;
+    if (role === 'courier') return <CourierHome onCreatePass={() => setShowCreatePass(true)} onOpenPasses={openCourierPasses} onOpenSettings={() => setTab('profile')} />;
     if (role === 'security') return <SiteRoleAccessGate role="security"><SecurityHome /></SiteRoleAccessGate>;
     if (role === 'resident') return <SiteRoleAccessGate role="resident"><ResidentHome onOpenProfile={() => setTab('profile')} /></SiteRoleAccessGate>;
     return <ManagementAccessGate />;

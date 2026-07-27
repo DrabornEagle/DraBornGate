@@ -1,15 +1,20 @@
+// DKD_V0312_CREATE_PASS
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Animated, Image, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { AnimatedPressable, FadeInView } from '../components/Motion';
 import { Panel } from '../components/UI';
+import { DkdPassRightsRewardModal } from '../components/DkdPassRightsRewardModal';
+import { useCourierPassRights } from '../hooks/useCourierPassRights';
 import { selectAndReadDeliveryImage } from '../lib/gateMedia';
 import { useGate } from '../store/GateContext';
 import { colors, gradients, radius, spacing } from '../theme';
 
-export function CreatePassScreen({ onBack, onCreated }: { onBack: () => void; onCreated: () => void }) {
+export function CreatePassScreen({ onBack, onCreated, onOpenPackages }: { onBack: () => void; onCreated: () => void; onOpenPackages: () => void }) {
   const { user, sites, gates, rules, createPass, acceptRule, loading } = useGate();
+  const { usage: dkdPassUsage, loading: dkdRightsLoading, refresh: dkdRefreshRights } = useCourierPassRights();
+  const [dkdRightsModal, setDkdRightsModal] = useState(false);
   const [siteSearch, setSiteSearch] = useState('');
   const [siteId, setSiteId] = useState(sites[0]?.id ?? '');
   const site = sites.find((item) => item.id === siteId);
@@ -113,6 +118,8 @@ export function CreatePassScreen({ onBack, onCreated }: { onBack: () => void; on
       Alert.alert('Eksik bilgiler var', `Talebi göndermek için şunları tamamla:\n\n• ${missingFields.join('\n• ')}`);
       return;
     }
+    if (dkdRightsLoading) { Alert.alert('Geçiş hakları kontrol ediliyor', 'Bir saniye sonra tekrar dene.'); return; }
+    if (!dkdPassUsage?.unlimited && Number(dkdPassUsage?.remaining ?? 0) <= 0) { setDkdRightsModal(true); return; }
     try {
       const passId = await createPass({
         siteId,
@@ -135,11 +142,14 @@ export function CreatePassScreen({ onBack, onCreated }: { onBack: () => void; on
       await Promise.all(criticalRules.map((rule) => acceptRule(rule.id, 'courier', passId)));
       onCreated();
     } catch (error) {
-      Alert.alert('Talep gönderilemedi', error instanceof Error ? error.message : 'Tekrar dene.');
+      const dkdMessage = error instanceof Error ? error.message : 'Tekrar dene.';
+      if (dkdMessage.includes('DKD_GATE_NO_PASS_RIGHTS')) { setDkdRightsModal(true); return; }
+      Alert.alert('Talep gönderilemedi', dkdMessage);
     }
   };
 
   return (
+    <>
     <ScrollView
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
@@ -154,6 +164,8 @@ export function CreatePassScreen({ onBack, onCreated }: { onBack: () => void; on
           <Text style={s.sub}>Görseli okut, bilgileri düzelt ve güvenliğe gönder</Text>
         </View>
       </FadeInView>
+
+      <FadeInView delay={35}><View style={s.dkdRightsCard}><View style={s.dkdRightsIcon}><Ionicons name="ticket" size={22} color={colors.cyan} /></View><View style={s.headerCopy}><Text style={s.dkdRightsLabel}>TOPLAM KALAN GEÇİŞ HAKKI</Text><Text style={s.dkdRightsValue}>{dkdPassUsage?.unlimited ? 'Sınırsız' : dkdRightsLoading ? 'Kontrol ediliyor' : String(dkdPassUsage?.remaining ?? 0)}</Text><Text style={s.dkdRightsMeta}>{dkdPassUsage?.unlimited ? 'Profesyonel paket' : `${dkdPassUsage?.plan_remaining ?? 0} paket hakkı • ${dkdPassUsage?.bonus ?? 0} video ödülü`}</Text></View></View></FadeInView>
 
       <FadeInView delay={50}>
         <Animated.View style={!screenshotPath ? { transform: [{ scale: uploadMotion.interpolate({ inputRange: [0, 1], outputRange: [1, 1.018] }) }, { translateY: uploadMotion.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) }] } : undefined}>
@@ -270,6 +282,8 @@ export function CreatePassScreen({ onBack, onCreated }: { onBack: () => void; on
         </LinearGradient>
       </AnimatedPressable>
     </ScrollView>
+    <DkdPassRightsRewardModal visible={dkdRightsModal} onClose={() => setDkdRightsModal(false)} onOpenPackages={onOpenPackages} onRewarded={dkdRefreshRights} />
+    </>
   );
 }
 
@@ -336,4 +350,9 @@ const s = StyleSheet.create({
   missingText: { flex: 1, color: colors.orange, fontSize: 12, lineHeight: 18, fontWeight: '700' },
   submit: { height: 62, borderRadius: radius.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
   submitText: { color: colors.white, fontSize: 14, fontWeight: '900' },
+  dkdRightsCard: { minHeight: 82, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(55,216,255,.42)', backgroundColor: 'rgba(8,36,54,.84)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  dkdRightsIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(55,216,255,.13)', alignItems: 'center', justifyContent: 'center' },
+  dkdRightsLabel: { color: colors.textMuted, fontSize: 9, fontWeight: '900', letterSpacing: .8 },
+  dkdRightsValue: { color: colors.cyan, fontSize: 22, fontWeight: '900', marginTop: 2 },
+  dkdRightsMeta: { color: colors.textSoft, fontSize: 10, marginTop: 2 },
 });

@@ -1,3 +1,4 @@
+// DKD_V0312_GATE_CONTEXT
 import type { Session, User } from '@supabase/supabase-js';
 import React, { PropsWithChildren, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { prepareGateNotifications, showGateNotification } from '../lib/notifications';
@@ -118,6 +119,20 @@ const numberValue = (value: unknown, fallback = 0) => (typeof value === 'number'
 const booleanValue = (value: unknown, fallback = false) => (typeof value === 'boolean' ? value : fallback);
 const arrayValue = (value: unknown) => (Array.isArray(value) ? value : []);
 const dateValue = (value: unknown) => stringValue(value, new Date().toISOString());
+const dkdOperationMessages: Record<string, { title: string; body: string }> = {
+  dkd_gate_update_profile: { title: 'Profil güncellendi', body: 'Profil bilgilerin başarıyla kaydedildi.' },
+  dkd_gate_upsert_resident_profile: { title: 'Adres kaydedildi', body: 'Site sakini adresin güncellendi.' },
+  dkd_gate_update_airpass: { title: 'Konum işlemi tamamlandı', body: 'Tek seferlik konum kontrolü güvenliğe gönderildi.' },
+  dkd_gate_accept_rule: { title: 'Kural onaylandı', body: 'Site veya kapı kuralı onayın kaydedildi.' },
+  dkd_gate_upsert_rule: { title: 'Kural kaydedildi', body: 'Site veya kapı kuralı başarıyla güncellendi.' },
+  dkd_gate_create_visitor_pass: { title: 'Misafir kodu hazır', body: 'Yeni misafir geçiş talebi oluşturuldu.' },
+  dkd_gate_create_dues_period: { title: 'Aidat dönemi oluşturuldu', body: 'Yeni aidat dönemi ve borç kayıtları hazırlandı.' },
+  dkd_gate_mark_due_paid: { title: 'Aidat durumu güncellendi', body: 'Aidat ödeme kaydı başarıyla değiştirildi.' },
+  dkd_gate_add_finance_transaction: { title: 'Finans hareketi eklendi', body: 'Gelir veya gider kaydı başarıyla oluşturuldu.' },
+  dkd_gate_set_finance_visibility: { title: 'Finans görünürlüğü güncellendi', body: 'Site sakini finans görünümü değiştirildi.' },
+  dkd_gate_load_demo_data: { title: 'Örnek veriler hazır', body: 'DraBornGate örnek verileri yüklendi.' },
+  dkd_gate_delete_demo_data: { title: 'Örnek veriler silindi', body: 'Sana ait örnek kayıtlar kaldırıldı.' },
+};
 
 function relativeTime(value: string) {
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000));
@@ -340,7 +355,7 @@ export function GateProvider({ children }: PropsWithChildren) {
   }, [notifications, settings?.notificationsEnabled]);
 
   const run = useCallback(async <T,>(work: () => Promise<T>) => { setLoading(true); setError(undefined); try { return await work(); } finally { setLoading(false); } }, []);
-  const rpcRefresh = useCallback(async <T,>(name: string, params?: Record<string, unknown>) => run(async () => { const { data, error: rpcError } = await supabase.rpc(name, params); if (rpcError) throw rpcError; await refresh(); return data as T; }), [refresh, run]);
+  const rpcRefresh = useCallback(async <T,>(name: string, params?: Record<string, unknown>) => run(async () => { const { data, error: rpcError } = await supabase.rpc(name, params); if (rpcError) throw rpcError; const dkdMessage = dkdOperationMessages[name]; if (dkdMessage) { await supabase.rpc('dkd_gate_notify_operation', { dkd_param_operation: name, dkd_param_title: dkdMessage.title, dkd_param_body: dkdMessage.body, dkd_param_data: {} }); } await refresh(); return data as T; }), [refresh, run]);
 
   const signIn = useCallback((email: string, password: string) => run(async () => { const { error: authError } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password }); if (authError) throw authError; }), [run]);
   const signUp = useCallback((fullName: string, email: string, password: string) => run(async () => { const { data, error: authError } = await supabase.auth.signUp({ email: email.trim().toLowerCase(), password, options: { data: { full_name: fullName.trim(), source_app: 'DraBornGate' } } }); if (authError) throw authError; return { needsEmailConfirmation: !data.session }; }), [run]);

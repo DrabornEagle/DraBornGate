@@ -1,3 +1,4 @@
+// DKD_V0312_COURIER_CENTER
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -37,14 +38,14 @@ type Center = {
   } | null;
   effective_plan: Plan;
   plans: Plan[];
-  usage: { used: number; limit: number };
+  usage: { used: number; limit: number; unlimited?: boolean; plan_remaining?: number | null; bonus?: number; remaining?: number | null; total_remaining?: number | null };
 };
 
 const money = (value: number | string, currency: string) => `${Number(value || 0).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} ${currency === 'TRY' ? 'TL' : currency}`;
 const cycleSuffix = (cycle: BillingCycle) => cycle === 'weekly' ? 'hafta' : cycle === 'monthly' ? 'ay' : 'yıl';
 
-export function CourierCenterV032() {
-  const [tab, setTab] = useState<'passes' | 'packages'>('passes');
+export function CourierCenterV032({ initialTab = 'passes' }: { initialTab?: 'passes' | 'packages' }) {
+  const [tab, setTab] = useState<'passes' | 'packages'>(initialTab);
   const [center, setCenter] = useState<Center>();
   const [selected, setSelected] = useState('');
   const [cycle, setCycle] = useState<BillingCycle>('monthly');
@@ -69,6 +70,7 @@ export function CourierCenterV032() {
   };
 
   useEffect(() => { void load(); }, []);
+  useEffect(() => { setTab(initialTab); }, [initialTab]);
 
   const selectedPlan = useMemo(() => center?.plans.find((plan) => plan.code === selected), [center, selected]);
   const hasCourierPackage = Boolean(
@@ -128,8 +130,8 @@ export function CourierCenterV032() {
                   </View>
                   <Text style={s.heroText}>{center.effective_plan.description}</Text>
                   <View style={s.usageRow}>
-                    <Text style={s.usage}>{center.usage.used} / {center.usage.limit === 0 ? 'Sınırsız' : center.usage.limit} aylık geçiş</Text>
-                    <Text style={s.status}>{center.subscription?.billing_cycle ? `${cycleSuffix(center.subscription.billing_cycle)}lık plan` : 'ücretsiz plan'}</Text>
+                    <Text style={s.usage}>{center.usage.unlimited ? 'Sınırsız geçiş hakkı' : `${center.usage.remaining ?? 0} toplam hak kaldı`}</Text>
+                    <Text style={s.status}>{center.usage.unlimited ? 'profesyonel paket' : `${center.usage.plan_remaining ?? 0} paket • ${center.usage.bonus ?? 0} ödül`}</Text>
                   </View>
                 </LinearGradient>
               </FadeInView>

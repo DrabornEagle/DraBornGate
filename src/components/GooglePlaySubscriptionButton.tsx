@@ -1,6 +1,7 @@
+// DKD_V0312_PLAY_BILLING
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, StyleSheet, Text, View } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { colors, gradients, radius } from '../theme';
@@ -47,11 +48,13 @@ function NativePurchase({ plan, cycle, scope, siteId, onVerified }: { plan: Goog
     },
     onPurchaseError: (error: any) => Alert.alert('Satın alma tamamlanmadı', error?.message || 'Google Play işlemi iptal edildi.'),
   });
-  useEffect(() => { if (connected && plan.play_product_id) void fetchProducts({ skus: [plan.play_product_id], type: 'subs' }); }, [connected, fetchProducts, plan.play_product_id]);
+  const [dkdQueryAttempt, setDkdQueryAttempt] = useState(0);
+  useEffect(() => { if (connected && plan.play_product_id) void fetchProducts({ skus: [plan.play_product_id], type: 'subs' }); }, [connected, fetchProducts, plan.play_product_id, dkdQueryAttempt]);
   const product = useMemo(() => (products || []).find((item: any) => item.id === plan.play_product_id || item.productId === plan.play_product_id), [products, plan.play_product_id]);
   const purchase = async () => {
     if (!basePlanId) return Alert.alert('Temel plan eksik', 'Admin Profil ekranından bu dönem için Google Play temel plan kimliğini tanımla.');
-    if (!product) return Alert.alert('Google Play ürünü bulunamadı', 'Ürün Play Console’da etkinleştirildikten ve test hesabına yayınlandıktan sonra tekrar dene.');
+    if (!connected) return Alert.alert('Google Play bağlantısı kurulamadı', 'Uygulamayı Play Store kapalı test bağlantısından yüklediğini, doğru test hesabıyla giriş yaptığını ve Play Store’un güncel olduğunu kontrol et.');
+    if (!product) return Alert.alert('Google Play ürünü bulunamadı', `Play Console ürününü ve temel planı etkinleştirip kapalı test sürümüne yayınla.\n\nÜrün: ${plan.play_product_id}\nTemel plan: ${basePlanId || 'tanımsız'}`, [{ text: 'KAPAT', style: 'cancel' }, { text: 'TEKRAR SORGULA', onPress: () => setDkdQueryAttempt((dkdValue) => dkdValue + 1) }]);
     const offers = product.subscriptionOfferDetailsAndroid || product.subscriptionOfferDetails || [];
     const offer = offers.find((item: any) => item.basePlanId === basePlanId || item.basePlanIdAndroid === basePlanId) || offers[0];
     if (!offer?.offerToken) return Alert.alert('Abonelik teklifi bulunamadı', `${basePlanId} temel planı Google Play Console’da etkin değil.`);
