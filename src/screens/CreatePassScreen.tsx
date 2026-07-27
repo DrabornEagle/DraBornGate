@@ -1,4 +1,4 @@
-// DKD_V0312_CREATE_PASS
+// DKD_V0313_CREATE_PASS
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -36,6 +36,7 @@ export function CreatePassScreen({ onBack, onCreated, onOpenPackages }: { onBack
   const [readingImage, setReadingImage] = useState(false);
   const [rulesAccepted, setRulesAccepted] = useState(false);
   const uploadMotion = useRef(new Animated.Value(0)).current;
+  const dkdRightsMotion = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (screenshotPath) { uploadMotion.stopAnimation(); uploadMotion.setValue(0); return; }
@@ -46,6 +47,15 @@ export function CreatePassScreen({ onBack, onCreated, onOpenPackages }: { onBack
     loop.start();
     return () => loop.stop();
   }, [screenshotPath, uploadMotion]);
+
+  useEffect(() => {
+    const dkdLoop = Animated.loop(Animated.sequence([
+      Animated.timing(dkdRightsMotion, { toValue: 1, duration: 1500, useNativeDriver: true }),
+      Animated.timing(dkdRightsMotion, { toValue: 0, duration: 1500, useNativeDriver: true }),
+    ]));
+    dkdLoop.start();
+    return () => dkdLoop.stop();
+  }, [dkdRightsMotion]);
 
   const filteredSites = useMemo(() => {
     const query = siteSearch.trim().toLocaleLowerCase('tr-TR');
@@ -165,7 +175,33 @@ export function CreatePassScreen({ onBack, onCreated, onOpenPackages }: { onBack
         </View>
       </FadeInView>
 
-      <FadeInView delay={35}><View style={s.dkdRightsCard}><View style={s.dkdRightsIcon}><Ionicons name="ticket" size={22} color={colors.cyan} /></View><View style={s.headerCopy}><Text style={s.dkdRightsLabel}>TOPLAM KALAN GEÇİŞ HAKKI</Text><Text style={s.dkdRightsValue}>{dkdPassUsage?.unlimited ? 'Sınırsız' : dkdRightsLoading ? 'Kontrol ediliyor' : String(dkdPassUsage?.remaining ?? 0)}</Text><Text style={s.dkdRightsMeta}>{dkdPassUsage?.unlimited ? 'Profesyonel paket' : `${dkdPassUsage?.plan_remaining ?? 0} paket hakkı • ${dkdPassUsage?.bonus ?? 0} video ödülü`}</Text></View></View></FadeInView>
+      <FadeInView delay={35}>
+        <Animated.View
+          style={[
+            s.dkdRightsCard,
+            {
+              transform: [
+                { scale: dkdRightsMotion.interpolate({ inputRange: [0, 1], outputRange: [1, 1.012] }) },
+                { translateY: dkdRightsMotion.interpolate({ inputRange: [0, 1], outputRange: [0, -2] }) },
+              ],
+            },
+          ]}
+        >
+          <Animated.View pointerEvents="none" style={[s.dkdRightsAccentOne, { opacity: dkdRightsMotion.interpolate({ inputRange: [0, 1], outputRange: [.20, .42] }), transform: [{ translateX: dkdRightsMotion.interpolate({ inputRange: [0, 1], outputRange: [-8, 15] }) }] }]} />
+          <Animated.View pointerEvents="none" style={[s.dkdRightsAccentTwo, { opacity: dkdRightsMotion.interpolate({ inputRange: [0, 1], outputRange: [.16, .34] }), transform: [{ translateY: dkdRightsMotion.interpolate({ inputRange: [0, 1], outputRange: [7, -8] }) }] }]} />
+          <Animated.View style={[s.dkdRightsIcon, { transform: [{ rotate: dkdRightsMotion.interpolate({ inputRange: [0, 1], outputRange: ['-4deg', '4deg'] }) }] }]}>
+            <Ionicons name="ticket" size={25} color={colors.white} />
+          </Animated.View>
+          <View style={s.headerCopy}>
+            <View style={s.dkdRightsTopRow}>
+              <Text style={s.dkdRightsLabel}>TOPLAM KALAN GEÇİŞ HAKKI</Text>
+              <View style={s.dkdRightsLive}><View style={s.dkdRightsLiveDot} /><Text style={s.dkdRightsLiveText}>ANLIK</Text></View>
+            </View>
+            <Text style={s.dkdRightsValue}>{dkdPassUsage?.unlimited ? 'Sınırsız' : dkdRightsLoading ? 'Kontrol ediliyor' : String(dkdPassUsage?.remaining ?? 0)}</Text>
+            <Text style={s.dkdRightsMeta}>{dkdPassUsage?.unlimited ? 'Profesyonel paket • sınırsız geçiş' : `${dkdPassUsage?.plan_remaining ?? 0} paket hakkı • ${dkdPassUsage?.bonus ?? 0} video ödülü`}</Text>
+          </View>
+        </Animated.View>
+      </FadeInView>
 
       <FadeInView delay={50}>
         <Animated.View style={!screenshotPath ? { transform: [{ scale: uploadMotion.interpolate({ inputRange: [0, 1], outputRange: [1, 1.018] }) }, { translateY: uploadMotion.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) }] } : undefined}>
@@ -350,9 +386,15 @@ const s = StyleSheet.create({
   missingText: { flex: 1, color: colors.orange, fontSize: 12, lineHeight: 18, fontWeight: '700' },
   submit: { height: 62, borderRadius: radius.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
   submitText: { color: colors.white, fontSize: 14, fontWeight: '900' },
-  dkdRightsCard: { minHeight: 82, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(55,216,255,.42)', backgroundColor: 'rgba(8,36,54,.84)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 11 },
-  dkdRightsIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(55,216,255,.13)', alignItems: 'center', justifyContent: 'center' },
-  dkdRightsLabel: { color: colors.textMuted, fontSize: 9, fontWeight: '900', letterSpacing: .8 },
-  dkdRightsValue: { color: colors.cyan, fontSize: 22, fontWeight: '900', marginTop: 2 },
-  dkdRightsMeta: { color: colors.textSoft, fontSize: 10, marginTop: 2 },
+  dkdRightsCard: { minHeight: 104, borderRadius: 24, borderWidth: 1.4, borderColor: 'rgba(55,216,255,.68)', backgroundColor: '#0A2E49', padding: 15, flexDirection: 'row', alignItems: 'center', gap: 13, overflow: 'hidden' },
+  dkdRightsAccentOne: { position: 'absolute', width: 112, height: 112, borderRadius: 56, right: -38, top: -52, backgroundColor: colors.purple },
+  dkdRightsAccentTwo: { position: 'absolute', width: 72, height: 72, borderRadius: 36, left: 32, bottom: -49, backgroundColor: colors.green },
+  dkdRightsIcon: { width: 57, height: 57, borderRadius: 19, borderWidth: 1, borderColor: 'rgba(255,255,255,.38)', backgroundColor: 'rgba(139,107,255,.72)', alignItems: 'center', justifyContent: 'center' },
+  dkdRightsTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  dkdRightsLabel: { flex: 1, color: 'rgba(255,255,255,.74)', fontSize: 9, fontWeight: '900', letterSpacing: .8 },
+  dkdRightsLive: { minHeight: 23, borderRadius: 9, borderWidth: 1, borderColor: 'rgba(67,231,162,.50)', backgroundColor: 'rgba(67,231,162,.13)', paddingHorizontal: 7, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  dkdRightsLiveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.green },
+  dkdRightsLiveText: { color: colors.green, fontSize: 8, fontWeight: '900', letterSpacing: .5 },
+  dkdRightsValue: { color: colors.white, fontSize: 27, lineHeight: 32, fontWeight: '900', marginTop: 3 },
+  dkdRightsMeta: { color: colors.cyan, fontSize: 10, lineHeight: 15, fontWeight: '800', marginTop: 2 },
 });

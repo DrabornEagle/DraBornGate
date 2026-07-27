@@ -1,4 +1,4 @@
-// DKD_V0312_PERMISSION_POPUPS
+// DKD_V0313_PERMISSION_POPUPS
 // DKD_V0312_APP
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -12,6 +12,7 @@ import { AppBackground } from './src/components/UI';
 import { APP_VERSION } from './src/config/version';
 import { useGateRoles } from './src/hooks/useGateRoles';
 import { getGateNotificationPermissionState, requestGateNotificationPermission } from './src/lib/notifications';
+import { dkdRefreshAdConsent } from './src/lib/dkdAdConsent';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { CourierCenterV032 } from './src/screens/CourierCenterV032';
 import { CourierHome } from './src/screens/CourierHome';
@@ -59,6 +60,7 @@ function AppContent() {
     });
     return () => { dkdActive = false; };
   }, [introPassed, session?.user.id]);
+  useEffect(() => { if (!introPassed) return; void dkdRefreshAdConsent(); }, [introPassed]);
   useEffect(() => { if (!session) return; void refresh(); }, [role, session, showCreatePass, tab]);
   useEffect(() => {
     if (!session) return;

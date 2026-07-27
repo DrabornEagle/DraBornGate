@@ -1,4 +1,4 @@
-// DKD_V0312_COURIER_HOME
+// DKD_V0313_COURIER_HOME
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
@@ -158,8 +158,8 @@ export function CourierHome({ onCreatePass, onOpenPasses, onOpenSettings }: Cour
               </FloatingView>
               <View style={s.heroCopy}>
                 <Text style={s.heroKicker}>Kurye Geçişi + Tek Kullanımlık Kod</Text>
-                <Text style={s.heroTitle}>{dkdPassUsage?.unlimited ? 'Sınırsız Geçiş Hakkı' : `Toplam ${dkdPassUsage?.remaining ?? 0} Geçiş Hakkın Kaldı`}</Text>
-                <Text style={s.heroText}>{dkdPassUsage?.unlimited ? 'Profesyonel paketinle geçiş talebi sınırı bulunmuyor.' : `${dkdPassUsage?.plan_remaining ?? 0} paket hakkı ve ${dkdPassUsage?.bonus ?? 0} video ödülü kullanılabilir.`}</Text>
+                <Text style={s.heroTitle}>Artık Vakit Kaybetmek YOK</Text>
+                <Text style={s.heroText}>{dkdPassUsage?.unlimited ? 'Profesyonel paketinle sınırsız ve hızlı geçiş talebi oluşturabilirsin.' : `Toplam ${dkdPassUsage?.remaining ?? 0} geçiş hakkın var • ${dkdPassUsage?.plan_remaining ?? 0} paket hakkı ve ${dkdPassUsage?.bonus ?? 0} video ödülü kullanılabilir.`}</Text>
               </View>
             </View>
             <AnimatedPressable onPress={canCreate ? onCreatePass : onOpenSettings}>

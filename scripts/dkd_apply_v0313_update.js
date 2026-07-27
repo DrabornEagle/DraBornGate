@@ -84,7 +84,7 @@ function dkdPatchCreatePass() {
   );
   dkdContent = dkdReplace(
     dkdContent,
-    `      <FadeInView delay={35}><View style={s.dkdRightsCard}><View style={s.dkdRightsIcon}><Ionicons name="ticket" size={22} color={colors.cyan} /></View><View style={s.headerCopy}><Text style={s.dkdRightsLabel}>TOPLAM KALAN GEÇİŞ HAKKI</Text><Text style={s.dkdRightsValue}>{dkdPassUsage?.unlimited ? 'Sınırsız' : dkdRightsLoading ? 'Kontrol ediliyor' : String(dkdPassUsage?.remaining ?? 0)}</Text><Text style={s.dkdRightsMeta}>{dkdPassUsage?.unlimited ? 'Profesyonel paket' : \`${dkdPassUsage?.plan_remaining ?? 0} paket hakkı • ${dkdPassUsage?.bonus ?? 0} video ödülü\`}</Text></View></View></FadeInView>`,
+    `      <FadeInView delay={35}><View style={s.dkdRightsCard}><View style={s.dkdRightsIcon}><Ionicons name="ticket" size={22} color={colors.cyan} /></View><View style={s.headerCopy}><Text style={s.dkdRightsLabel}>TOPLAM KALAN GEÇİŞ HAKKI</Text><Text style={s.dkdRightsValue}>{dkdPassUsage?.unlimited ? 'Sınırsız' : dkdRightsLoading ? 'Kontrol ediliyor' : String(dkdPassUsage?.remaining ?? 0)}</Text><Text style={s.dkdRightsMeta}>{dkdPassUsage?.unlimited ? 'Profesyonel paket' : \`\${dkdPassUsage?.plan_remaining ?? 0} paket hakkı • \${dkdPassUsage?.bonus ?? 0} video ödülü\`}</Text></View></View></FadeInView>`,
     `      <FadeInView delay={35}>
         <Animated.View
           style={[
@@ -108,7 +108,7 @@ function dkdPatchCreatePass() {
               <View style={s.dkdRightsLive}><View style={s.dkdRightsLiveDot} /><Text style={s.dkdRightsLiveText}>ANLIK</Text></View>
             </View>
             <Text style={s.dkdRightsValue}>{dkdPassUsage?.unlimited ? 'Sınırsız' : dkdRightsLoading ? 'Kontrol ediliyor' : String(dkdPassUsage?.remaining ?? 0)}</Text>
-            <Text style={s.dkdRightsMeta}>{dkdPassUsage?.unlimited ? 'Profesyonel paket • sınırsız geçiş' : \`${dkdPassUsage?.plan_remaining ?? 0} paket hakkı • ${dkdPassUsage?.bonus ?? 0} video ödülü\`}</Text>
+            <Text style={s.dkdRightsMeta}>{dkdPassUsage?.unlimited ? 'Profesyonel paket • sınırsız geçiş' : \`\${dkdPassUsage?.plan_remaining ?? 0} paket hakkı • \${dkdPassUsage?.bonus ?? 0} video ödülü\`}</Text>
           </View>
         </Animated.View>
       </FadeInView>`,
