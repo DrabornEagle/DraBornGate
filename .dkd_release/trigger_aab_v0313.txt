@@ -2,10 +2,11 @@ DraBornGate v0.3.13
 Android versionCode: 3
 Workflow: DraBornGate Release AAB
 TriggeredAt: 2026-07-27
-Attempt: 12
+Attempt: 13
 Mode: Supabase private chunked AAB backup
 Source run: 30279086956
-Chunk size: 5 MB
+Chunk size: 4.000.000 bytes
 Manifest: SHA-256 verified reconstruction metadata
+Edge function: dkd-gate-release-vault v9
 Run record: enabled
 Backup branch: backup/draborngate-v0.3.12-before-v0.3.13
