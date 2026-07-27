@@ -29,6 +29,28 @@ jobs:
       - name: Kaynak kodu al
         uses: actions/checkout@v4
 
+      - name: Supabase yükleme run kimliğini kaydet
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .dkd_release
+          {
+            echo "run_id=$GITHUB_RUN_ID"
+            echo "run_attempt=$GITHUB_RUN_ATTEMPT"
+            echo "source_sha=$GITHUB_SHA"
+            echo "workflow=DraBornGate Release AAB"
+            echo "mode=supabase-upload-only"
+            echo "version=0.3.13"
+            echo "android_version_code=3"
+          } > .dkd_release/latest_aab_run.txt
+          git config user.name "DraBornGate Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add .dkd_release/latest_aab_run.txt
+          git commit -m "ci: v0.3.13 Supabase AAB upload run $GITHUB_RUN_ID kaydını güncelle"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
+
       - name: GitHub OIDC release kimliğini al
         shell: bash
         run: |
