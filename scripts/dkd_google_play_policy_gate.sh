@@ -52,7 +52,7 @@ for (const permission of [
   if (!blocked.has(permission)) fail(`${permission} blockedPermissions listesinde değil.`);
 }
 if (!pkg.dependencies?.['expo-iap']) fail('Dijital paket ve abonelikler için Google Play Billing entegrasyonu eksik.');
-if (!pkg.dependencies?.['react-native-google-mobile-ads']) fail('Ödüllü video için Google Mobile Ads paketi eksik.');
+if (pkg.dependencies?.['react-native-google-mobile-ads'] !== '16.3.3') fail('Expo 57 için doğrulanan Google Mobile Ads 16.3.3 sürümü kullanılmalı.');
 if (!pkg.dependencies?.['expo-build-properties']) fail('Kotlin uyumluluğu için expo-build-properties eksik.');
 if (!pkg.dependencies?.['expo-splash-screen']) fail('Native splash ekranı paketi eksik.');
 if (!(app.plugins || []).some((item) => pluginName(item) === 'expo-iap')) fail('expo-iap config plugin eksik.');
@@ -64,7 +64,7 @@ const adsPlugin = pluginOptions('react-native-google-mobile-ads');
 const buildPlugin = pluginOptions('expo-build-properties');
 if (typeof ads.android_app_id !== 'string' || !ads.android_app_id.startsWith('ca-app-pub-')) fail('AdMob Android uygulama kimliği eksik.');
 if (typeof adsPlugin.androidAppId !== 'string' || !adsPlugin.androidAppId.startsWith('ca-app-pub-')) fail('AdMob Expo plugin Android App ID eksik.');
-if (buildPlugin.android?.kotlinVersion !== '2.3.0') fail('Google Mobile Ads 25.4.0 için Kotlin 2.3.0 gerekli.');
+if (buildPlugin.android?.kotlinVersion !== '2.1.20') fail('Expo SDK 57 ve Google Ads 25.0 için Kotlin 2.1.20 kullanılmalı.');
 if (buildPlugin.android?.compileSdkVersion !== 36 || buildPlugin.android?.targetSdkVersion !== 36) fail('Android compile/target SDK 36 olmalı.');
 if (process.exitCode) process.exit(process.exitCode);
 console.log(`Yapılandırma politika kontrolü geçti: ${app.version} (${app.android.versionCode})`);
