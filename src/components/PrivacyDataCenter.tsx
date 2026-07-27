@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Alert, Linking, StyleSheet, Text, View } from 'react-native';
+import { dkdShowAdPrivacyOptions } from '../lib/dkdAdConsent';
 import { supabase } from '../lib/supabase';
 import { colors, radius } from '../theme';
 import { AnimatedPressable } from './Motion';
@@ -17,6 +18,13 @@ export function PrivacyDataCenter() {
   const load = async () => { const result = await supabase.rpc('dkd_gate_get_account_deletion_status'); if (!result.error && result.data) setStatus(result.data as DeleteStatus); };
   useEffect(() => { void load(); }, []);
   const open = async (url: string) => { try { await Linking.openURL(url); } catch { Alert.alert('Bağlantı açılamadı', url); } };
+  const openAdPrivacy = async () => {
+    try {
+      await dkdShowAdPrivacyOptions();
+    } catch (error) {
+      Alert.alert('Reklam gizlilik tercihleri', error instanceof Error ? error.message : 'Tercihler şu anda açılamadı.');
+    }
+  };
   const requestDeletion = () => Alert.alert('Hesabı ve verileri silme talebi', 'Talep sonrası hesap erişimi incelemeye alınır. Yasal olarak tutulması zorunlu kayıtlar dışında hesabınla ilişkili veriler en geç 30 gün içinde silinir veya anonimleştirilir.', [
     { text: 'Vazgeç', style: 'cancel' },
     { text: 'Silme talebi oluştur', style: 'destructive', onPress: async () => { setWorking(true); try { const result = await supabase.rpc('dkd_gate_request_account_deletion', { p_reason: 'Uygulama içi Gizlilik ve Veri Merkezi talebi' }); if (result.error) throw result.error; await load(); Alert.alert('Talep alındı', 'Durumu bu ekrandan takip edebilir veya support@draborneagle.com adresine yazabilirsin.'); } catch (error) { Alert.alert('Talep oluşturulamadı', error instanceof Error ? error.message : 'Tekrar dene.'); } finally { setWorking(false); } } },
@@ -31,8 +39,9 @@ export function PrivacyDataCenter() {
     <Info icon="person" title="Hesap ve profil" text="Ad soyad, e-posta, telefon, profil fotoğrafı, rol ve kurye bilgileri." />
     <Info icon="location" title="Konum ve site verileri" text="OpenStreetMap üzerinde site pini seçimi ve Akıllı Geçiş doğrulaması sırasında yalnızca uygulama açıkken konum." />
     <Info icon="receipt" title="Abonelik verileri" text="Kart bilgileri DraBornGate tarafından alınmaz. Dijital paketler yalnızca Google Play üzerinden işlenir; uygulamada banka transferi veya harici ödeme bağlantısı bulunmaz." />
-    <Info icon="play-circle" title="İsteğe bağlı ödüllü video" text="Video reklam yalnızca Geçiş Hakkı Kazan düğmesine açıkça bastığında gösterilir. Video tamamlanmadan ödül verilmez. DraBornGate v0.3.12 kişiselleştirilmemiş reklam isteği kullanır." />
+    <Info icon="play-circle" title="İsteğe bağlı ödüllü video" text="Video reklam yalnızca Geçiş Hakkı Kazan düğmesine açıkça bastığında gösterilir. DraBornGate v0.3.13 reklam yüklemeden önce Google UMP gizlilik durumunu kontrol eder ve kişiselleştirilmemiş reklam isteği kullanır." />
     <Info icon="headset" title="Destek talepleri" text="Destek formundaki ad, e-posta, plaka, sorun türü ve açıklama yalnızca talebi çözmek ve sana geri dönüş yapmak için saklanır." />
+    <LinkButton icon="options" title="Reklam gizlilik tercihleri" onPress={() => void openAdPrivacy()} />
     <LinkButton icon="document-text" title="Gizlilik Politikası" onPress={() => void open(`${WEB_ROOT}/privacy/`)} />
     <LinkButton icon="reader" title="Kullanım Koşulları" onPress={() => void open(`${WEB_ROOT}/terms/`)} />
     <LinkButton icon="server" title="Veri Güvenliği Özeti" onPress={() => void open(`${WEB_ROOT}/data-safety/`)} />
