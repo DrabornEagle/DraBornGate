@@ -1,4 +1,4 @@
-// DKD_V0312_PLAY_BILLING
+// DKD_V0314_PLAY_BILLING
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -18,6 +18,27 @@ export type GooglePlayPlan = {
   play_monthly_base_plan_id?: string;
   play_yearly_base_plan_id?: string;
 };
+
+type DkdPlayProduct = Record<string, any>;
+
+function dkdProductId(item: DkdPlayProduct): string {
+  return String(item?.id || item?.productId || '');
+}
+
+function dkdOffers(item?: DkdPlayProduct): DkdPlayProduct[] {
+  const offers = item?.subscriptionOfferDetailsAndroid || item?.subscriptionOfferDetails || [];
+  return Array.isArray(offers) ? offers : [];
+}
+
+function dkdBasePlanId(item: DkdPlayProduct): string {
+  return String(item?.basePlanId || item?.basePlanIdAndroid || '');
+}
+
+function dkdErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === 'object' && error !== null && 'message' in error) return String((error as { message?: unknown }).message || '');
+  return 'Google Play ürün sorgusu tamamlanamadı.';
+}
 
 export function GooglePlaySubscriptionButton({ plan, cycle, scope, siteId, onVerified }: { plan: GooglePlayPlan; cycle: BillingCycle; scope: 'site' | 'courier'; siteId?: string; onVerified?: () => void }) {
   if (!plan.play_product_id) return <View style={s.free}><Ionicons name="checkmark-circle" size={20} color={colors.green} /><Text style={s.freeText}>Ücretsiz paket • satın alma gerekmez</Text></View>;
@@ -44,25 +65,100 @@ function NativePurchase({ plan, cycle, scope, siteId, onVerified }: { plan: Goog
         await finishTransaction({ purchase, isConsumable: false });
         Alert.alert('Abonelik etkinleştirildi', `${plan.name} paketi Google Play üzerinden otomatik yenilenecek. Aboneliğini Play Store hesabından iptal edebilirsin.`);
         onVerified?.();
-      } catch (error) { Alert.alert('Satın alma doğrulanamadı', error instanceof Error ? error.message : 'Tekrar dene.'); }
+      } catch (error) {
+        Alert.alert('Satın alma doğrulanamadı', dkdErrorMessage(error));
+      }
     },
     onPurchaseError: (error: any) => Alert.alert('Satın alma tamamlanmadı', error?.message || 'Google Play işlemi iptal edildi.'),
   });
+
   const [dkdQueryAttempt, setDkdQueryAttempt] = useState(0);
-  useEffect(() => { if (connected && plan.play_product_id) void fetchProducts({ skus: [plan.play_product_id], type: 'subs' }); }, [connected, fetchProducts, plan.play_product_id, dkdQueryAttempt]);
-  const product = useMemo(() => (products || []).find((item: any) => item.id === plan.play_product_id || item.productId === plan.play_product_id), [products, plan.play_product_id]);
+  const [dkdFetchedProducts, setDkdFetchedProducts] = useState<DkdPlayProduct[]>([]);
+  const [dkdQueryError, setDkdQueryError] = useState('');
+  const [dkdQueryInProgress, setDkdQueryInProgress] = useState(false);
+
+  useEffect(() => {
+    let dkdActive = true;
+    if (!connected || !plan.play_product_id) return () => { dkdActive = false; };
+    void (async () => {
+      setDkdQueryInProgress(true);
+      setDkdQueryError('');
+      try {
+        const dkdResult = await fetchProducts({ skus: [plan.play_product_id], type: 'subs' });
+        if (!dkdActive) return;
+        const dkdResultProducts = Array.isArray(dkdResult)
+          ? dkdResult
+          : Array.isArray(dkdResult?.products)
+            ? dkdResult.products
+            : [];
+        setDkdFetchedProducts(dkdResultProducts);
+      } catch (error) {
+        if (dkdActive) setDkdQueryError(dkdErrorMessage(error));
+      } finally {
+        if (dkdActive) setDkdQueryInProgress(false);
+      }
+    })();
+    return () => { dkdActive = false; };
+  }, [connected, fetchProducts, plan.play_product_id, dkdQueryAttempt]);
+
+  const dkdCatalog = useMemo(() => {
+    const dkdById = new Map<string, DkdPlayProduct>();
+    for (const item of [...(Array.isArray(products) ? products : []), ...dkdFetchedProducts]) {
+      const id = dkdProductId(item);
+      if (id) dkdById.set(id, item);
+    }
+    return [...dkdById.values()];
+  }, [products, dkdFetchedProducts]);
+
+  const product = useMemo(
+    () => dkdCatalog.find((item) => dkdProductId(item) === plan.play_product_id),
+    [dkdCatalog, plan.play_product_id],
+  );
+  const exactOffer = useMemo(
+    () => dkdOffers(product).find((item) => dkdBasePlanId(item) === basePlanId),
+    [product, basePlanId],
+  );
+
+  const dkdRetry = () => setDkdQueryAttempt((dkdValue) => dkdValue + 1);
   const purchase = async () => {
-    if (!basePlanId) return Alert.alert('Temel plan eksik', 'Admin Profil ekranından bu dönem için Google Play temel plan kimliğini tanımla.');
-    if (!connected) return Alert.alert('Google Play bağlantısı kurulamadı', 'Uygulamayı Play Store kapalı test bağlantısından yüklediğini, doğru test hesabıyla giriş yaptığını ve Play Store’un güncel olduğunu kontrol et.');
-    if (!product) return Alert.alert('Google Play ürünü bulunamadı', `Play Console ürününü ve temel planı etkinleştirip kapalı test sürümüne yayınla.\n\nÜrün: ${plan.play_product_id}\nTemel plan: ${basePlanId || 'tanımsız'}`, [{ text: 'KAPAT', style: 'cancel' }, { text: 'TEKRAR SORGULA', onPress: () => setDkdQueryAttempt((dkdValue) => dkdValue + 1) }]);
-    const offers = product.subscriptionOfferDetailsAndroid || product.subscriptionOfferDetails || [];
-    const offer = offers.find((item: any) => item.basePlanId === basePlanId || item.basePlanIdAndroid === basePlanId) || offers[0];
-    if (!offer?.offerToken) return Alert.alert('Abonelik teklifi bulunamadı', `${basePlanId} temel planı Google Play Console’da etkin değil.`);
-    await requestPurchase({ type: 'subs', request: { apple: { sku: plan.play_product_id }, google: { skus: [plan.play_product_id], subscriptionOffers: [{ sku: plan.play_product_id, offerToken: offer.offerToken }] } } });
+    if (!basePlanId) return Alert.alert('Temel plan eksik', 'Bu dönem için Google Play temel plan kimliği tanımlı değil.');
+    if (!connected) return Alert.alert('Google Play bağlantısı kurulamadı', 'Uygulamayı Play Store kapalı test bağlantısından, test listesine ekli aynı Google hesabıyla yükle. Play Store uygulamasını da güncelle.');
+    if (dkdQueryInProgress) return Alert.alert('Google Play sorgulanıyor', 'Ürün kataloğu yükleniyor. Birkaç saniye sonra tekrar dene.');
+    if (!product) {
+      const dkdReturned = dkdCatalog.map(dkdProductId).filter(Boolean).join(', ') || 'ürün dönmedi';
+      const dkdDetail = dkdQueryError ? `\nSorgu hatası: ${dkdQueryError}` : '';
+      return Alert.alert(
+        'Google Play ürünü bulunamadı',
+        `İstenen ürün: ${plan.play_product_id}\nTemel plan: ${basePlanId}\nGoogle Play’den dönen: ${dkdReturned}${dkdDetail}\n\nKapalı test ülkesinin test hesabının Play ülkesiyle eşleştiğini, test davetinin kabul edildiğini ve aynı hesabın lisans test kullanıcısı olduğunu kontrol et.`,
+        [{ text: 'KAPAT', style: 'cancel' }, { text: 'TEKRAR SORGULA', onPress: dkdRetry }],
+      );
+    }
+    if (!exactOffer) {
+      const dkdAvailable = dkdOffers(product).map(dkdBasePlanId).filter(Boolean).join(', ') || 'temel plan dönmedi';
+      return Alert.alert(
+        'Temel plan bulunamadı',
+        `Ürün bulundu ancak ${basePlanId} temel planı Google Play tarafından bu hesaba sunulmadı.\n\nSunulan temel planlar: ${dkdAvailable}`,
+        [{ text: 'KAPAT', style: 'cancel' }, { text: 'TEKRAR SORGULA', onPress: dkdRetry }],
+      );
+    }
+    const dkdOfferToken = exactOffer.offerToken || exactOffer.offerTokenAndroid;
+    if (!dkdOfferToken) return Alert.alert('Abonelik teklifi eksik', `${basePlanId} temel planının Google Play teklif belirteci alınamadı.`);
+    try {
+      await requestPurchase({
+        type: 'subs',
+        request: {
+          apple: { sku: plan.play_product_id },
+          google: { skus: [plan.play_product_id], subscriptionOffers: [{ sku: plan.play_product_id, offerToken: dkdOfferToken }] },
+        },
+      });
+    } catch (error) {
+      Alert.alert('Google Play açılamadı', dkdErrorMessage(error));
+    }
   };
+
   return <View style={s.wrapper}>
     <AnimatedPressable onPress={() => void purchase()} disabled={!connected || purchaseInProgress}>
-      <LinearGradient colors={gradients.success} style={s.button}>{purchaseInProgress ? <ActivityIndicator color={colors.background} /> : <Ionicons name="logo-google-playstore" size={22} color={colors.background} />}<Text style={s.buttonText}>{purchaseInProgress ? 'GOOGLE PLAY AÇILIYOR' : 'GOOGLE PLAY İLE ABONE OL'}</Text></LinearGradient>
+      <LinearGradient colors={gradients.success} style={s.button}>{purchaseInProgress || dkdQueryInProgress ? <ActivityIndicator color={colors.background} /> : <Ionicons name="logo-google-playstore" size={22} color={colors.background} />}<Text style={s.buttonText}>{purchaseInProgress ? 'GOOGLE PLAY AÇILIYOR' : dkdQueryInProgress ? 'PAKETLER SORGULANIYOR' : 'GOOGLE PLAY İLE ABONE OL'}</Text></LinearGradient>
     </AnimatedPressable>
     <AnimatedPressable onPress={() => void Linking.openURL('https://play.google.com/store/account/subscriptions?package=com.draborneagle.draborngate')}><Text style={s.manage}>Mevcut abonelikleri yönet veya iptal et</Text></AnimatedPressable>
   </View>;
