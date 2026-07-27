@@ -17,6 +17,11 @@ const version = fs.readFileSync('src/config/version.ts', 'utf8');
 const requiredUrls = ['privacyPolicyUrl', 'accountDeletionUrl', 'termsUrl'];
 const blocked = new Set(app.android?.blockedPermissions ?? []);
 const requested = new Set(app.android?.permissions ?? []);
+const pluginName = (item) => Array.isArray(item) ? item[0] : item;
+const pluginOptions = (name) => {
+  const item = (app.plugins || []).find((entry) => pluginName(entry) === name);
+  return Array.isArray(item) ? (item[1] || {}) : {};
+};
 
 function fail(message) {
   console.error(`POLİTİKA HATASI: ${message}`);
@@ -48,12 +53,19 @@ for (const permission of [
 }
 if (!pkg.dependencies?.['expo-iap']) fail('Dijital paket ve abonelikler için Google Play Billing entegrasyonu eksik.');
 if (!pkg.dependencies?.['react-native-google-mobile-ads']) fail('Ödüllü video için Google Mobile Ads paketi eksik.');
+if (!pkg.dependencies?.['expo-build-properties']) fail('Kotlin uyumluluğu için expo-build-properties eksik.');
 if (!pkg.dependencies?.['expo-splash-screen']) fail('Native splash ekranı paketi eksik.');
-if (!app.plugins?.some((item) => item === 'expo-iap')) fail('expo-iap config plugin eksik.');
-if (!app.plugins?.some((item) => item === 'react-native-google-mobile-ads')) fail('Google Mobile Ads config plugin eksik.');
-if (!app.plugins?.some((item) => Array.isArray(item) && item[0] === 'expo-splash-screen')) fail('expo-splash-screen config plugin eksik.');
+if (!(app.plugins || []).some((item) => pluginName(item) === 'expo-iap')) fail('expo-iap config plugin eksik.');
+if (!(app.plugins || []).some((item) => pluginName(item) === 'react-native-google-mobile-ads')) fail('Google Mobile Ads config plugin eksik.');
+if (!(app.plugins || []).some((item) => pluginName(item) === 'expo-build-properties')) fail('expo-build-properties config plugin eksik.');
+if (!(app.plugins || []).some((item) => pluginName(item) === 'expo-splash-screen')) fail('expo-splash-screen config plugin eksik.');
 if (!app.plugins?.includes('./scripts/dkd_with_android_security.js')) fail('Android güvenlik config plugin eksik.');
+const adsPlugin = pluginOptions('react-native-google-mobile-ads');
+const buildPlugin = pluginOptions('expo-build-properties');
 if (typeof ads.android_app_id !== 'string' || !ads.android_app_id.startsWith('ca-app-pub-')) fail('AdMob Android uygulama kimliği eksik.');
+if (typeof adsPlugin.androidAppId !== 'string' || !adsPlugin.androidAppId.startsWith('ca-app-pub-')) fail('AdMob Expo plugin Android App ID eksik.');
+if (buildPlugin.android?.kotlinVersion !== '2.3.0') fail('Google Mobile Ads 25.4.0 için Kotlin 2.3.0 gerekli.');
+if (buildPlugin.android?.compileSdkVersion !== 36 || buildPlugin.android?.targetSdkVersion !== 36) fail('Android compile/target SDK 36 olmalı.');
 if (process.exitCode) process.exit(process.exitCode);
 console.log(`Yapılandırma politika kontrolü geçti: ${app.version} (${app.android.versionCode})`);
 NODE
@@ -112,7 +124,12 @@ if [ -n "$APK_PATH" ]; then
     exit 1
   fi
 
-  echo "Derlenmiş manifest: allowBackup=false ve SYSTEM_ALERT_WINDOW yok."
+  if ! printf '%s\n' "$XMLTREE" | grep -F 'com.google.android.gms.ads.APPLICATION_ID' >/dev/null; then
+    echo "POLİTİKA HATASI: Derlenmiş manifestte AdMob uygulama kimliği yok." >&2
+    exit 1
+  fi
+
+  echo "Derlenmiş manifest: allowBackup=false, AdMob App ID mevcut ve SYSTEM_ALERT_WINDOW yok."
 fi
 
 echo "DraBornGate Google Play otomatik politika kapısı başarıyla geçti."
