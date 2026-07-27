@@ -26,8 +26,25 @@ function dkdProductId(item: DkdPlayProduct): string {
 }
 
 function dkdOffers(item?: DkdPlayProduct): DkdPlayProduct[] {
-  const offers = item?.subscriptionOfferDetailsAndroid || item?.subscriptionOfferDetails || [];
-  return Array.isArray(offers) ? offers : [];
+  const dkd_groups = [
+    item?.subscriptionOffers,
+    item?.subscriptionOfferDetailsAndroid,
+    item?.subscriptionOfferDetails,
+  ];
+  const dkd_seen = new Set<string>();
+  const dkd_output: DkdPlayProduct[] = [];
+  for (const dkd_group of dkd_groups) {
+    if (!Array.isArray(dkd_group)) continue;
+    for (const dkd_offer of dkd_group) {
+      const dkd_base_plan_id = dkdBasePlanId(dkd_offer);
+      const dkd_offer_token = String(dkd_offer?.offerTokenAndroid || dkd_offer?.offerToken || '');
+      const dkd_key = `${dkd_base_plan_id}|${dkd_offer_token}`;
+      if (dkd_seen.has(dkd_key)) continue;
+      dkd_seen.add(dkd_key);
+      dkd_output.push(dkd_offer);
+    }
+  }
+  return dkd_output;
 }
 
 function dkdBasePlanId(item: DkdPlayProduct): string {
