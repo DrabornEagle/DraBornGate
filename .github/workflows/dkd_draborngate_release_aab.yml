@@ -180,25 +180,18 @@ jobs:
             echo "Paket: com.draborneagle.draborngate"
           } | tee -a "$REPORT"
 
-      - name: AAB'yi Supabase özel release kasasına yükle
+      - name: AAB'yi Supabase özel release kasasına parçalı yükle
         shell: bash
         run: |
           set -euo pipefail
-          AAB="DraBornGate-v${APP_VERSION}-release.aab"
-          AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
-          curl --fail --show-error --location --retry 5 --retry-all-errors --retry-delay 2 --max-time 90 \
-            -H "$AUTH_HEADER" \
-            "$DKD_RELEASE_VAULT_URL/release/aab-upload-url?version=${APP_VERSION}" \
-            -o signed-aab-upload.json
-          node scripts/dkd_upload_signed_release_file.js "$AAB" signed-aab-upload.json application/octet-stream | tee "dkd_supabase_aab_upload_v${APP_VERSION}.txt"
-          curl --fail --show-error --location --retry 3 --retry-all-errors --max-time 300 \
-            -H "$AUTH_HEADER" \
-            "$DKD_RELEASE_VAULT_URL/release/aab?version=${APP_VERSION}" \
-            -o signing-work/supabase-verify.aab
-          test "$(sha256sum "$AAB" | awk '{print $1}')" = "$(sha256sum signing-work/supabase-verify.aab | awk '{print $1}')"
-          rm -f signing-work/supabase-verify.aab
+          bash scripts/dkd_upload_aab_chunks.sh \
+            "DraBornGate-v${APP_VERSION}-release.aab" \
+            "$APP_VERSION" \
+            "$DKD_RELEASE_VAULT_URL" \
+            "$DKD_RELEASE_OIDC_TOKEN"
 
       - name: DraBornGate Release AAB yükle
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: DraBornGate-Release-AAB-v${{ env.APP_VERSION }}
@@ -207,6 +200,8 @@ jobs:
             dkd_gradle_aab_v${{ env.APP_VERSION }}.log
             dkd_aab_signature_v${{ env.APP_VERSION }}.txt
             dkd_supabase_aab_upload_v${{ env.APP_VERSION }}.txt
+            DraBornGate-v${{ env.APP_VERSION }}-release.aab.manifest.json
+            aab-chunks-status.json
             signing-work/aab-cert.txt
             signing-work/keytool.txt
           if-no-files-found: error
