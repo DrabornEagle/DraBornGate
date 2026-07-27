@@ -119,7 +119,7 @@ jobs:
             -H "$AUTH_HEADER" \
             "$DKD_RELEASE_VAULT_URL/release/aab-manifest-upload-url?version=${APP_VERSION}" \
             -o signed-manifest-upload.json
-          DKD_RELEASE_CONTENT_TYPE=application/json node scripts/dkd_upload_signed_release_aab.js "$MANIFEST" signed-manifest-upload.json
+          node scripts/dkd_upload_signed_release_file.js "$MANIFEST" signed-manifest-upload.json application/json
 
           curl --fail --show-error --location --retry 5 --retry-all-errors --retry-delay 2 --max-time 90 \
             -H "$AUTH_HEADER" \
@@ -131,8 +131,9 @@ jobs:
           {
             echo "status=success"
             echo "run_id=$GITHUB_RUN_ID"
-            jq -r '"version=" + .version, "original_file=" + .originalFile, "original_size=" + (.originalSize|tostring), "original_sha256=" + .originalSha256, "part_count=" + (.partCount|tostring), "storage_folder=" + .storageFolder' "$MANIFEST"
+            jq -r '"version=" + .version, "original_file=" + .originalFile, "original_size=" + (.originalSize|tostring), "original_sha256=" + .originalSha256, "part_size=" + (.partSizeBytes|tostring), "part_count=" + (.partCount|tostring), "storage_folder=" + .storageFolder' "$MANIFEST"
             echo "storage_object_count=$(jq '.objects | length' aab-chunks-status.json)"
+            echo "supabase_backup=success"
           } | tee "$REPORT"
 
           git config user.name "DraBornGate Release Bot"
@@ -148,6 +149,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: DraBornGate-Supabase-AAB-Upload-v0.3.13
-          path: .dkd_release/dkd_supabase_aab_upload_latest.txt
-          if-no-files-found: error
+          path: |
+            .dkd_release/dkd_supabase_aab_upload_latest.txt
+            DraBornGate-v0.3.13-release.aab.manifest.json
+            aab-chunks-status.json
+          if-no-files-found: warn
           retention-days: 30
