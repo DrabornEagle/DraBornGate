@@ -144,9 +144,11 @@ jobs:
 
       - name: Release AAB ve politika kontrol APK'sini oluştur
         working-directory: android
+        shell: bash
         run: |
+          set -o pipefail
           chmod +x gradlew
-          ./gradlew bundleRelease assembleRelease --no-daemon --stacktrace
+          ./gradlew bundleRelease assembleRelease --no-daemon --stacktrace 2>&1 | tee "../dkd_gradle_aab_v${APP_VERSION}.log"
 
       - name: AAB'yi hazırla ve Google Play politikasını doğrula
         shell: bash
@@ -196,6 +198,7 @@ jobs:
           name: DraBornGate-Release-AAB-v${{ env.APP_VERSION }}
           path: |
             DraBornGate-v${{ env.APP_VERSION }}-release.aab
+            dkd_gradle_aab_v${{ env.APP_VERSION }}.log
             dkd_aab_signature_v${{ env.APP_VERSION }}.txt
             dkd_google_play_policy_v${{ env.APP_VERSION }}.txt
             signing-work/aab-cert.txt
