@@ -1,11 +1,16 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
 
-DKD_REPO_DIR="${1:-$HOME/projects/DraBornGate}"
+DKD_DEFAULT_REPO_DIR="$HOME/Projects/DraBornGate"
+if [ ! -d "$DKD_DEFAULT_REPO_DIR/.git" ] && [ -d "$HOME/projects/DraBornGate/.git" ]; then
+  DKD_DEFAULT_REPO_DIR="$HOME/projects/DraBornGate"
+fi
+DKD_REPO_DIR="${1:-$DKD_DEFAULT_REPO_DIR}"
 DKD_DOWNLOAD_DIR="/sdcard/Download/DraBornGate_Yedekler"
 DKD_BACKUP_BRANCH="backup/draborngate-v0.3.13-before-v0.3.14"
+DKD_SAFETY_BRANCH="backup/draborngate-v0.3.14-pre-billing-fix-20260727"
 DKD_TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
-DKD_BACKUP_ZIP="$DKD_DOWNLOAD_DIR/DraBornGate_Backup_v0.3.13_before_v0.3.14_$DKD_TIMESTAMP.zip"
+DKD_BACKUP_ZIP="$DKD_DOWNLOAD_DIR/DraBornGate_Local_Before_v0.3.14_Sync_$DKD_TIMESTAMP.zip"
 
 pkg install -y git nodejs-lts zip unzip ripgrep
 termux-setup-storage >/dev/null 2>&1 || true
@@ -23,9 +28,10 @@ zip -qr "$DKD_BACKUP_ZIP" . \
   -x 'node_modules/*' 'android/*' '.expo/*' 'dist/*' '.git/*' '*.log'
 printf 'Yedek: %s\n' "$DKD_BACKUP_ZIP"
 
-echo "[2/6] GitHub v0.3.13 yedek dalı doğrulanıyor..."
+echo "[2/6] GitHub geri alma ve güvenlik dalları doğrulanıyor..."
 git fetch --prune origin
 git show-ref --verify --quiet "refs/remotes/origin/$DKD_BACKUP_BRANCH"
+git show-ref --verify --quiet "refs/remotes/origin/$DKD_SAFETY_BRANCH"
 
 echo "[3/6] Projects/DraBornGate main dalı GitHub main ile birebir eşitleniyor..."
 git checkout main
@@ -48,4 +54,4 @@ test "$(node -p 'require("./package.json").version')" = "0.3.14"
 test "$(node -p 'require("./app.json").expo.android.versionCode')" = "4"
 git status --short
 
-printf '\nDraBornGate v0.3.14 hazır.\nYerel/GitHub SHA: %s\nYedek ZIP: %s\n' "$DKD_LOCAL_SHA" "$DKD_BACKUP_ZIP"
+printf '\nDraBornGate v0.3.14 hazır.\nYerel/GitHub SHA: %s\nYedek ZIP: %s\nProje yolu: %s\n' "$DKD_LOCAL_SHA" "$DKD_BACKUP_ZIP" "$DKD_REPO_DIR"
