@@ -1,0 +1,7 @@
+DraBornGate v0.3.13
+Android versionCode: 3
+Workflow: DraBornGate Release AAB
+TriggeredAt: 2026-07-27
+Attempt: 1
+Includes: AD_ID permission, Google UMP consent, animated pass-rights card, animated support button, profile badge cleanup, API 36 policy audit
+Backup branch: backup/draborngate-v0.3.12-before-v0.3.13
