@@ -5,7 +5,7 @@
   "main": "index.ts",
   "description": "DraBornGate kurye ve ziyaretçi geçişi, site finansı, profesyonel raporlama, paket ve abonelik platformu",
   "scripts": {
-    "postinstall": "node scripts/dkd_apply_v0312_source_update.js",
+    "postinstall": "node scripts/dkd_apply_v0312_source_update.js && node scripts/dkd_apply_v0312_completion.js",
     "start": "expo start",
     "start:termux": "EXPO_NO_DEV_TOOLS=1 expo start --clear --localhost",
     "android": "expo start --android",
