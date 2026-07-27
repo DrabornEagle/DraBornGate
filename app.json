@@ -2,7 +2,7 @@
   "expo": {
     "name": "DraBornGate",
     "slug": "draborngate",
-    "version": "0.3.11",
+    "version": "0.3.12",
     "orientation": "portrait",
     "scheme": "draborngate",
     "userInterfaceStyle": "dark",
@@ -23,7 +23,7 @@
     },
     "android": {
       "package": "com.draborneagle.draborngate",
-      "versionCode": 1,
+      "versionCode": 2,
       "allowBackup": false,
       "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "resize",
@@ -51,6 +51,7 @@
     },
     "plugins": [
       "expo-iap",
+      "react-native-google-mobile-ads",
       [
         "expo-splash-screen",
         {
@@ -104,14 +105,19 @@
       "./scripts/dkd_with_android_security.js"
     ],
     "extra": {
-      "appVersion": "0.3.11",
-      "demoDataVersion": "0.3.11",
-      "androidVersionCode": 1,
+      "appVersion": "0.3.12",
+      "demoDataVersion": "0.3.12",
+      "androidVersionCode": 2,
       "privacyPolicyUrl": "https://www.draborneagle.com/DraBornGate/privacy/",
       "accountDeletionUrl": "https://www.draborneagle.com/DraBornGate/account-deletion/",
       "termsUrl": "https://www.draborneagle.com/DraBornGate/terms/",
       "supportEmail": "support@draborneagle.com"
     },
     "icon": "./assets/branding/draborngate-app-icon-safe.png"
+  },
+  "react-native-google-mobile-ads": {
+    "android_app_id": "ca-app-pub-3940256099942544~3347511713",
+    "delay_app_measurement_init": true,
+    "user_tracking_usage_description": "DraBornGate yalnızca izin verdiğinizde daha uygun reklamlar göstermek için cihaz verisini kullanabilir."
   }
 }
