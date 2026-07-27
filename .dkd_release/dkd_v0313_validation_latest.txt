@@ -1,0 +1,31 @@
+npm warn deprecated uuid@7.0.3: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+
+> draborngate@0.3.13 postinstall
+> node scripts/dkd_apply_v0312_source_update.js && node scripts/dkd_apply_v0312_completion.js && node scripts/dkd_run_v0313_update.js
+
+/home/runner/work/DraBornGate/DraBornGate/scripts/dkd_apply_v0312_source_update.js:16
+  if (!dkdContent.includes(dkdSearch)) throw new Error(`v0.3.12 kaynak güncellemesi uygulanamadı: ${dkdLabel}`);
+                                       ^
+
+Error: v0.3.12 kaynak güncellemesi uygulanamadı: Profile hero
+    at dkdReplace (/home/runner/work/DraBornGate/DraBornGate/scripts/dkd_apply_v0312_source_update.js:16:46)
+    at dkdPatchProfile (/home/runner/work/DraBornGate/DraBornGate/scripts/dkd_apply_v0312_source_update.js:71:16)
+    at dkdRun (/home/runner/work/DraBornGate/DraBornGate/scripts/dkd_apply_v0312_source_update.js:217:3)
+    at Object.<anonymous> (/home/runner/work/DraBornGate/DraBornGate/scripts/dkd_apply_v0312_source_update.js:226:1)
+    at Module._compile (node:internal/modules/cjs/loader:1781:14)
+    at Object..js (node:internal/modules/cjs/loader:1913:10)
+    at Module.load (node:internal/modules/cjs/loader:1505:32)
+    at Function._load (node:internal/modules/cjs/loader:1309:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+
+Node.js v22.23.1
+npm error code 1
+npm error path /home/runner/work/DraBornGate/DraBornGate
+npm error command failed
+npm error command sh -c node scripts/dkd_apply_v0312_source_update.js && node scripts/dkd_apply_v0312_completion.js && node scripts/dkd_run_v0313_update.js
+npm error A complete log of this run can be found in: /home/runner/.npm/_logs/2026-07-27T14_48_14_870Z-debug-0.log
+
+install_status=1
+typecheck_status=99
+policy_status=99
