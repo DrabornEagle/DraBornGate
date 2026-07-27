@@ -1,8 +1,9 @@
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  1009    0  1009    0     0   1318      0 --:--:-- --:--:-- --:--:--  1317100  1009    0  1009    0     0   1318      0 --:--:-- --:--:-- --:--:--  1317
-StorageApiError: The object exceeded the maximum allowed size
-    at /home/runner/work/DraBornGate/DraBornGate/node_modules/@supabase/storage-js/dist/main/lib/fetch.js:24:20
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-status=1
-run_id=30281011949
+status=success
+run_id=30281854855
+version=0.3.13
+original_file=DraBornGate-v0.3.13-release.aab
+original_size=64969446
+original_sha256=f623d0c434266ee99c8d2c553f3061da0d43bd16803e8d32767bc79228f930d4
+part_count=17
+storage_folder=releases/v0.3.13/chunks
+storage_object_count=18
