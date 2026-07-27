@@ -76,20 +76,46 @@ jobs:
       - name: AAB'yi Supabase Storage'a imzalı SDK akışıyla yükle
         shell: bash
         run: |
-          set -euo pipefail
+          set +e
+          mkdir -p .dkd_release
+          REPORT=".dkd_release/dkd_supabase_aab_upload_latest.txt"
+          : > "$REPORT"
           AAB_PATH="$(find release-artifact -type f -name 'DraBornGate-v0.3.13-release.aab' -print -quit)"
-          test -n "$AAB_PATH" && test -s "$AAB_PATH"
-          AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
-          curl --fail --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --max-time 90 \
-            -H "$AUTH_HEADER" \
-            "$DKD_RELEASE_VAULT_URL/release/aab-upload-url?version=${APP_VERSION}" \
-            -o signed-aab-upload.json
-          node scripts/dkd_upload_signed_release_aab.js "$AAB_PATH" signed-aab-upload.json | tee dkd_supabase_aab_upload_v0.3.13.txt
+          if [ -z "$AAB_PATH" ] || [ ! -s "$AAB_PATH" ]; then
+            echo "AAB artifact içinde bulunamadı." | tee -a "$REPORT"
+            STATUS=40
+          else
+            AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
+            curl --fail --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --max-time 90 \
+              -H "$AUTH_HEADER" \
+              "$DKD_RELEASE_VAULT_URL/release/aab-upload-url?version=${APP_VERSION}" \
+              -o signed-aab-upload.json 2>&1 | tee -a "$REPORT"
+            CURL_STATUS=${PIPESTATUS[0]}
+            if [ "$CURL_STATUS" -eq 0 ]; then
+              node scripts/dkd_upload_signed_release_aab.js "$AAB_PATH" signed-aab-upload.json 2>&1 | tee -a "$REPORT"
+              STATUS=${PIPESTATUS[0]}
+            else
+              STATUS="$CURL_STATUS"
+            fi
+          fi
+          {
+            echo "status=$STATUS"
+            echo "run_id=$GITHUB_RUN_ID"
+          } | tee -a "$REPORT"
+          git config user.name "DraBornGate Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add "$REPORT"
+          git commit -m "ci: v0.3.13 Supabase AAB upload sonucunu kaydet $GITHUB_RUN_ID"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
+          exit "$STATUS"
 
       - name: Supabase AAB yükleme raporunu sakla
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: DraBornGate-Supabase-AAB-Upload-v0.3.13
-          path: dkd_supabase_aab_upload_v0.3.13.txt
+          path: .dkd_release/dkd_supabase_aab_upload_latest.txt
           if-no-files-found: error
           retention-days: 30
