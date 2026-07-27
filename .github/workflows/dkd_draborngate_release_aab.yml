@@ -186,10 +186,16 @@ jobs:
           set -euo pipefail
           AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
           AAB="DraBornGate-v${APP_VERSION}-release.aab"
-          SIGNED_JSON="$(curl --fail --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --max-time 90 -H "$AUTH_HEADER" "$DKD_RELEASE_VAULT_URL/release/aab-upload-url?version=${APP_VERSION}")"
+          SIGNED_JSON="$(curl --fail-with-body --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --max-time 90 -H "$AUTH_HEADER" "$DKD_RELEASE_VAULT_URL/release/aab-upload-url?version=${APP_VERSION}")"
           SIGNED_URL="$(printf '%s' "$SIGNED_JSON" | jq -r '.signedUrl')"
           test -n "$SIGNED_URL" && test "$SIGNED_URL" != "null"
-          curl --fail --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --max-time 600 -X PUT -H "Content-Type: application/octet-stream" --data-binary "@$AAB" "$SIGNED_URL"
+          curl --fail-with-body --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --max-time 600 \
+            -X PUT \
+            -H "Content-Type: application/octet-stream" \
+            -H "cache-control: max-age=3600" \
+            -H "x-upsert: true" \
+            --data-binary "@$AAB" \
+            "$SIGNED_URL"
 
       - name: DraBornGate Release AAB yükle
         if: always()
