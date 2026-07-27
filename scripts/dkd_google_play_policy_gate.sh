@@ -3,8 +3,8 @@ set -euo pipefail
 
 APK_PATH="${1:-}"
 EXPECTED_PACKAGE="com.draborneagle.draborngate"
-EXPECTED_VERSION="0.3.14"
-EXPECTED_VERSION_CODE=4
+EXPECTED_VERSION="0.3.15"
+EXPECTED_VERSION_CODE=5
 MIN_TARGET_SDK=36
 AD_ID_PERMISSION="com.google.android.gms.permission.AD_ID"
 SAMPLE_ADMOB_APP_ID="ca-app-pub-3940256099942544~3347511713"
@@ -37,11 +37,11 @@ function fail(message) {
 }
 
 if (app.android?.package !== 'com.draborneagle.draborngate') fail('Android paket adı değişmiş.');
-if (app.version !== '0.3.14' || pkg.version !== '0.3.14') fail('Uygulama sürümü 0.3.14 değil.');
-if (!version.includes("APP_VERSION = '0.3.14'")) fail('Merkezi APP_VERSION 0.3.14 değil.');
-if (!version.includes('ANDROID_VERSION_CODE = 4')) fail('Merkezi Android sürüm kodu 4 değil.');
-if (app.android?.versionCode !== 4) fail('Android versionCode 4 değil.');
-if (app.extra?.appVersion !== '0.3.14' || app.extra?.demoDataVersion !== '0.3.14' || app.extra?.androidVersionCode !== 4) fail('Expo extra sürüm alanları eşleşmiyor.');
+if (app.version !== '0.3.15' || pkg.version !== '0.3.15') fail('Uygulama sürümü 0.3.15 değil.');
+if (!version.includes("APP_VERSION = '0.3.15'")) fail('Merkezi APP_VERSION 0.3.15 değil.');
+if (!version.includes('ANDROID_VERSION_CODE = 5')) fail('Merkezi Android sürüm kodu 5 değil.');
+if (app.android?.versionCode !== 5) fail('Android versionCode 5 değil.');
+if (app.extra?.appVersion !== '0.3.15' || app.extra?.demoDataVersion !== '0.3.15' || app.extra?.androidVersionCode !== 5) fail('Expo extra sürüm alanları eşleşmiyor.');
 if (app.android?.allowBackup !== false) fail('android.allowBackup false olmalı.');
 if (app.androidNavigationBar?.backgroundColor !== '#00000000') fail('Android navigasyon arka planı şeffaf değil.');
 for (const key of requiredUrls) {
@@ -63,7 +63,9 @@ for (const permission of [
 
 if (pkg.dependencies?.['expo-iap'] !== '4.7.0') fail('expo-iap 4.7.0 olarak sabitlenmeli.');
 if (!(app.plugins || []).some((item) => pluginName(item) === 'expo-iap')) fail('expo-iap config plugin eksik.');
-if (!billing.includes('DKD_V0314_PLAY_BILLING')) fail('v0.3.14 Google Play Billing bileşeni uygulanmamış.');
+if (!billing.includes('DKD_V0315_PLAY_BILLING')) fail('v0.3.15 Google Play Billing bileşeni uygulanmamış.');
+if (!billing.includes('products, subscriptions, fetchProducts')) fail('expo-iap abonelik durumu subscriptions alanından okunmuyor.');
+if (!billing.includes('Array.isArray(subscriptions) ? subscriptions : []')) fail('Abonelik kataloğu subscriptions dizisini birleştirmiyor.');
 if (!billing.includes('dkdBasePlanId(item) === basePlanId')) fail('Satın alma öncesinde kesin temel plan eşleşmesi zorunlu değil.');
 if (!billing.includes('item?.subscriptionOffers')) fail('expo-iap normalize subscriptionOffers biçimi desteklenmiyor.');
 if (!billing.includes('subscriptionOfferDetailsAndroid')) fail('Android eski abonelik teklif biçimi desteklenmiyor.');
@@ -106,7 +108,7 @@ NODE
 
 mapfile -t POLICY_URLS < <(node -e "const app=require('./app.json').expo; console.log(app.extra.privacyPolicyUrl); console.log(app.extra.accountDeletionUrl); console.log(app.extra.termsUrl)")
 for url in "${POLICY_URLS[@]}"; do
-  HTTP_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' --max-time 30 --retry 2 --retry-delay 2 -A 'DraBornGate-GooglePlay-Policy-Check/0.3.14' "$url")"
+  HTTP_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' --max-time 30 --retry 2 --retry-delay 2 -A 'DraBornGate-GooglePlay-Policy-Check/0.3.15' "$url")"
   if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
     echo "POLİTİKA HATASI: Yayın sayfası erişilebilir değil ($HTTP_CODE): $url" >&2
     exit 1
@@ -136,4 +138,4 @@ if [ -n "$APK_PATH" ]; then
   echo "Derlenmiş APK politika kontrolü geçti: $EXPECTED_VERSION ($EXPECTED_VERSION_CODE), targetSdk $TARGET_SDK."
 fi
 
-echo "DraBornGate v0.3.14 Google Play otomatik politika kapısı başarıyla geçti."
+echo "DraBornGate v0.3.15 Google Play otomatik politika kapısı başarıyla geçti."
