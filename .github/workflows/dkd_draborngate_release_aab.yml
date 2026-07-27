@@ -3,13 +3,13 @@ name: DraBornGate Release AAB
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
-      - .dkd_release/trigger_aab_v0313.txt
+      - .dkd_release/trigger_aab_v0314.txt
 
 permissions:
   contents: write
-  actions: read
   id-token: write
 
 concurrency:
@@ -19,17 +19,19 @@ concurrency:
 jobs:
   release-aab:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 90
     env:
+      CI: "1"
       DKD_RELEASE_VAULT_URL: https://guuwomvszlwhkmstewfl.supabase.co/functions/v1/dkd-gate-release-vault
-      DKD_SOURCE_RUN_ID: "30279086956"
-      APP_VERSION: "0.3.13"
+      GOOGLE_MAPS_ANDROID_API_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_API_KEY }}
+      ADMOB_ANDROID_APP_ID: ${{ secrets.ADMOB_ANDROID_APP_ID }}
+      EXPO_PUBLIC_ADMOB_REWARDED_AD_UNIT_ID: ${{ secrets.ADMOB_REWARDED_AD_UNIT_ID }}
 
     steps:
       - name: Kaynak kodu al
         uses: actions/checkout@v4
 
-      - name: Supabase manifest run kimliğini kaydet
+      - name: Run kimliğini ve workflow envanterini kaydet
         shell: bash
         run: |
           set -euo pipefail
@@ -39,17 +41,41 @@ jobs:
             echo "run_attempt=$GITHUB_RUN_ATTEMPT"
             echo "source_sha=$GITHUB_SHA"
             echo "workflow=DraBornGate Release AAB"
-            echo "mode=supabase-manifest-finalize"
-            echo "version=0.3.13"
-            echo "android_version_code=3"
+            echo "version=0.3.14"
+            echo "android_version_code=4"
           } > .dkd_release/latest_aab_run.txt
+          find .github/workflows -maxdepth 1 -type f -printf '%f\n' | sort > .dkd_release/workflow_inventory.txt
+          test "$(wc -l < .dkd_release/workflow_inventory.txt)" -eq 2
+          grep -Fx 'dkd_draborngate_release_apk.yml' .dkd_release/workflow_inventory.txt
+          grep -Fx 'dkd_draborngate_release_aab.yml' .dkd_release/workflow_inventory.txt
           git config user.name "DraBornGate Release Bot"
           git config user.email "actions@users.noreply.github.com"
-          git add .dkd_release/latest_aab_run.txt
-          git commit -m "ci: v0.3.13 Supabase manifest run $GITHUB_RUN_ID kaydını güncelle"
+          git add .dkd_release/latest_aab_run.txt .dkd_release/workflow_inventory.txt
+          git commit -m "ci: v0.3.14 AAB run $GITHUB_RUN_ID kaydını güncelle"
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
+
+      - name: Node.js 22 kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Java 17 kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Sürümü doğrula
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_VERSION="$(node -p 'require("./package.json").version')"
+          echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
+          test "$APP_VERSION" = "0.3.14"
+          test "$(node -p 'require("./app.json").expo.android.versionCode')" = "4"
+          test "$(node -p 'require("./app.json").expo.android.package')" = "com.draborneagle.draborngate"
 
       - name: GitHub OIDC release kimliğini al
         shell: bash
@@ -60,98 +86,128 @@ jobs:
           echo "::add-mask::$OIDC_TOKEN"
           echo "DKD_RELEASE_OIDC_TOKEN=$OIDC_TOKEN" >> "$GITHUB_ENV"
 
-      - name: İmzalı v0.3.13 AAB artifactini al
-        uses: actions/download-artifact@v4
-        with:
-          name: DraBornGate-Release-AAB-v0.3.13
-          path: release-artifact
-          github-token: ${{ github.token }}
-          repository: DrabornEagle/DraBornGate
-          run-id: ${{ env.DKD_SOURCE_RUN_ID }}
-
-      - name: Supabase istemcisini kur
-        shell: bash
-        run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false @supabase/supabase-js@2.57.4
-
-      - name: AAB manifestini oluştur ve Supabase'e yükle
+      - name: Bağımlılıkları, TypeScript'i ve politikaları doğrula
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p .dkd_release aab-parts
-          REPORT=".dkd_release/dkd_supabase_aab_upload_latest.txt"
-          AAB_PATH="$(find release-artifact -type f -name 'DraBornGate-v0.3.13-release.aab' -print -quit)"
-          test -n "$AAB_PATH" && test -s "$AAB_PATH"
-          split -b 4000000 -d -a 3 "$AAB_PATH" aab-parts/part-
-          MANIFEST="DraBornGate-v${APP_VERSION}-release.aab.manifest.json"
+          npm install --no-audit --no-fund --package-lock=false
+          npm run typecheck
+          bash scripts/dkd_google_play_policy_gate.sh
 
-          node - "$AAB_PATH" aab-parts "$MANIFEST" "$APP_VERSION" <<'NODE'
-          const fs = require('fs');
-          const path = require('path');
-          const crypto = require('crypto');
-          const [aabPath, partsDir, manifestPath, version] = process.argv.slice(2);
-          const digest = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
-          const parts = fs.readdirSync(partsDir).sort().map((name) => {
-            const file = path.join(partsDir, name);
-            return {
-              name: `DraBornGate-v${version}-release.aab.${name}`,
-              size: fs.statSync(file).size,
-              sha256: digest(file),
-            };
-          });
-          const manifest = {
-            format: 'dkd-aab-parts-v1',
-            version,
-            androidVersionCode: 3,
-            originalFile: `DraBornGate-v${version}-release.aab`,
-            originalSize: fs.statSync(aabPath).size,
-            originalSha256: digest(aabPath),
-            partSizeBytes: 4000000,
-            partCount: parts.length,
-            storageFolder: `releases/v${version}/chunks`,
-            parts,
-            restore: 'Parçaları ad sırasıyla birleştir ve originalSha256 değerini doğrula.',
-          };
-          fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-          NODE
+      - name: Android release projesini üret
+        env:
+          GOOGLE_MAPS_ANDROID_API_KEY: ${{ env.GOOGLE_MAPS_ANDROID_API_KEY || 'dkd_release_placeholder_key' }}
+        run: npx expo prebuild --clean --platform android
 
+      - name: Kalıcı DraBornGate keystore'unu özel kasadan al
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.gradle" signing-work
+          METADATA="signing-work/signing.json"
+          KEYSTORE="android/app/draborngate-release.keystore"
+          AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
+          curl -fsSL -H "$AUTH_HEADER" "$DKD_RELEASE_VAULT_URL/signing/metadata" -o "$METADATA"
+          curl -fsSL -H "$AUTH_HEADER" "$DKD_RELEASE_VAULT_URL/signing/keystore" -o "$KEYSTORE"
+          STORE_PASSWORD="$(jq -r '.storePassword' "$METADATA")"
+          KEY_PASSWORD="$(jq -r '.keyPassword // .storePassword' "$METADATA")"
+          KEY_ALIAS="$(jq -r '.alias' "$METADATA")"
+          test -s "$KEYSTORE"
+          test -n "$STORE_PASSWORD" && test "$STORE_PASSWORD" != "null"
+          test -n "$KEY_PASSWORD" && test "$KEY_PASSWORD" != "null"
+          test -n "$KEY_ALIAS" && test "$KEY_ALIAS" != "null"
+          echo "::add-mask::$STORE_PASSWORD"
+          echo "::add-mask::$KEY_PASSWORD"
+          echo "ANDROID_KEYSTORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          cat >> "$HOME/.gradle/gradle.properties" <<EOF_GRADLE
+          DKD_UPLOAD_STORE_FILE=$GITHUB_WORKSPACE/$KEYSTORE
+          DKD_UPLOAD_STORE_PASSWORD=$STORE_PASSWORD
+          DKD_UPLOAD_KEY_ALIAS=$KEY_ALIAS
+          DKD_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD
+          EOF_GRADLE
+          cat >> android/app/build.gradle <<'EOF_SIGNING'
+
+          android {
+              signingConfigs {
+                  dkdRelease {
+                      storeFile file(findProperty('DKD_UPLOAD_STORE_FILE'))
+                      storePassword findProperty('DKD_UPLOAD_STORE_PASSWORD')
+                      keyAlias findProperty('DKD_UPLOAD_KEY_ALIAS')
+                      keyPassword findProperty('DKD_UPLOAD_KEY_PASSWORD')
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.dkdRelease
+                  }
+              }
+          }
+          EOF_SIGNING
+
+      - name: Release AAB oluştur
+        working-directory: android
+        shell: bash
+        run: |
+          set -o pipefail
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon --stacktrace 2>&1 | tee "../dkd_gradle_aab_v${APP_VERSION}.log"
+
+      - name: AAB'yi hazırla ve imzayı doğrula
+        shell: bash
+        run: |
+          set -euo pipefail
+          AAB="DraBornGate-v${APP_VERSION}-release.aab"
+          REPORT="dkd_aab_signature_v${APP_VERSION}.txt"
+          cp android/app/build/outputs/bundle/release/app-release.aab "$AAB"
+          test -s "$AAB"
+          jarsigner -verify -verbose -certs "$AAB" | tee "$REPORT"
+          jarsigner -verify "$AAB"
+          keytool -printcert -jarfile "$AAB" > signing-work/aab-cert.txt
+          keytool -list -v -keystore android/app/draborngate-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" > signing-work/keytool.txt
+          AAB_CERT="$(sed -n 's/^[[:space:]]*SHA256: //p' signing-work/aab-cert.txt | sed -n '1p' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          KEY_CERT="$(sed -n 's/^[[:space:]]*SHA256: //p' signing-work/keytool.txt | sed -n '1p' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          AAB_SHA256="$(sha256sum "$AAB" | awk '{print $1}')"
+          test -n "$AAB_CERT" && test -n "$KEY_CERT"
+          test "$AAB_CERT" = "$KEY_CERT"
+          {
+            echo
+            echo "AAB sertifika SHA-256: $AAB_CERT"
+            echo "Kalıcı keystore sertifika SHA-256: $KEY_CERT"
+            echo "AAB dosya SHA-256: $AAB_SHA256"
+            echo "Sürüm: $APP_VERSION"
+            echo "Android versionCode: 4"
+            echo "Paket: com.draborneagle.draborngate"
+          } | tee -a "$REPORT"
+
+      - name: AAB'yi Supabase özel release kasasına yükle
+        shell: bash
+        run: |
+          set -euo pipefail
+          AAB="DraBornGate-v${APP_VERSION}-release.aab"
           AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
           curl --fail --show-error --location --retry 5 --retry-all-errors --retry-delay 2 --max-time 90 \
             -H "$AUTH_HEADER" \
-            "$DKD_RELEASE_VAULT_URL/release/aab-manifest-upload-url?version=${APP_VERSION}" \
-            -o signed-manifest-upload.json
-          node scripts/dkd_upload_signed_release_file.js "$MANIFEST" signed-manifest-upload.json application/json
-
-          curl --fail --show-error --location --retry 5 --retry-all-errors --retry-delay 2 --max-time 90 \
+            "$DKD_RELEASE_VAULT_URL/release/aab-upload-url?version=${APP_VERSION}" \
+            -o signed-aab-upload.json
+          node scripts/dkd_upload_signed_release_file.js "$AAB" signed-aab-upload.json application/octet-stream | tee "dkd_supabase_aab_upload_v${APP_VERSION}.txt"
+          curl --fail --show-error --location --retry 3 --retry-all-errors --max-time 300 \
             -H "$AUTH_HEADER" \
-            "$DKD_RELEASE_VAULT_URL/release/aab-chunks?version=${APP_VERSION}" \
-            -o aab-chunks-status.json
-          test "$(jq '.objects | length' aab-chunks-status.json)" -eq 18
-          test "$(jq '[.objects[] | select(.name == "manifest.json")] | length' aab-chunks-status.json)" -eq 1
+            "$DKD_RELEASE_VAULT_URL/release/aab?version=${APP_VERSION}" \
+            -o signing-work/supabase-verify.aab
+          test "$(sha256sum "$AAB" | awk '{print $1}')" = "$(sha256sum signing-work/supabase-verify.aab | awk '{print $1}')"
+          rm -f signing-work/supabase-verify.aab
 
-          {
-            echo "status=success"
-            echo "run_id=$GITHUB_RUN_ID"
-            jq -r '"version=" + .version, "original_file=" + .originalFile, "original_size=" + (.originalSize|tostring), "original_sha256=" + .originalSha256, "part_size=" + (.partSizeBytes|tostring), "part_count=" + (.partCount|tostring), "storage_folder=" + .storageFolder' "$MANIFEST"
-            echo "storage_object_count=$(jq '.objects | length' aab-chunks-status.json)"
-            echo "supabase_backup=success"
-          } | tee "$REPORT"
-
-          git config user.name "DraBornGate Release Bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add "$REPORT"
-          git commit -m "ci: v0.3.13 Supabase AAB manifestini doğrula $GITHUB_RUN_ID"
-          git fetch origin main
-          git rebase origin/main
-          git push origin HEAD:main
-
-      - name: Supabase AAB yükleme raporunu sakla
-        if: always()
+      - name: DraBornGate Release AAB yükle
         uses: actions/upload-artifact@v4
         with:
-          name: DraBornGate-Supabase-AAB-Upload-v0.3.13
+          name: DraBornGate-Release-AAB-v${{ env.APP_VERSION }}
           path: |
-            .dkd_release/dkd_supabase_aab_upload_latest.txt
-            DraBornGate-v0.3.13-release.aab.manifest.json
-            aab-chunks-status.json
-          if-no-files-found: warn
+            DraBornGate-v${{ env.APP_VERSION }}-release.aab
+            dkd_gradle_aab_v${{ env.APP_VERSION }}.log
+            dkd_aab_signature_v${{ env.APP_VERSION }}.txt
+            dkd_supabase_aab_upload_v${{ env.APP_VERSION }}.txt
+            signing-work/aab-cert.txt
+            signing-work/keytool.txt
+          if-no-files-found: error
           retention-days: 30
