@@ -88,10 +88,41 @@ jobs:
       - name: Bağımlılıkları ve kaynak kodunu doğrula
         shell: bash
         run: |
-          set -euo pipefail
-          npm install --no-audit --no-fund --package-lock=false
-          npm run typecheck
-          bash scripts/dkd_google_play_policy_gate.sh
+          set +e
+          mkdir -p .dkd_release
+          LOG=".dkd_release/dkd_v0313_validation_latest.txt"
+          : > "$LOG"
+          npm install --no-audit --no-fund --package-lock=false 2>&1 | tee -a "$LOG"
+          INSTALL_STATUS=${PIPESTATUS[0]}
+          if [ "$INSTALL_STATUS" -eq 0 ]; then
+            npm run typecheck 2>&1 | tee -a "$LOG"
+            TYPECHECK_STATUS=${PIPESTATUS[0]}
+          else
+            TYPECHECK_STATUS=99
+          fi
+          if [ "$INSTALL_STATUS" -eq 0 ] && [ "$TYPECHECK_STATUS" -eq 0 ]; then
+            bash scripts/dkd_google_play_policy_gate.sh 2>&1 | tee -a "$LOG"
+            POLICY_STATUS=${PIPESTATUS[0]}
+          else
+            POLICY_STATUS=99
+          fi
+          {
+            echo
+            echo "install_status=$INSTALL_STATUS"
+            echo "typecheck_status=$TYPECHECK_STATUS"
+            echo "policy_status=$POLICY_STATUS"
+          } | tee -a "$LOG"
+          if [ "$INSTALL_STATUS" -ne 0 ] || [ "$TYPECHECK_STATUS" -ne 0 ] || [ "$POLICY_STATUS" -ne 0 ]; then
+            git config user.name "DraBornGate Release Bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add "$LOG"
+            git commit -m "ci: v0.3.13 doğrulama hatasını kaydet $GITHUB_RUN_ID"
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main
+            exit 1
+          fi
+          set -e
 
       - name: Üretilen v0.3.13 kaynaklarını GitHub main ile eşitle
         shell: bash
@@ -120,8 +151,8 @@ jobs:
           METADATA="signing-work/signing.json"
           KEYSTORE="android/app/draborngate-release.keystore"
           AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
-          curl -fsSL -H "$AUTH_HEADER" "$DKD_RELEASE_VAULT_URL/signing/metadata" -o "$METADATA"
-          curl -fsSL -H "$AUTH_HEADER" "$DKD_RELEASE_VAULT_URL/signing/keystore" -o "$KEYSTORE"
+          curl --fail --show-error --location --retry 6 --retry-all-errors --retry-delay 3 --max-time 90 -H "$AUTH_HEADER" "$DKD_RELEASE_VAULT_URL/signing/metadata" -o "$METADATA"
+          curl --fail --show-error --location --retry 6 --retry-all-errors --retry-delay 3 --max-time 90 -H "$AUTH_HEADER" "$DKD_RELEASE_VAULT_URL/signing/keystore" -o "$KEYSTORE"
           STORE_PASSWORD="$(jq -r '.storePassword' "$METADATA")"
           KEY_PASSWORD="$(jq -r '.keyPassword // .storePassword' "$METADATA")"
           KEY_ALIAS="$(jq -r '.alias' "$METADATA")"
@@ -195,17 +226,15 @@ jobs:
             echo "Kalıcı keystore sertifika SHA-256: $KEY_CERT"
             echo "AAB dosya SHA-256: $AAB_SHA256"
           } | tee -a "$REPORT"
-          MATCH=false
-          if [ "$AAB_CERT" = "$KEY_CERT" ]; then MATCH=true; fi
-          echo "match=$MATCH" >> "$GITHUB_OUTPUT"
-          test "$MATCH" = "true"
+          test "$AAB_CERT" = "$KEY_CERT"
 
-      - name: AAB'yi özel Supabase kasasına yedeklemeyi dene
+      - name: AAB ve raporları özel Supabase kasasına yedeklemeyi dene
         continue-on-error: true
         shell: bash
         run: |
+          set -euo pipefail
           AUTH_HEADER="Authorization: Bearer $DKD_RELEASE_OIDC_TOKEN"
-          curl --fail --show-error --retry 3 --retry-all-errors --max-time 240 -X PUT -H "$AUTH_HEADER" -H "Content-Type: application/octet-stream" --data-binary "@DraBornGate-v${APP_VERSION}-release.aab" "$DKD_RELEASE_VAULT_URL/release/aab?version=${APP_VERSION}"
+          curl --fail --show-error --location --retry 4 --retry-all-errors --retry-delay 3 --max-time 300 -X PUT -H "$AUTH_HEADER" -H "Content-Type: application/octet-stream" --data-binary "@DraBornGate-v${APP_VERSION}-release.aab" "$DKD_RELEASE_VAULT_URL/release/aab?version=${APP_VERSION}"
 
       - name: DraBornGate Release AAB yükle
         if: always()
@@ -219,5 +248,6 @@ jobs:
             dkd_google_play_policy_v${{ env.APP_VERSION }}.txt
             signing-work/aab-cert.txt
             signing-work/keytool.txt
+            .dkd_release/dkd_v0313_validation_latest.txt
           if-no-files-found: error
           retention-days: 30
