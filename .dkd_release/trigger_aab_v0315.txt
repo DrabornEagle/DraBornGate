@@ -1,5 +1,6 @@
 DraBornGate Release AAB
 version=0.3.15
 android_version_code=5
-reason=expo-iap subscriptions katalog düzeltmesi
-requested_at=2026-07-28T01:05:00+03:00
+reason=expo-iap subscriptions katalog ve dinamik Supabase manifest sürüm kodu düzeltmesi
+requested_at=2026-07-28T01:20:00+03:00
+attempt=2
