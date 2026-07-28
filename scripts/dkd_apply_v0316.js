@@ -4,12 +4,16 @@ const fs = require('fs');
 const path = require('path');
 
 const dkdSafePath = path.join(__dirname, 'dkd_apply_v0316_safe.js');
-let dkdSafeSource = fs.readFileSync(dkdSafePath, 'utf8');
+const dkdOriginalSafeSource = fs.readFileSync(dkdSafePath, 'utf8');
 const dkdBrokenBillingReplacement = "      `${dkdBillingReturn}\\n}`,\n";
 const dkdFixedBillingReplacement = "      dkdBillingReturn,\n";
-if (dkdSafeSource.includes(dkdBrokenBillingReplacement)) {
-  dkdSafeSource = dkdSafeSource.replace(dkdBrokenBillingReplacement, dkdFixedBillingReplacement);
-  fs.writeFileSync(dkdSafePath, dkdSafeSource, 'utf8');
-}
+const dkdPatchedSafeSource = dkdOriginalSafeSource.includes(dkdBrokenBillingReplacement)
+  ? dkdOriginalSafeSource.replace(dkdBrokenBillingReplacement, dkdFixedBillingReplacement)
+  : dkdOriginalSafeSource;
 
-require(dkdSafePath);
+try {
+  if (dkdPatchedSafeSource !== dkdOriginalSafeSource) fs.writeFileSync(dkdSafePath, dkdPatchedSafeSource, 'utf8');
+  require(dkdSafePath);
+} finally {
+  if (dkdPatchedSafeSource !== dkdOriginalSafeSource) fs.writeFileSync(dkdSafePath, dkdOriginalSafeSource, 'utf8');
+}
