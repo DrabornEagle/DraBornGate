@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - .dkd_release/trigger_apk_v0315.txt
+      - .dkd_release/trigger_apk_v0316.txt
 
 permissions:
   contents: write
@@ -41,8 +41,8 @@ jobs:
             echo "run_attempt=$GITHUB_RUN_ATTEMPT"
             echo "source_sha=$GITHUB_SHA"
             echo "workflow=DraBornGate Release APK"
-            echo "version=0.3.15"
-            echo "android_version_code=5"
+            echo "version=0.3.16"
+            echo "android_version_code=6"
           } > .dkd_release/latest_apk_run.txt
           find .github/workflows -maxdepth 1 -type f -printf '%f\n' | sort > .dkd_release/workflow_inventory.txt
           test "$(wc -l < .dkd_release/workflow_inventory.txt)" -eq 2
@@ -51,7 +51,7 @@ jobs:
           git config user.name "DraBornGate Release Bot"
           git config user.email "actions@users.noreply.github.com"
           git add .dkd_release/latest_apk_run.txt .dkd_release/workflow_inventory.txt
-          git commit -m "ci: v0.3.15 APK run $GITHUB_RUN_ID kaydını güncelle"
+          git commit -m "ci: v0.3.16 APK run $GITHUB_RUN_ID kaydını güncelle"
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
@@ -60,6 +60,27 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: v0.3.16 kaynak yükseltmesini uygula ve GitHub'a kaydet
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/dkd_apply_v0316.js
+          git config user.name "DraBornGate Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            src/screens/AuthScreen.tsx \
+            src/screens/CourierHome.tsx \
+            src/screens/CourierCenterV032.tsx \
+            src/screens/ResidentHome.tsx \
+            src/components/GooglePlaySubscriptionButton.tsx \
+            scripts/dkd_google_play_policy_gate.sh
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: DraBornGate v0.3.16 arayüz ve politika düzenlemeleri"
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main
+          fi
 
       - name: Java 17 kur
         uses: actions/setup-java@v4
@@ -73,10 +94,10 @@ jobs:
           set -euo pipefail
           APP_VERSION="$(node -p 'require("./package.json").version')"
           echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
-          test "$APP_VERSION" = "0.3.15"
-          test "$(node -p 'require("./app.json").expo.android.versionCode')" = "5"
+          test "$APP_VERSION" = "0.3.16"
+          test "$(node -p 'require("./app.json").expo.android.versionCode')" = "6"
           test "$(node -p 'require("./app.json").expo.android.package')" = "com.draborneagle.draborngate"
-          node scripts/dkd_verify_v0315.js
+          node scripts/dkd_verify_v0316.js
 
       - name: GitHub OIDC release kimliğini al
         shell: bash
@@ -183,7 +204,7 @@ jobs:
             echo "Kalıcı keystore sertifika SHA-256: $KEY_CERT"
             echo "APK dosya SHA-256: $APK_SHA256"
             echo "Sürüm: $APP_VERSION"
-            echo "Android versionCode: 5"
+            echo "Android versionCode: 6"
             echo "Paket: com.draborneagle.draborngate"
           } | tee -a "$REPORT"
 
