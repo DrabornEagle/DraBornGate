@@ -1,4 +1,4 @@
-// DKD_V0312_COURIER_CENTER
+// DKD_V0316_COURIER_CENTER
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -50,6 +50,7 @@ export function CourierCenterV032({ initialTab = 'passes' }: { initialTab?: 'pas
   const [selected, setSelected] = useState('');
   const [cycle, setCycle] = useState<BillingCycle>('monthly');
   const [loading, setLoading] = useState(false);
+  const dkdPackagesScrollRef = useRef<ScrollView>(null);
 
   const load = async () => {
     setLoading(true);
@@ -79,6 +80,11 @@ export function CourierCenterV032({ initialTab = 'passes' }: { initialTab?: 'pas
       && center.effective_plan?.code !== 'courier_starter',
   );
 
+  const dkdSelectPlan = (dkdPlanCode: string) => {
+    setSelected(dkdPlanCode);
+    setTimeout(() => dkdPackagesScrollRef.current?.scrollToEnd({ animated: true }), 180);
+  };
+
   return (
     <View style={s.flex}>
       <View style={s.tabs}>
@@ -107,6 +113,7 @@ export function CourierCenterV032({ initialTab = 'passes' }: { initialTab?: 'pas
         <PassesScreen role="courier" />
       ) : (
         <ScrollView
+          ref={dkdPackagesScrollRef}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} tintColor={colors.cyan} />}
           contentContainerStyle={s.content}
           showsVerticalScrollIndicator={false}
@@ -146,7 +153,7 @@ export function CourierCenterV032({ initialTab = 'passes' }: { initialTab?: 'pas
               <View style={s.list}>
                 {center.plans.map((plan, index) => (
                   <FadeInView key={plan.code} delay={index * 60}>
-                    <AnimatedPressable onPress={() => setSelected(plan.code)}>
+                    <AnimatedPressable onPress={() => dkdSelectPlan(plan.code)}>
                       <Panel style={[s.card, selected === plan.code && s.selected]} gradient>
                         <View style={s.top}>
                           <FloatingView

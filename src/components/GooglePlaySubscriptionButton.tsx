@@ -1,8 +1,8 @@
-// DKD_V0315_PLAY_BILLING
+// DKD_V0316_PLAY_BILLING
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, Linking, StyleSheet, Text, View } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { colors, gradients, radius } from '../theme';
 import { AnimatedPressable } from './Motion';
@@ -93,6 +93,16 @@ function NativePurchase({ plan, cycle, scope, siteId, onVerified }: { plan: Goog
   const [dkdFetchedProducts, setDkdFetchedProducts] = useState<DkdPlayProduct[]>([]);
   const [dkdQueryError, setDkdQueryError] = useState('');
   const [dkdQueryInProgress, setDkdQueryInProgress] = useState(false);
+  const dkdButtonMotion = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const dkdButtonLoop = Animated.loop(Animated.sequence([
+      Animated.timing(dkdButtonMotion, { toValue: 1, duration: 1450, useNativeDriver: true }),
+      Animated.timing(dkdButtonMotion, { toValue: 0, duration: 1450, useNativeDriver: true }),
+    ]));
+    dkdButtonLoop.start();
+    return () => dkdButtonLoop.stop();
+  }, [dkdButtonMotion]);
 
   useEffect(() => {
     let dkdActive = true;
@@ -182,11 +192,20 @@ function NativePurchase({ plan, cycle, scope, siteId, onVerified }: { plan: Goog
   };
 
   return <View style={s.wrapper}>
-    <AnimatedPressable onPress={() => void purchase()} disabled={!connected || purchaseInProgress}>
-      <LinearGradient colors={gradients.success} style={s.button}>{purchaseInProgress || dkdQueryInProgress ? <ActivityIndicator color={colors.background} /> : <Ionicons name="logo-google-playstore" size={22} color={colors.background} />}<Text style={s.buttonText}>{purchaseInProgress ? 'GOOGLE PLAY AÇILIYOR' : dkdQueryInProgress ? 'PAKETLER SORGULANIYOR' : 'GOOGLE PLAY İLE ABONE OL'}</Text></LinearGradient>
-    </AnimatedPressable>
+    <Animated.View style={{ transform: [{ scale: dkdButtonMotion.interpolate({ inputRange: [0, 1], outputRange: [1, 1.018] }) }] }}>
+      <AnimatedPressable onPress={() => void purchase()} disabled={!connected || purchaseInProgress}>
+        <LinearGradient colors={['#31E6A1', '#25B7FF', '#796BFF', '#E45DFF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.button}>
+          <Animated.View pointerEvents="none" style={[s.buttonAura, { opacity: dkdButtonMotion.interpolate({ inputRange: [0, 1], outputRange: [.12, .34] }), transform: [{ scale: dkdButtonMotion.interpolate({ inputRange: [0, 1], outputRange: [.82, 1.18] }) }] }]} />
+          <Animated.View pointerEvents="none" style={[s.buttonShine, { transform: [{ translateX: dkdButtonMotion.interpolate({ inputRange: [0, 1], outputRange: [-90, 360] }) }, { rotate: '-18deg' }] }]} />
+          <View style={s.playIcon}>{purchaseInProgress || dkdQueryInProgress ? <ActivityIndicator color={colors.white} /> : <Ionicons name="logo-google-playstore" size={24} color={colors.white} />}</View>
+          <View style={s.buttonCopy}><Text style={s.buttonText}>{purchaseInProgress ? 'GOOGLE PLAY AÇILIYOR' : dkdQueryInProgress ? 'PAKETLER SORGULANIYOR' : 'GOOGLE PLAY İLE ABONE OL'}</Text><Text style={s.buttonSub}>GÜVENLİ ÖDEME • PLAY STORE</Text></View>
+          <Ionicons name="arrow-forward-circle" size={25} color={colors.white} />
+        </LinearGradient>
+      </AnimatedPressable>
+    </Animated.View>
     <AnimatedPressable onPress={() => void Linking.openURL('https://play.google.com/store/account/subscriptions?package=com.draborneagle.draborngate')}><Text style={s.manage}>Mevcut abonelikleri yönet veya iptal et</Text></AnimatedPressable>
   </View>;
 }
+}
 
-const s = StyleSheet.create({ wrapper: { gap: 9 }, button: { minHeight: 56, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingHorizontal: 12 }, buttonText: { color: colors.background, fontSize: 12, fontWeight: '900' }, manage: { color: colors.cyan, fontSize: 10, fontWeight: '800', textAlign: 'center' }, free: { minHeight: 50, borderRadius: radius.md, borderWidth: 1, borderColor: 'rgba(67,231,162,.4)', backgroundColor: 'rgba(67,231,162,.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }, freeText: { color: colors.green, fontWeight: '900', fontSize: 11 }, test: { minHeight: 65, borderRadius: radius.md, borderWidth: 1, borderColor: 'rgba(255,179,92,.4)', backgroundColor: 'rgba(255,179,92,.07)', padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10 }, copy: { flex: 1 }, testTitle: { color: colors.orange, fontWeight: '900', fontSize: 11 }, testText: { color: colors.textSoft, fontSize: 10, lineHeight: 15, marginTop: 3 } });
+const s = StyleSheet.create({ wrapper: { gap: 9 }, button: { minHeight: 68, borderRadius: 21, borderWidth: 1, borderColor: 'rgba(255,255,255,.42)', flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 13, overflow: 'hidden' }, buttonAura: { position: 'absolute', width: 150, height: 150, borderRadius: 150, right: -54, top: -72, backgroundColor: colors.white }, buttonShine: { position: 'absolute', top: -30, bottom: -30, width: 38, backgroundColor: 'rgba(255,255,255,.24)' }, playIcon: { width: 43, height: 43, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,.45)', backgroundColor: 'rgba(2,7,13,.18)', alignItems: 'center', justifyContent: 'center' }, buttonCopy: { flex: 1 }, buttonText: { color: colors.white, fontSize: 12.5, fontWeight: '900', letterSpacing: .25 }, buttonSub: { color: 'rgba(255,255,255,.78)', fontSize: 7.5, fontWeight: '900', letterSpacing: .65, marginTop: 3 }, manage: { color: colors.cyan, fontSize: 10, fontWeight: '800', textAlign: 'center' }, free: { minHeight: 50, borderRadius: radius.md, borderWidth: 1, borderColor: 'rgba(67,231,162,.4)', backgroundColor: 'rgba(67,231,162,.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }, freeText: { color: colors.green, fontWeight: '900', fontSize: 11 }, test: { minHeight: 65, borderRadius: radius.md, borderWidth: 1, borderColor: 'rgba(255,179,92,.4)', backgroundColor: 'rgba(255,179,92,.07)', padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10 }, copy: { flex: 1 }, testTitle: { color: colors.orange, fontWeight: '900', fontSize: 11 }, testText: { color: colors.textSoft, fontSize: 10, lineHeight: 15, marginTop: 3 } });

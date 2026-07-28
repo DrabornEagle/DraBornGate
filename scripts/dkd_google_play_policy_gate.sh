@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
+# DKD_V0316_POLICY_GATE
 set -euo pipefail
 
 APK_PATH="${1:-}"
 EXPECTED_PACKAGE="com.draborneagle.draborngate"
-EXPECTED_VERSION="0.3.15"
-EXPECTED_VERSION_CODE=5
+EXPECTED_VERSION="0.3.16"
+EXPECTED_VERSION_CODE=6
 MIN_TARGET_SDK=36
 AD_ID_PERMISSION="com.google.android.gms.permission.AD_ID"
 SAMPLE_ADMOB_APP_ID="ca-app-pub-3940256099942544~3347511713"
@@ -18,6 +19,9 @@ const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const version = fs.readFileSync('src/config/version.ts', 'utf8');
 const billing = fs.readFileSync('src/components/GooglePlaySubscriptionButton.tsx', 'utf8');
 const courier = fs.readFileSync('src/screens/CourierCenterV032.tsx', 'utf8');
+const courierHome = fs.readFileSync('src/screens/CourierHome.tsx', 'utf8');
+const authScreen = fs.readFileSync('src/screens/AuthScreen.tsx', 'utf8');
+const residentHome = fs.readFileSync('src/screens/ResidentHome.tsx', 'utf8');
 const site = fs.readFileSync('src/screens/ManagementProCenter.tsx', 'utf8');
 const appSource = fs.readFileSync('App.tsx', 'utf8');
 const privacyCenter = fs.readFileSync('src/components/PrivacyDataCenter.tsx', 'utf8');
@@ -37,11 +41,11 @@ function fail(message) {
 }
 
 if (app.android?.package !== 'com.draborneagle.draborngate') fail('Android paket adı değişmiş.');
-if (app.version !== '0.3.15' || pkg.version !== '0.3.15') fail('Uygulama sürümü 0.3.15 değil.');
-if (!version.includes("APP_VERSION = '0.3.15'")) fail('Merkezi APP_VERSION 0.3.15 değil.');
-if (!version.includes('ANDROID_VERSION_CODE = 5')) fail('Merkezi Android sürüm kodu 5 değil.');
-if (app.android?.versionCode !== 5) fail('Android versionCode 5 değil.');
-if (app.extra?.appVersion !== '0.3.15' || app.extra?.demoDataVersion !== '0.3.15' || app.extra?.androidVersionCode !== 5) fail('Expo extra sürüm alanları eşleşmiyor.');
+if (app.version !== '0.3.16' || pkg.version !== '0.3.16') fail('Uygulama sürümü 0.3.16 değil.');
+if (!version.includes("APP_VERSION = '0.3.16'")) fail('Merkezi APP_VERSION 0.3.16 değil.');
+if (!version.includes('ANDROID_VERSION_CODE = 6')) fail('Merkezi Android sürüm kodu 5 değil.');
+if (app.android?.versionCode !== 6) fail('Android versionCode 5 değil.');
+if (app.extra?.appVersion !== '0.3.16' || app.extra?.demoDataVersion !== '0.3.16' || app.extra?.androidVersionCode !== 6) fail('Expo extra sürüm alanları eşleşmiyor.');
 if (app.android?.allowBackup !== false) fail('android.allowBackup false olmalı.');
 if (app.androidNavigationBar?.backgroundColor !== '#00000000') fail('Android navigasyon arka planı şeffaf değil.');
 for (const key of requiredUrls) {
@@ -63,7 +67,7 @@ for (const permission of [
 
 if (pkg.dependencies?.['expo-iap'] !== '4.7.0') fail('expo-iap 4.7.0 olarak sabitlenmeli.');
 if (!(app.plugins || []).some((item) => pluginName(item) === 'expo-iap')) fail('expo-iap config plugin eksik.');
-if (!billing.includes('DKD_V0315_PLAY_BILLING')) fail('v0.3.15 Google Play Billing bileşeni uygulanmamış.');
+if (!billing.includes('DKD_V0316_PLAY_BILLING')) fail('v0.3.16 Google Play Billing bileşeni uygulanmamış.');
 if (!billing.includes('products, subscriptions, fetchProducts')) fail('expo-iap abonelik durumu subscriptions alanından okunmuyor.');
 if (!billing.includes('Array.isArray(subscriptions) ? subscriptions : []')) fail('Abonelik kataloğu subscriptions dizisini birleştirmiyor.');
 if (!billing.includes('dkdBasePlanId(item) === basePlanId')) fail('Satın alma öncesinde kesin temel plan eşleşmesi zorunlu değil.');
@@ -72,6 +76,13 @@ if (!billing.includes('subscriptionOfferDetailsAndroid')) fail('Android eski abo
 if (!billing.includes('offerTokenAndroid')) fail('Normalize Android teklif belirteci desteklenmiyor.');
 if (billing.includes('|| offers[0]')) fail('Yanlış temel plana düşebilen ilk teklif fallback’i kaldırılmamış.');
 if (!billing.includes("supabase.functions.invoke('dkd-gate-play-verify'")) fail('Sunucu tarafı Google Play doğrulaması eksik.');
+if (!billing.includes('dkdButtonMotion') || !billing.includes('buttonShine')) fail('Modern animasyonlu Google Play abonelik butonu eksik.');
+if (!courier.includes('dkdPackagesScrollRef') || !courier.includes('scrollToEnd({ animated: true })')) fail('Kurye paket seçiminden abonelik alanına otomatik kaydırma eksik.');
+if (courierHome.includes('paket hakkı ve') || courierHome.includes('video ödülü kullanılabilir')) fail('Kaldırılması istenen paket/video hak metni hâlâ görünüyor.');
+if (authScreen.includes('DRABORNGO ORTAK HESAP SİSTEMİ')) fail('Ortak hesap üst etiketi kaldırılmamış.');
+if (authScreen.includes('DraBornGate verileri ayrı şemada tutulur')) fail('Kayıt ekranı alt şema açıklaması kaldırılmamış.');
+if (!authScreen.includes('DKD_V0316_AUTH_ROLE_CARDS') || !authScreen.includes('dkdRoleMotion')) fail('Modern animasyonlu hesap türü kartları eksik.');
+if (!residentHome.includes('SİTE SAKİNİ MERKEZİ</Text><LiveBadge label="CANLI" compact')) fail('Site sakini CANLI rozeti başlığın yanında değil.');
 for (const source of [courier, site]) {
   if (!source.includes('GooglePlaySubscriptionButton')) fail('Abonelik ekranlarından biri ortak güvenli Google Play bileşenini kullanmıyor.');
   for (const field of ['play_product_id', 'play_weekly_base_plan_id', 'play_monthly_base_plan_id', 'play_yearly_base_plan_id']) {
@@ -108,7 +119,7 @@ NODE
 
 mapfile -t POLICY_URLS < <(node -e "const app=require('./app.json').expo; console.log(app.extra.privacyPolicyUrl); console.log(app.extra.accountDeletionUrl); console.log(app.extra.termsUrl)")
 for url in "${POLICY_URLS[@]}"; do
-  HTTP_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' --max-time 30 --retry 2 --retry-delay 2 -A 'DraBornGate-GooglePlay-Policy-Check/0.3.15' "$url")"
+  HTTP_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' --max-time 30 --retry 2 --retry-delay 2 -A 'DraBornGate-GooglePlay-Policy-Check/0.3.16' "$url")"
   if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
     echo "POLİTİKA HATASI: Yayın sayfası erişilebilir değil ($HTTP_CODE): $url" >&2
     exit 1
@@ -138,4 +149,4 @@ if [ -n "$APK_PATH" ]; then
   echo "Derlenmiş APK politika kontrolü geçti: $EXPECTED_VERSION ($EXPECTED_VERSION_CODE), targetSdk $TARGET_SDK."
 fi
 
-echo "DraBornGate v0.3.15 Google Play otomatik politika kapısı başarıyla geçti."
+echo "DraBornGate v0.3.16 Google Play otomatik politika kapısı başarıyla geçti."
