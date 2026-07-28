@@ -17,3 +17,12 @@ try {
 } finally {
   if (dkdPatchedSafeSource !== dkdOriginalSafeSource) fs.writeFileSync(dkdSafePath, dkdOriginalSafeSource, 'utf8');
 }
+
+const dkdBillingPath = path.join(process.cwd(), 'src/components/GooglePlaySubscriptionButton.tsx');
+let dkdBillingSource = fs.readFileSync(dkdBillingPath, 'utf8');
+const dkdDuplicateClosing = '\n}\n}\n\nconst s = StyleSheet.create(';
+if (dkdBillingSource.includes(dkdDuplicateClosing)) {
+  dkdBillingSource = dkdBillingSource.replace(dkdDuplicateClosing, '\n}\n\nconst s = StyleSheet.create(');
+  fs.writeFileSync(dkdBillingPath, dkdBillingSource, 'utf8');
+  console.log('Düzeltildi: GooglePlaySubscriptionButton yinelenen kapanış parantezi');
+}
