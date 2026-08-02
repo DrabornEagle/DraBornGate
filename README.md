@@ -1,31 +1,28 @@
-# DraBornGate v0.3.16
+# DraBornGate v0.3.17
 
 DraBornGate; kurye geçişi, tek kullanımlık kod, site güvenliği, site sakini, yönetim, paket, abonelik, bildirim ve destek akışlarını birleştiren Expo / React Native uygulamasıdır.
 
 ## Güncel sürüm
 
-- Uygulama sürümü: `0.3.16`
-- Demo veri sürümü: `0.3.16`
+- Uygulama sürümü: `0.3.17`
+- Demo veri sürümü: `0.3.17`
 - Android paket adı: `com.draborneagle.draborngate`
-- Android `versionCode`: `6`
+- Android `versionCode`: `7`
 - Android compile/target SDK: `36`
-- Bildirim kanalı: `draborngate-core`
 - Supabase şeması: `draborngate`
-- Tablo standardı: `draborngate.dkd_gate_*`
-- Mobil RPC standardı: `public.dkd_gate_*`
 
-## v0.3.16 değişiklikleri
+## v0.3.17 değişiklikleri
 
-- Aboneliklerin çalışan Google Play Billing ve Supabase `dkd-gate-play-verify` doğrulama akışı korundu.
-- Kurye ana ekranındaki `paket hakkı` ve `video ödülü kullanılabilir` kırılım metni kaldırıldı; yalnız toplam geçiş hakkı gösteriliyor.
-- Site Sakini Merkezi `CANLI` rozeti başlığın yanına taşındı.
-- Kurye paket kartına her dokunuşta ekran, tek animasyonla Google Play abonelik alanına kaydırılıyor.
-- `GOOGLE PLAY İLE ABONE OL` butonu modern, çok renkli, hareketli ışık geçişli ve daha belirgin hâle getirildi.
-- Kayıt ekranındaki dört Hesap Türü kartı modern renkler, seçili durum rozeti ve hafif animasyonla yenilendi.
-- `DRABORNGO ORTAK HESAP SİSTEMİ` üst etiketi kaldırıldı.
-- Kayıt ekranındaki `DraBornGate verileri ayrı şemada tutulur...` alt açıklaması kaldırıldı.
-- Google Play otomatik politika kapısına yeni UI, izin, billing, gizlilik URL’si ve workflow envanteri kontrolleri eklendi.
-- Android sürüm kodu Google Play için `6` oldu.
+- Google Play satın alımı başarılı olduğu hâlde paket ve geçiş hakkının açılmamasına neden olan doğrulama akışı yeniden kuruldu.
+- Uygulama açılışında `getAvailablePurchases()` ile mevcut DraBornGate abonelikleri bulunur, sunucuda doğrulanır, hak tanımlanır ve `finishTransaction()` ile Google Play'e teslimat onayı gönderilir.
+- Paket ekranına `ABONELİĞİ GERİ YÜKLE` düğmesi eklendi; tamamlanmış fakat önceki sürümde hakka dönüşmemiş satın alımlar yeniden işlenir.
+- Edge Function ham JSON, satır sonu kaçışlı JSON ve Base64 servis hesabı biçimlerini destekler; hatalar kullanıcıya yapılandırılmış kod ve açıklamayla döner.
+- Satın alma ürünü ve temel planı artık istemci beyanına güvenilmeden Google Play yanıtı ile Supabase paket kataloğundan eşleştirilir.
+- İlk abonelik satın alımı güvenli sunucudan Google Play Developer API ile onaylanır; cihaz tarafı onay da yedek olarak korunur.
+- Bir kullanıcıda Plus ve Profesyonel gibi birden fazla aktif ürün varsa en yüksek aktif paket hak olarak seçilir.
+- Süresi biten, beklemede, duraklatılmış veya ödeme bekleyen planlar geçiş hakkı vermez; iptal edilmiş fakat dönem sonu gelmemiş plan dönem sonuna kadar çalışır.
+- Site Yönetimi ekranında site sakinleri ad soyad, daire, blok veya telefon numarasıyla aranabilir.
+- Repoda yalnız `DraBornGate Release APK` ve `DraBornGate Release AAB` workflow'ları tutulur.
 
 ## Google Play abonelik kataloğu
 
@@ -39,48 +36,37 @@ Site Yönetimi ürünleri:
 - `draborngate.site.professional`
 - `draborngate.site.corporate`
 
-Tüm ücretli ürünlerin temel plan kimlikleri:
+Temel planlar: `weekly-auto`, `monthly-auto`, `yearly-auto`.
 
-- `weekly-auto`
-- `monthly-auto`
-- `yearly-auto`
-
-## Release workflow’ları
-
-Repoda yalnızca iki GitHub Actions workflow’u tutulur:
-
-- `.github/workflows/dkd_draborngate_release_apk.yml`
-- `.github/workflows/dkd_draborngate_release_aab.yml`
-
-## Otomatik Google Play kontrolü
+## Otomatik kontroller
 
 ```bash
 npm install --no-audit --no-fund --package-lock=false
-node scripts/dkd_verify_v0316.js
+node scripts/dkd_verify_v0317.js
 npm run typecheck
 bash scripts/dkd_google_play_policy_gate.sh
 ```
 
-Kontroller; sürüm/kod, paket adı, target/compile SDK 36, Google Play abonelik kataloğu, kesin temel plan eşleşmesi, sunucu tarafı satın alma doğrulaması, UMP/AD_ID, hassas izin engelleri, gizlilik/koşullar/hesap silme URL’leri, modern abonelik butonu, paket seçim kaydırması ve kaldırılması istenen metinleri kapsar.
+Kontroller; sürüm/versionCode, paket adı, target SDK, hassas izinler, gizlilik/koşullar/hesap silme sayfaları, Google Play ürün eşleşmesi, sunucu doğrulaması, satın alma geri yükleme, acknowledgement, sakin araması ve yalnız iki release workflow'unu kapsar.
 
-## Termux: önce yedekle, sonra lokal repoyu GitHub ile eşitle
-
-```bash
-if [ -d "$HOME/projects/DraBornGate/.git" ]; then REPO="$HOME/projects/DraBornGate"; else REPO="$HOME/Projects/DraBornGate"; fi
-cd "$REPO" && git fetch origin main --prune && git checkout origin/main -- scripts/dkd_termux_sync_v0316.sh && bash scripts/dkd_termux_sync_v0316.sh "$REPO"
-```
-
-İşlem mevcut yerel kaynağı önce `/sdcard/Download/DraBornGate_Yedekler` içine ZIP olarak yedekler, `backup/draborngate-v0.3.15-before-v0.3.16-20260728` dalını doğrular, yerel `main` dalını `origin/main` ile birebir eşitler ve tüm kontrolleri çalıştırır.
-
-## Yerel projeyi v0.3.15 sürümüne geri alma
+## Termux: yedekle, kur ve `Projects/DraBornGate` klasörünü GitHub ile eşitle
 
 ```bash
-if [ -d "$HOME/projects/DraBornGate/.git" ]; then REPO="$HOME/projects/DraBornGate"; else REPO="$HOME/Projects/DraBornGate"; fi
-cd "$REPO" && git fetch origin main --prune && git checkout origin/main -- scripts/dkd_termux_rollback_v0315.sh && bash scripts/dkd_termux_rollback_v0315.sh "$REPO"
+if [ -d "$HOME/Projects/DraBornGate/.git" ]; then REPO="$HOME/Projects/DraBornGate"; else REPO="$HOME/projects/DraBornGate"; fi
+cd "$REPO" && git fetch origin main --prune && git checkout origin/main -- scripts/dkd_termux_sync_v0317.sh && bash scripts/dkd_termux_sync_v0317.sh "$REPO"
 ```
 
-Geri alma betiği önce mevcut yerel kaynağı ZIP olarak yedekler ve yalnızca telefondaki projeyi `backup/draborngate-v0.3.15-before-v0.3.16-20260728` dalına döndürür. GitHub `main` dalını değiştirmez.
+Betiğin yaptığı işlemler: mevcut lokal projeyi `/sdcard/Download/DraBornGate_Yedekler` içine ZIP olarak yedekler, `backup/draborngate-v0.3.16-before-v0.3.17-20260802` dalını doğrular, lokal `main` dalını `origin/main` ile birebir eşitler, bağımlılıkları kurar ve tüm kontrolleri çalıştırır.
+
+## Lokal projeyi v0.3.16 sürümüne geri alma
+
+```bash
+if [ -d "$HOME/Projects/DraBornGate/.git" ]; then REPO="$HOME/Projects/DraBornGate"; else REPO="$HOME/projects/DraBornGate"; fi
+cd "$REPO" && git fetch origin main --prune && git checkout origin/main -- scripts/dkd_termux_rollback_v0316.sh && bash scripts/dkd_termux_rollback_v0316.sh "$REPO"
+```
+
+Geri alma yalnız telefondaki projeyi yedek dala döndürür; GitHub `main` dalını değiştirmez ve geri almadan önce ayrıca ZIP yedeği alır.
 
 ## Sürüm yükseltme standardı
 
-Her yeni sürümde sırasıyla güvenlik dalı, yerel ZIP yedeği, merkezi sürüm alanları, Android `versionCode`, doğrulayıcı, politika kapısı, yalnız iki release workflow’u, Supabase release kaydı, AAB/APK çıktısı ve Termux eşitleme/geri alma komutları birlikte güncellenir.
+Her sürümde sırasıyla önceki `main` için tarihli GitHub yedek dalı oluşturulur, lokal ZIP yedeği alınır, uygulama sürümü ve Android `versionCode` birlikte artırılır, Supabase migration ve Edge Function yayınlanır, TypeScript/politika kontrolleri çalıştırılır, yalnız iki release workflow'u korunur, imzalı APK/AAB üretilip GitHub artifact ve Supabase özel release kasasına yüklenir.
