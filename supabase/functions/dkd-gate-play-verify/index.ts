@@ -1,117 +1,16 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "@supabase/supabase-js";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type"};
+const json={...cors,"Content-Type":"application/json"};
+const encoder=new TextEncoder();
+class PlayError extends Error{constructor(public code:string,message:string,public retryable=false){super(message)}}
+const reply=(body:Record<string,unknown>)=>new Response(JSON.stringify(body),{status:200,headers:json});
+const b64url=(value:Uint8Array|string)=>{const bytes=typeof value==="string"?encoder.encode(value):value;let binary="";for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary).replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_")};
+function serviceAccount(raw:string){const values=[raw.trim(),raw.replace(/\\n/g,"\n").trim()];try{const decoded=atob(raw.trim().replace(/-/g,"+").replace(/_/g,"/"));values.push(decoded,decoded.replace(/\\n/g,"\n"))}catch{}for(const value of values){try{const parsed=JSON.parse(value);if(parsed?.client_email&&parsed?.private_key)return{client_email:String(parsed.client_email),private_key:String(parsed.private_key).replace(/\\n/g,"\n")}}catch{}}throw new PlayError("PLAY_SERVICE_ACCOUNT_INVALID","Google Play doğrulama anahtarı okunamadı. Satın alımınız kaybolmadı; Aboneliği Geri Yükle ile yeniden deneyin.",true)}
+async function privateKey(pem:string){const clean=pem.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g,"");const bytes=Uint8Array.from(atob(clean),char=>char.charCodeAt(0));return crypto.subtle.importKey("pkcs8",bytes,{name:"RSASSA-PKCS1-v1_5",hash:"SHA-256"},false,["sign"])}
+async function accessToken(account:{client_email:string;private_key:string}){const now=Math.floor(Date.now()/1000);const header=b64url(JSON.stringify({alg:"RS256",typ:"JWT"}));const payload=b64url(JSON.stringify({iss:account.client_email,scope:"https://www.googleapis.com/auth/androidpublisher",aud:"https://oauth2.googleapis.com/token",iat:now,exp:now+3600}));const unsigned=`${header}.${payload}`;const key=await privateKey(account.private_key);const signature=new Uint8Array(await crypto.subtle.sign("RSASSA-PKCS1-v1_5",key,encoder.encode(unsigned)));const response=await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({grant_type:"urn:ietf:params:oauth:grant-type:jwt-bearer",assertion:`${unsigned}.${b64url(signature)}`})});const body=await response.json();if(!response.ok||!body.access_token)throw new PlayError("PLAY_GOOGLE_AUTH_FAILED",String(body.error_description||"Google Play servis hesabı yetkilendirilemedi."),true);return String(body.access_token)}
+const cycle=(base:string,fallback:string)=>base.toLowerCase().includes("week")?"weekly":base.toLowerCase().includes("month")?"monthly":base.toLowerCase().match(/year|annual/)?"yearly":["weekly","monthly","yearly"].includes(fallback)?fallback:"monthly";
+const status=(state:string,expiry:string)=>new Date(expiry).getTime()<=Date.now()?"expired":state.includes("ACTIVE")||state.includes("IN_GRACE_PERIOD")?"active":state.includes("CANCELED")?"cancelled":state.includes("ON_HOLD")?"past_due":state.includes("PAUSED")?"paused":state.includes("PENDING")?"pending":"expired";
 
-const encoder = new TextEncoder();
-const b64url = (value: Uint8Array | string) => {
-  const bytes = typeof value === "string" ? encoder.encode(value) : value;
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-};
-
-async function importPrivateKey(pem: string) {
-  const clean = pem.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, "");
-  const binary = Uint8Array.from(atob(clean), (char) => char.charCodeAt(0));
-  return crypto.subtle.importKey("pkcs8", binary, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
-}
-
-async function googleAccessToken(serviceAccount: { client_email: string; private_key: string }) {
-  const now = Math.floor(Date.now() / 1000);
-  const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const payload = b64url(JSON.stringify({
-    iss: serviceAccount.client_email,
-    scope: "https://www.googleapis.com/auth/androidpublisher",
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
-  }));
-  const unsigned = `${header}.${payload}`;
-  const key = await importPrivateKey(serviceAccount.private_key);
-  const signature = new Uint8Array(await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, encoder.encode(unsigned)));
-  const assertion = `${unsigned}.${b64url(signature)}`;
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }),
-  });
-  const json = await response.json();
-  if (!response.ok || !json.access_token) throw new Error(json.error_description || "Google Play yetkilendirmesi başarısız");
-  return String(json.access_token);
-}
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const authHeader = req.headers.get("Authorization") || "";
-    const authClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
-    const { data: userData, error: userError } = await authClient.auth.getUser();
-    if (userError || !userData.user) throw new Error("Oturum doğrulanamadı");
-
-    const body = await req.json();
-    const scope = String(body.scope || "");
-    const planCode = String(body.planCode || "");
-    const billingCycle = String(body.billingCycle || "");
-    const productId = String(body.productId || "");
-    const basePlanId = String(body.basePlanId || "");
-    const purchaseToken = String(body.purchaseToken || "");
-    const siteId = body.siteId ? String(body.siteId) : null;
-    if (!['site','courier'].includes(scope) || !['weekly','monthly','yearly'].includes(billingCycle) || !planCode || !productId || !basePlanId || !purchaseToken) {
-      throw new Error("Abonelik doğrulama bilgileri eksik");
-    }
-
-    const rawServiceAccount = Deno.env.get("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON");
-    const packageName = Deno.env.get("GOOGLE_PLAY_PACKAGE_NAME") || "com.draborneagle.draborngate";
-    if (!rawServiceAccount) {
-      return new Response(JSON.stringify({ ok: false, code: "PLAY_CONFIGURATION_PENDING", message: "Google Play servis hesabı sırrı henüz tanımlanmadı." }), {
-        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const serviceAccount = JSON.parse(rawServiceAccount.replace(/\\n/g, "\n"));
-    const accessToken = await googleAccessToken(serviceAccount);
-    const verifyUrl = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(packageName)}/purchases/subscriptionsv2/tokens/${encodeURIComponent(purchaseToken)}`;
-    const verifyResponse = await fetch(verifyUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
-    const purchase = await verifyResponse.json();
-    if (!verifyResponse.ok) throw new Error(purchase?.error?.message || "Google Play satın alımı doğrulanamadı");
-
-    const lineItem = purchase.lineItems?.[0];
-    const verifiedProductId = String(lineItem?.productId || "");
-    const verifiedBasePlanId = String(lineItem?.offerDetails?.basePlanId || basePlanId);
-    if (verifiedProductId !== productId || verifiedBasePlanId !== basePlanId) throw new Error("Satın alınan ürün seçilen paketle eşleşmiyor");
-    const expiryTime = String(lineItem?.expiryTime || "");
-    if (!expiryTime) throw new Error("Google Play abonelik bitiş tarihi alınamadı");
-    const autoRenewing = Boolean(lineItem?.autoRenewingPlan?.autoRenewEnabled);
-    const state = String(purchase.subscriptionState || "");
-    const expiresInFuture = new Date(expiryTime).getTime() > Date.now();
-    const status = state.includes("ON_HOLD") ? "past_due" : expiresInFuture ? "active" : "expired";
-
-    const service = createClient(supabaseUrl, serviceKey);
-    const { data, error } = await service.rpc("dkd_gate_apply_verified_google_play_subscription", {
-      p_scope: scope,
-      p_user_id: userData.user.id,
-      p_site_id: siteId,
-      p_plan_code: planCode,
-      p_billing_cycle: billingCycle,
-      p_product_id: productId,
-      p_base_plan_id: basePlanId,
-      p_purchase_token: purchaseToken,
-      p_order_id: String(purchase.latestOrderId || body.orderId || ""),
-      p_expiry_time: expiryTime,
-      p_auto_renewing: autoRenewing,
-      p_status: status,
-    });
-    if (error) throw error;
-    return new Response(JSON.stringify({ ok: true, subscription: data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  } catch (error) {
-    return new Response(JSON.stringify({ ok: false, message: error instanceof Error ? error.message : "Doğrulama başarısız" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-});
+Deno.serve(async request=>{if(request.method==="OPTIONS")return new Response("ok",{headers:cors});try{const url=Deno.env.get("SUPABASE_URL")!;const anon=Deno.env.get("SUPABASE_ANON_KEY")!;const serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;const auth=createClient(url,anon,{global:{headers:{Authorization:request.headers.get("Authorization")||""}}});const{data:userData,error:userError}=await auth.auth.getUser();if(userError||!userData.user)throw new PlayError("AUTH_REQUIRED","Aboneliği doğrulamak için yeniden oturum açın.");const body=await request.json();const scope=String(body.scope||"");const productId=String(body.productId||"");const purchaseToken=String(body.purchaseToken||"");const siteId=body.siteId?String(body.siteId):null;if(!["site","courier"].includes(scope)||!productId||!purchaseToken)throw new PlayError("PLAY_REQUEST_INVALID","Google Play satın alma bilgileri eksik.");const raw=Deno.env.get("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON")||Deno.env.get("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64")||Deno.env.get("DKD_GATE_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON")||Deno.env.get("DKD_GATE_GOOGLE_PLAY_SERVICE_ACCOUNT_BASE64");if(!raw)throw new PlayError("PLAY_SERVICE_ACCOUNT_MISSING","Google Play doğrulama hizmeti geçici olarak kullanılamıyor. Satın alımınız kaybolmadı; uygulamayı yeniden açıp Aboneliği Geri Yükle'ye dokunun.",true);const packageName=Deno.env.get("GOOGLE_PLAY_PACKAGE_NAME")||"com.draborneagle.draborngate";const token=await accessToken(serviceAccount(raw));const verifyUrl=`https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(packageName)}/purchases/subscriptionsv2/tokens/${encodeURIComponent(purchaseToken)}`;const verifyResponse=await fetch(verifyUrl,{headers:{Authorization:`Bearer ${token}`}});const purchase=await verifyResponse.json();if(!verifyResponse.ok)throw new PlayError("PLAY_API_VERIFICATION_FAILED",String(purchase?.error?.message||"Google Play satın alımı doğrulanamadı."),verifyResponse.status>=500);const items=Array.isArray(purchase.lineItems)?purchase.lineItems:[];const item=items.find((value:Record<string,unknown>)=>String(value?.productId||"")===productId)||items[0];const verifiedProductId=String(item?.productId||"");const basePlanId=String(item?.offerDetails?.basePlanId||body.basePlanId||"");const expiryTime=String(item?.expiryTime||"");if(verifiedProductId!==productId)throw new PlayError("PLAY_PRODUCT_MISMATCH","Satın alınan ürün seçilen DraBornGate paketiyle eşleşmiyor.");if(!basePlanId||!expiryTime)throw new PlayError("PLAY_RESPONSE_INCOMPLETE","Google Play abonelik dönemi bilgisi alınamadı.",true);const subscriptionState=String(purchase.subscriptionState||"");const entitlementStatus=status(subscriptionState,expiryTime);const autoRenewing=Boolean(item?.autoRenewingPlan?.autoRenewEnabled);const service=createClient(url,serviceKey);const{data,error}=await service.rpc("dkd_gate_apply_verified_google_play_subscription",{p_scope:scope,p_user_id:userData.user.id,p_site_id:siteId,p_plan_code:String(body.planCode||""),p_billing_cycle:cycle(basePlanId,String(body.billingCycle||"")),p_product_id:verifiedProductId,p_base_plan_id:basePlanId,p_purchase_token:purchaseToken,p_order_id:String(purchase.latestOrderId||purchase.latestSuccessfulOrderId||body.orderId||""),p_expiry_time:expiryTime,p_auto_renewing:autoRenewing,p_status:entitlementStatus});if(error)throw new PlayError("ENTITLEMENT_WRITE_FAILED",error.message||"Abonelik hakkı kaydedilemedi.",true);let acknowledged=String(purchase.acknowledgementState||"").includes("ACKNOWLEDGED");let acknowledgementWarning:string|null=null;if(!acknowledged&&["active","cancelled"].includes(entitlementStatus)){try{const ackUrl=`https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(packageName)}/purchases/subscriptions/${encodeURIComponent(verifiedProductId)}/tokens/${encodeURIComponent(purchaseToken)}:acknowledge`;const ack=await fetch(ackUrl,{method:"POST",headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},body:JSON.stringify({developerPayload:"DraBornGate server verified"})});acknowledged=ack.ok;if(!ack.ok)acknowledgementWarning=`Sunucu onayı ${ack.status} koduyla tamamlanamadı; uygulama cihaz üzerinden yeniden deneyecek.`}catch(error){acknowledgementWarning=error instanceof Error?error.message:"Sunucu onayı yeniden denenecek."}}return reply({ok:true,subscription:data,status:entitlementStatus,acknowledged,acknowledgementWarning,verifiedProductId,verifiedBasePlanId:basePlanId})}catch(error){const known=error instanceof PlayError?error:new PlayError("PLAY_VERIFICATION_FAILED",error instanceof Error?error.message:"Satın alma doğrulanamadı.",true);console.error(JSON.stringify({event:"dkd_gate_play_verify_failed",code:known.code,message:known.message,retryable:known.retryable}));return reply({ok:false,code:known.code,message:known.message,retryable:known.retryable})}});
