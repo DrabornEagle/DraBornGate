@@ -1,0 +1,5 @@
+DraBornGate Release AAB
+version=0.3.17
+android_version_code=7
+requested_at=2026-08-02T14:08:00+03:00
+reason=Google Play subscription entitlement fix and site resident search
