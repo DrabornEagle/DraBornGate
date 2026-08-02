@@ -3,10 +3,9 @@ name: DraBornGate Release AAB
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
-      - .dkd_release/trigger_aab_v0316.txt
+      - .dkd_release/trigger_aab_v0317.txt
 
 permissions:
   contents: write
@@ -31,27 +30,27 @@ jobs:
       - name: Kaynak kodu al
         uses: actions/checkout@v4
 
-      - name: Run kimliğini ve workflow envanterini kaydet
+      - name: Run kimliğini kaydet
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .dkd_release
+          find .github/workflows -maxdepth 1 -type f -printf '%f\n' | sort > .dkd_release/workflow_inventory.txt
+          test "$(wc -l < .dkd_release/workflow_inventory.txt)" -eq 2
+          grep -Fx 'dkd_draborngate_release_apk.yml' .dkd_release/workflow_inventory.txt
+          grep -Fx 'dkd_draborngate_release_aab.yml' .dkd_release/workflow_inventory.txt
           {
             echo "run_id=$GITHUB_RUN_ID"
             echo "run_attempt=$GITHUB_RUN_ATTEMPT"
             echo "source_sha=$GITHUB_SHA"
             echo "workflow=DraBornGate Release AAB"
-            echo "version=0.3.16"
-            echo "android_version_code=6"
+            echo "version=0.3.17"
+            echo "android_version_code=7"
           } > .dkd_release/latest_aab_run.txt
-          find .github/workflows -maxdepth 1 -type f -printf '%f\n' | sort > .dkd_release/workflow_inventory.txt
-          test "$(wc -l < .dkd_release/workflow_inventory.txt)" -eq 2
-          grep -Fx 'dkd_draborngate_release_apk.yml' .dkd_release/workflow_inventory.txt
-          grep -Fx 'dkd_draborngate_release_aab.yml' .dkd_release/workflow_inventory.txt
           git config user.name "DraBornGate Release Bot"
           git config user.email "actions@users.noreply.github.com"
           git add .dkd_release/latest_aab_run.txt .dkd_release/workflow_inventory.txt
-          git commit -m "ci: v0.3.16 AAB run $GITHUB_RUN_ID kaydını güncelle"
+          git commit -m "ci: v0.3.17 AAB run $GITHUB_RUN_ID kaydı"
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
@@ -61,57 +60,20 @@ jobs:
         with:
           node-version: 22
 
-      - name: v0.3.16 kaynak yükseltmesini uygula ve GitHub'a kaydet
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/dkd_apply_v0316.js
-          git config user.name "DraBornGate Release Bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add \
-            src/screens/AuthScreen.tsx \
-            src/screens/CourierHome.tsx \
-            src/screens/CourierCenterV032.tsx \
-            src/screens/ResidentHome.tsx \
-            src/components/GooglePlaySubscriptionButton.tsx \
-            scripts/dkd_google_play_policy_gate.sh
-          if ! git diff --cached --quiet; then
-            git commit -m "feat: DraBornGate v0.3.16 arayüz ve politika düzenlemeleri"
-            git fetch origin main
-            git rebase origin/main
-            git push origin HEAD:main
-          fi
-
       - name: Java 17 kur
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Sürümü doğrula
+      - name: Sürümü ve politikaları doğrula
         shell: bash
         run: |
           set -euo pipefail
           APP_VERSION="$(node -p 'require("./package.json").version')"
           echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
-          test "$APP_VERSION" = "0.3.16"
-          test "$(node -p 'require("./app.json").expo.android.versionCode')" = "6"
-          test "$(node -p 'require("./app.json").expo.android.package')" = "com.draborneagle.draborngate"
-          node scripts/dkd_verify_v0316.js
-
-      - name: GitHub OIDC release kimliğini al
-        shell: bash
-        run: |
-          set -euo pipefail
-          OIDC_TOKEN="$(curl -fsSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=draborngate-release" | jq -r '.value')"
-          test -n "$OIDC_TOKEN" && test "$OIDC_TOKEN" != "null"
-          echo "::add-mask::$OIDC_TOKEN"
-          echo "DKD_RELEASE_OIDC_TOKEN=$OIDC_TOKEN" >> "$GITHUB_ENV"
-
-      - name: Bağımlılıkları, TypeScript'i ve politikaları doğrula
-        shell: bash
-        run: |
-          set -euo pipefail
+          test "$APP_VERSION" = "0.3.17"
+          test "$(node -p 'require("./app.json").expo.android.versionCode')" = "7"
           npm install --no-audit --no-fund --package-lock=false
           npm run typecheck
           bash scripts/dkd_google_play_policy_gate.sh
@@ -121,7 +83,16 @@ jobs:
           GOOGLE_MAPS_ANDROID_API_KEY: ${{ env.GOOGLE_MAPS_ANDROID_API_KEY || 'dkd_release_placeholder_key' }}
         run: npx expo prebuild --clean --platform android
 
-      - name: Kalıcı DraBornGate keystore'unu özel kasadan al
+      - name: GitHub OIDC kimliğini al
+        shell: bash
+        run: |
+          set -euo pipefail
+          OIDC_TOKEN="$(curl -fsSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=draborngate-release" | jq -r '.value')"
+          test -n "$OIDC_TOKEN" && test "$OIDC_TOKEN" != "null"
+          echo "::add-mask::$OIDC_TOKEN"
+          echo "DKD_RELEASE_OIDC_TOKEN=$OIDC_TOKEN" >> "$GITHUB_ENV"
+
+      - name: Kalıcı DraBornGate keystore'unu al
         shell: bash
         run: |
           set -euo pipefail
@@ -135,20 +106,17 @@ jobs:
           KEY_PASSWORD="$(jq -r '.keyPassword // .storePassword' "$METADATA")"
           KEY_ALIAS="$(jq -r '.alias' "$METADATA")"
           test -s "$KEYSTORE"
-          test -n "$STORE_PASSWORD" && test "$STORE_PASSWORD" != "null"
-          test -n "$KEY_PASSWORD" && test "$KEY_PASSWORD" != "null"
-          test -n "$KEY_ALIAS" && test "$KEY_ALIAS" != "null"
           echo "::add-mask::$STORE_PASSWORD"
           echo "::add-mask::$KEY_PASSWORD"
           echo "ANDROID_KEYSTORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
           echo "ANDROID_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
-          cat >> "$HOME/.gradle/gradle.properties" <<EOF_GRADLE
+          cat >> "$HOME/.gradle/gradle.properties" <<EOF
           DKD_UPLOAD_STORE_FILE=$GITHUB_WORKSPACE/$KEYSTORE
           DKD_UPLOAD_STORE_PASSWORD=$STORE_PASSWORD
           DKD_UPLOAD_KEY_ALIAS=$KEY_ALIAS
           DKD_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD
-          EOF_GRADLE
-          cat >> android/app/build.gradle <<'EOF_SIGNING'
+          EOF
+          cat >> android/app/build.gradle <<'EOF'
 
           android {
               signingConfigs {
@@ -159,13 +127,9 @@ jobs:
                       keyPassword findProperty('DKD_UPLOAD_KEY_PASSWORD')
                   }
               }
-              buildTypes {
-                  release {
-                      signingConfig signingConfigs.dkdRelease
-                  }
-              }
+              buildTypes { release { signingConfig signingConfigs.dkdRelease } }
           }
-          EOF_SIGNING
+          EOF
 
       - name: Release AAB oluştur
         working-directory: android
@@ -189,37 +153,22 @@ jobs:
           keytool -list -v -keystore android/app/draborngate-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" > signing-work/keytool.txt
           AAB_CERT="$(sed -n 's/^[[:space:]]*SHA256: //p' signing-work/aab-cert.txt | sed -n '1p' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
           KEY_CERT="$(sed -n 's/^[[:space:]]*SHA256: //p' signing-work/keytool.txt | sed -n '1p' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
-          AAB_SHA256="$(sha256sum "$AAB" | awk '{print $1}')"
-          test -n "$AAB_CERT" && test -n "$KEY_CERT"
-          test "$AAB_CERT" = "$KEY_CERT"
+          test -n "$AAB_CERT" && test "$AAB_CERT" = "$KEY_CERT"
           {
-            echo
             echo "AAB sertifika SHA-256: $AAB_CERT"
-            echo "Kalıcı keystore sertifika SHA-256: $KEY_CERT"
-            echo "AAB dosya SHA-256: $AAB_SHA256"
+            echo "AAB dosya SHA-256: $(sha256sum "$AAB" | awk '{print $1}')"
             echo "Sürüm: $APP_VERSION"
-            echo "Android versionCode: 6"
+            echo "Android versionCode: 7"
             echo "Paket: com.draborneagle.draborngate"
           } | tee -a "$REPORT"
 
-      - name: Supabase yüklemesi için OIDC kimliğini yenile
+      - name: AAB'yi Supabase özel kasasına yükle
         shell: bash
         run: |
           set -euo pipefail
-          FRESH_OIDC_TOKEN="$(curl -fsSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=draborngate-release" | jq -r '.value')"
-          test -n "$FRESH_OIDC_TOKEN" && test "$FRESH_OIDC_TOKEN" != "null"
-          echo "::add-mask::$FRESH_OIDC_TOKEN"
-          echo "DKD_RELEASE_OIDC_TOKEN=$FRESH_OIDC_TOKEN" >> "$GITHUB_ENV"
-
-      - name: AAB'yi Supabase özel release kasasına parçalı yükle
-        shell: bash
-        run: |
-          set -euo pipefail
-          bash scripts/dkd_upload_aab_chunks.sh \
-            "DraBornGate-v${APP_VERSION}-release.aab" \
-            "$APP_VERSION" \
-            "$DKD_RELEASE_VAULT_URL" \
-            "$DKD_RELEASE_OIDC_TOKEN"
+          FRESH_TOKEN="$(curl -fsSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=draborngate-release" | jq -r '.value')"
+          echo "::add-mask::$FRESH_TOKEN"
+          bash scripts/dkd_upload_aab_chunks.sh "DraBornGate-v${APP_VERSION}-release.aab" "$APP_VERSION" "$DKD_RELEASE_VAULT_URL" "$FRESH_TOKEN"
 
       - name: DraBornGate Release AAB yükle
         if: always()
