@@ -2,133 +2,41 @@
   "expo": {
     "name": "DraBornGate",
     "slug": "draborngate",
-    "version": "0.3.16",
+    "version": "0.3.17",
     "orientation": "portrait",
     "scheme": "draborngate",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "backgroundColor": "#02070D",
-    "androidStatusBar": {
-      "barStyle": "light-content",
-      "backgroundColor": "#02070D",
-      "translucent": false
-    },
-    "androidNavigationBar": {
-      "barStyle": "light-content",
-      "backgroundColor": "#00000000"
-    },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.draborneagle.draborngate"
-    },
+    "androidStatusBar": { "barStyle": "light-content", "backgroundColor": "#02070D", "translucent": false },
+    "androidNavigationBar": { "barStyle": "light-content", "backgroundColor": "#00000000" },
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.draborneagle.draborngate" },
     "android": {
       "package": "com.draborneagle.draborngate",
-      "versionCode": 6,
+      "versionCode": 7,
       "allowBackup": false,
       "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "resize",
       "edgeToEdgeEnabled": true,
-      "permissions": [
-        "CAMERA",
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "POST_NOTIFICATIONS",
-        "com.google.android.gms.permission.AD_ID"
-      ],
-      "adaptiveIcon": {
-        "backgroundColor": "#02070D",
-        "foregroundImage": "./assets/branding/draborngate-app-icon-foreground.png"
-      },
-      "blockedPermissions": [
-        "android.permission.MANAGE_EXTERNAL_STORAGE",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.READ_MEDIA_VIDEO",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.SYSTEM_ALERT_WINDOW",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
-      ],
+      "permissions": ["CAMERA", "ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "POST_NOTIFICATIONS", "com.google.android.gms.permission.AD_ID"],
+      "adaptiveIcon": { "backgroundColor": "#02070D", "foregroundImage": "./assets/branding/draborngate-app-icon-foreground.png" },
+      "blockedPermissions": ["android.permission.MANAGE_EXTERNAL_STORAGE", "android.permission.READ_EXTERNAL_STORAGE", "android.permission.READ_MEDIA_IMAGES", "android.permission.READ_MEDIA_VIDEO", "android.permission.RECORD_AUDIO", "android.permission.SYSTEM_ALERT_WINDOW", "android.permission.WRITE_EXTERNAL_STORAGE"],
       "icon": "./assets/branding/draborngate-app-icon-safe.png"
     },
     "plugins": [
       "expo-iap",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "compileSdkVersion": 36,
-            "targetSdkVersion": 36,
-            "buildToolsVersion": "36.0.0",
-            "kotlinVersion": "2.1.20",
-            "extraProguardRules": "-keep class com.google.android.gms.internal.consent_sdk.** { *; }"
-          }
-        }
-      ],
-      [
-        "react-native-google-mobile-ads",
-        {
-          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
-          "delayAppMeasurementInit": true,
-          "optimizeInitialization": true,
-          "optimizeAdLoading": true
-        }
-      ],
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#02070D",
-          "image": "./assets/branding/draborngate-splash-transparent.png",
-          "imageWidth": 1,
-          "resizeMode": "contain",
-          "dark": {
-            "backgroundColor": "#02070D",
-            "image": "./assets/branding/draborngate-splash-transparent.png"
-          },
-          "android": {
-            "backgroundColor": "#02070D",
-            "image": "./assets/branding/draborngate-splash-transparent.png",
-            "imageWidth": 1,
-            "resizeMode": "contain"
-          }
-        }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "DraBornGate profil fotoğrafı ve teslimat görseli seçebilmek için fotoğraflarınıza erişir.",
-          "cameraPermission": "DraBornGate selfie veya teslimat görseli çekebilmek için kameraya erişir.",
-          "microphonePermission": false
-        }
-      ],
-      [
-        "expo-location",
-        {
-          "locationWhenInUsePermission": "DraBornGate site konumunu haritada seçmek ve akıllı geçiş mesafesini tek sefer kontrol etmek için konumunu yalnızca uygulama açıkken kullanır.",
-          "isAndroidBackgroundLocationEnabled": false,
-          "isIosBackgroundLocationEnabled": false
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "color": "#37D8FF",
-          "defaultChannel": "draborngate-core",
-          "sounds": [
-            "./assets/sounds/gate_bell_v2.wav",
-            "./assets/sounds/gate_chime_v2.wav",
-            "./assets/sounds/gate_digital_v2.wav",
-            "./assets/sounds/gate_alert_v2.wav",
-            "./assets/sounds/gate_pulse_v2.wav",
-            "./assets/sounds/gate_signal_v2.wav"
-          ]
-        }
-      ],
+      ["expo-build-properties", { "android": { "compileSdkVersion": 36, "targetSdkVersion": 36, "buildToolsVersion": "36.0.0", "kotlinVersion": "2.1.20", "extraProguardRules": "-keep class com.google.android.gms.internal.consent_sdk.** { *; }" } }],
+      ["react-native-google-mobile-ads", { "androidAppId": "ca-app-pub-3940256099942544~3347511713", "delayAppMeasurementInit": true, "optimizeInitialization": true, "optimizeAdLoading": true }],
+      ["expo-splash-screen", { "backgroundColor": "#02070D", "image": "./assets/branding/draborngate-splash-transparent.png", "imageWidth": 1, "resizeMode": "contain", "dark": { "backgroundColor": "#02070D", "image": "./assets/branding/draborngate-splash-transparent.png" }, "android": { "backgroundColor": "#02070D", "image": "./assets/branding/draborngate-splash-transparent.png", "imageWidth": 1, "resizeMode": "contain" } }],
+      ["expo-image-picker", { "photosPermission": "DraBornGate profil fotoğrafı ve teslimat görseli seçebilmek için fotoğraflarınıza erişir.", "cameraPermission": "DraBornGate selfie veya teslimat görseli çekebilmek için kameraya erişir.", "microphonePermission": false }],
+      ["expo-location", { "locationWhenInUsePermission": "DraBornGate site konumunu haritada seçmek ve akıllı geçiş mesafesini tek sefer kontrol etmek için konumunu yalnızca uygulama açıkken kullanır.", "isAndroidBackgroundLocationEnabled": false, "isIosBackgroundLocationEnabled": false }],
+      ["expo-notifications", { "color": "#37D8FF", "defaultChannel": "draborngate-core", "sounds": ["./assets/sounds/gate_bell_v2.wav", "./assets/sounds/gate_chime_v2.wav", "./assets/sounds/gate_digital_v2.wav", "./assets/sounds/gate_alert_v2.wav", "./assets/sounds/gate_pulse_v2.wav", "./assets/sounds/gate_signal_v2.wav"] }],
       "./scripts/dkd_with_android_security.js"
     ],
     "extra": {
-      "appVersion": "0.3.16",
-      "demoDataVersion": "0.3.16",
-      "androidVersionCode": 6,
+      "appVersion": "0.3.17",
+      "demoDataVersion": "0.3.17",
+      "androidVersionCode": 7,
       "privacyPolicyUrl": "https://www.draborneagle.com/DraBornGate/privacy/",
       "accountDeletionUrl": "https://www.draborneagle.com/DraBornGate/account-deletion/",
       "termsUrl": "https://www.draborneagle.com/DraBornGate/terms/",
