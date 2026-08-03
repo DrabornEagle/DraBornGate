@@ -1,3 +1,4 @@
 DraBornGate v0.3.18
 Android versionCode 8
 Google Play productId ve aktif abonelik geri yükleme düzeltmesi
+AAB build attempt 2
