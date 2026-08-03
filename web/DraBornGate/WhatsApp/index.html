@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#071018" />
+  <meta name="description" content="DraBornGate VCF rehber içe aktarma ve WhatsApp mesaj yönlendirme paneli" />
+  <title>DraBornGate WhatsApp Yönetim Merkezi</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="dkd-shell">
+    <header class="dkd-header">
+      <div>
+        <p class="dkd-kicker">DRABORNGATE</p>
+        <h1>WhatsApp Yönetim Merkezi</h1>
+        <p class="dkd-subtitle">VCF rehberini içe aktar, site sakinlerini bul ve hazır mesajı WhatsApp üzerinden gönder.</p>
+      </div>
+      <div class="dkd-local-badge">Veriler yalnızca bu cihazda saklanır</div>
+    </header>
+
+    <nav class="dkd-tabs" aria-label="Panel bölümleri">
+      <button class="dkd-tab is-active" type="button" data-tab="collector">Toplu Gönderim</button>
+      <button class="dkd-tab" type="button" data-tab="management">Site Yönetimi</button>
+    </nav>
+
+    <section id="collectorPanel" class="dkd-panel is-active" data-panel="collector">
+      <div class="dkd-grid dkd-grid-two">
+        <article class="dkd-card">
+          <div class="dkd-card-head">
+            <div>
+              <p class="dkd-section-label">1. REHBER</p>
+              <h2>VCF dosyasını yükle</h2>
+            </div>
+          </div>
+
+          <label class="dkd-upload" for="vcfFile">
+            <span class="dkd-upload-title">VCF Rehber Dosyası Seç</span>
+            <span class="dkd-upload-help">Android rehberinden dışa aktarılan .vcf dosyası</span>
+          </label>
+          <input id="vcfFile" type="file" accept=".vcf,text/vcard,text/x-vcard" hidden />
+
+          <div class="dkd-inline-actions">
+            <button id="clearContactsButton" class="dkd-button dkd-button-muted" type="button">Rehberi Temizle</button>
+            <button id="exportContactsButton" class="dkd-button dkd-button-muted" type="button">Yedek İndir</button>
+            <label class="dkd-button dkd-button-muted dkd-file-button" for="jsonFile">Yedeği Yükle</label>
+            <input id="jsonFile" type="file" accept="application/json,.json" hidden />
+          </div>
+
+          <p id="importStatus" class="dkd-status" role="status">Henüz VCF dosyası yüklenmedi.</p>
+        </article>
+
+        <article class="dkd-card">
+          <div class="dkd-card-head">
+            <div>
+              <p class="dkd-section-label">2. MESAJ</p>
+              <h2>DraBornGate tanıtım mesajı</h2>
+            </div>
+          </div>
+
+          <label class="dkd-field">
+            <span>Google Play bağlantısı</span>
+            <input id="playStoreUrl" type="url" inputmode="url" placeholder="https://play.google.com/store/apps/details?id=..." />
+          </label>
+
+          <label class="dkd-field">
+            <span>Gönderilecek mesaj</span>
+            <textarea id="bulkMessage" rows="11"></textarea>
+          </label>
+
+          <p class="dkd-hint"><code>{ad}</code> yazılan yere kişinin adı otomatik eklenir. Bağlantı için <code>{google_play}</code> kullanılabilir.</p>
+          <button id="saveMessageButton" class="dkd-button dkd-button-primary" type="button">Mesajı Kaydet</button>
+        </article>
+      </div>
+
+      <article class="dkd-card dkd-list-card">
+        <div class="dkd-card-head dkd-card-head-wrap">
+          <div>
+            <p class="dkd-section-label">3. KİŞİLER</p>
+            <h2>Gönderim listesi</h2>
+          </div>
+          <div class="dkd-stats" aria-label="Rehber istatistikleri">
+            <div><strong id="totalCount">0</strong><span>Toplam</span></div>
+            <div><strong id="selectedCount">0</strong><span>Seçili</span></div>
+            <div><strong id="sentCount">0</strong><span>Gönderildi</span></div>
+          </div>
+        </div>
+
+        <div class="dkd-toolbar">
+          <label class="dkd-search">
+            <span class="sr-only">Kişi ara</span>
+            <input id="collectorSearch" type="search" placeholder="Ad veya telefon ara" />
+          </label>
+          <button id="selectAllButton" class="dkd-button dkd-button-muted" type="button">Görünenleri Seç</button>
+          <button id="deselectAllButton" class="dkd-button dkd-button-muted" type="button">Seçimi Kaldır</button>
+          <button id="resetSentButton" class="dkd-button dkd-button-muted" type="button">Gönderimleri Sıfırla</button>
+        </div>
+
+        <div id="collectorEmpty" class="dkd-empty">VCF dosyası yüklendiğinde kişiler burada görünecek.</div>
+        <div id="collectorList" class="dkd-contact-list" aria-live="polite"></div>
+
+        <div class="dkd-send-bar">
+          <div>
+            <strong id="queueSummary">Gönderime hazır kişi yok</strong>
+            <span>WhatsApp API kullanılmaz. Her kişide WhatsApp açılır ve gönderme işlemi kullanıcı tarafından onaylanır.</span>
+          </div>
+          <button id="startQueueButton" class="dkd-button dkd-button-primary" type="button" disabled>Gönderime Başla</button>
+        </div>
+      </article>
+    </section>
+
+    <section id="managementPanel" class="dkd-panel" data-panel="management">
+      <article class="dkd-card">
+        <div class="dkd-card-head dkd-card-head-wrap">
+          <div>
+            <p class="dkd-section-label">SİTE YÖNETİMİ</p>
+            <h2>Site sakini ara ve mesaj gönder</h2>
+            <p class="dkd-card-copy">Ad soyad, blok, daire veya telefon numarasından herhangi birini yazarak arama yapabilirsin.</p>
+          </div>
+          <button id="addResidentButton" class="dkd-button dkd-button-primary" type="button">Yeni Sakin Ekle</button>
+        </div>
+
+        <div class="dkd-management-toolbar">
+          <label class="dkd-search dkd-search-wide">
+            <span class="sr-only">Site sakini ara</span>
+            <input id="residentSearch" type="search" placeholder="Örn: Ahmet, A Blok, 24 veya 0532..." />
+          </label>
+          <select id="blockFilter" aria-label="Blok filtresi">
+            <option value="">Tüm Bloklar</option>
+          </select>
+        </div>
+
+        <div id="residentEmpty" class="dkd-empty">Henüz site sakini kaydı bulunmuyor. VCF yükleyebilir veya manuel kayıt ekleyebilirsin.</div>
+        <div id="residentList" class="dkd-resident-list"></div>
+      </article>
+    </section>
+  </main>
+
+  <dialog id="residentDialog" class="dkd-dialog">
+    <form id="residentForm" method="dialog">
+      <div class="dkd-dialog-head">
+        <div>
+          <p class="dkd-section-label">SAKİN KAYDI</p>
+          <h2 id="residentDialogTitle">Yeni sakin ekle</h2>
+        </div>
+        <button id="closeResidentDialog" class="dkd-icon-button" type="button" aria-label="Kapat">×</button>
+      </div>
+
+      <input id="residentId" type="hidden" />
+      <div class="dkd-form-grid">
+        <label class="dkd-field"><span>Ad Soyad</span><input id="residentName" required autocomplete="name" /></label>
+        <label class="dkd-field"><span>Telefon</span><input id="residentPhone" required inputmode="tel" autocomplete="tel" /></label>
+        <label class="dkd-field"><span>Blok</span><input id="residentBlock" placeholder="A Blok" /></label>
+        <label class="dkd-field"><span>Daire</span><input id="residentFlat" placeholder="24" /></label>
+      </div>
+      <div class="dkd-dialog-actions">
+        <button id="cancelResidentButton" class="dkd-button dkd-button-muted" type="button">Vazgeç</button>
+        <button class="dkd-button dkd-button-primary" type="submit">Kaydet</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="messageDialog" class="dkd-dialog">
+    <form id="messageForm" method="dialog">
+      <div class="dkd-dialog-head">
+        <div>
+          <p class="dkd-section-label">WHATSAPP MESAJI</p>
+          <h2 id="messageDialogTitle">Mesaj gönder</h2>
+        </div>
+        <button id="closeMessageDialog" class="dkd-icon-button" type="button" aria-label="Kapat">×</button>
+      </div>
+
+      <input id="messageContactId" type="hidden" />
+      <label class="dkd-field">
+        <span>Mesaj</span>
+        <textarea id="singleMessage" rows="10" required></textarea>
+      </label>
+      <div class="dkd-dialog-actions">
+        <button id="cancelMessageButton" class="dkd-button dkd-button-muted" type="button">Vazgeç</button>
+        <button class="dkd-button dkd-button-primary" type="submit">WhatsApp'ı Aç</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="queueDialog" class="dkd-dialog dkd-queue-dialog">
+    <div class="dkd-dialog-head">
+      <div>
+        <p class="dkd-section-label">SIRALI GÖNDERİM</p>
+        <h2 id="queueContactName">Kişi hazırlanıyor</h2>
+        <p id="queueProgress" class="dkd-card-copy"></p>
+      </div>
+      <button id="closeQueueDialog" class="dkd-icon-button" type="button" aria-label="Kapat">×</button>
+    </div>
+    <div class="dkd-queue-phone" id="queueContactPhone"></div>
+    <p class="dkd-queue-help">“WhatsApp'ı Aç” düğmesi sohbeti hazır mesajla açar. Gönderdikten sonra bu sayfaya dönüp “Gönderildi, Sıradaki” düğmesine bas.</p>
+    <div class="dkd-dialog-actions dkd-dialog-actions-stack">
+      <button id="openQueueWhatsAppButton" class="dkd-button dkd-button-primary" type="button">WhatsApp'ı Aç</button>
+      <button id="markSentNextButton" class="dkd-button dkd-button-success" type="button">Gönderildi, Sıradaki</button>
+      <button id="skipQueueButton" class="dkd-button dkd-button-muted" type="button">Bu Kişiyi Atla</button>
+    </div>
+  </dialog>
+
+  <div id="toast" class="dkd-toast" role="status" aria-live="polite"></div>
+  <script src="./app.js" defer></script>
+</body>
+</html>
