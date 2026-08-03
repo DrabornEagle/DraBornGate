@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# DKD_V0317_POLICY_GATE
+# DKD_V0318_POLICY_GATE
 set -euo pipefail
 
 APK_PATH="${1:-}"
 EXPECTED_PACKAGE="com.draborneagle.draborngate"
-EXPECTED_VERSION="0.3.17"
-EXPECTED_VERSION_CODE=7
+EXPECTED_VERSION="0.3.18"
+EXPECTED_VERSION_CODE=8
 MIN_TARGET_SDK=36
 
-node scripts/dkd_verify_v0317.js
+node scripts/dkd_verify_v0318.js
 
 mapfile -t POLICY_URLS < <(node -e "const app=require('./app.json').expo; console.log(app.extra.privacyPolicyUrl); console.log(app.extra.accountDeletionUrl); console.log(app.extra.termsUrl)")
 for url in "${POLICY_URLS[@]}"; do
-  HTTP_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' --max-time 30 --retry 2 --retry-delay 2 -A 'DraBornGate-GooglePlay-Policy-Check/0.3.17' "$url")"
+  HTTP_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' --max-time 30 --retry 2 --retry-delay 2 -A 'DraBornGate-GooglePlay-Policy-Check/0.3.18' "$url")"
   if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
     echo "POLİTİKA HATASI: Yayın sayfası erişilebilir değil ($HTTP_CODE): $url" >&2
     exit 1
@@ -44,4 +44,4 @@ if [ -n "$APK_PATH" ]; then
   echo "Derlenmiş APK politika kontrolü geçti: $EXPECTED_VERSION ($EXPECTED_VERSION_CODE), targetSdk $TARGET_SDK."
 fi
 
-echo "DraBornGate v0.3.17 Google Play otomatik politika kapısı başarıyla geçti."
+echo "DraBornGate v0.3.18 Google Play otomatik politika kapısı başarıyla geçti."
