@@ -1,6 +1,6 @@
-run_id=30745709531
+run_id=30799594184
 run_attempt=1
-source_sha=be723cfebaf1844387dc6d0409342b75b50bf33c
+source_sha=5aef25ea41b14ab2c087e3a61f6fa91bd6eb342d
 workflow=DraBornGate Release AAB
-version=0.3.17
-android_version_code=7
+version=0.3.18
+android_version_code=8
