@@ -1,9 +1,9 @@
-// DKD_V0316_COURIER_CENTER
+// DKD_V0318_COURIER_CENTER
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { BillingCycle, GooglePlaySubscriptionButton } from '../components/GooglePlaySubscriptionButton';
+import { BillingCycle, GooglePlaySubscriptionButton, GooglePlayVerifiedInfo } from '../components/GooglePlaySubscriptionButton';
 import { AnimatedPressable, FadeInView, FloatingView, PulseDot } from '../components/Motion';
 import { Panel, SectionTitle } from '../components/UI';
 import { supabase } from '../lib/supabase';
@@ -52,16 +52,18 @@ export function CourierCenterV032({ initialTab = 'passes' }: { initialTab?: 'pas
   const [loading, setLoading] = useState(false);
   const dkdPackagesScrollRef = useRef<ScrollView>(null);
 
-  const load = async () => {
+  const load = async (dkdForceEffective = false) => {
     setLoading(true);
     try {
       const { data, error } = await supabase.rpc('dkd_gate_get_courier_package_center');
       if (error) throw error;
       const next = data as Center;
       setCenter(next);
-      setSelected((current) => current && next.plans.some((plan) => plan.code === current)
-        ? current
-        : next.effective_plan?.code || next.plans?.[0]?.code || '');
+      setSelected((current) => dkdForceEffective
+        ? next.effective_plan?.code || next.plans?.[0]?.code || ''
+        : current && next.plans.some((plan) => plan.code === current)
+          ? current
+          : next.effective_plan?.code || next.plans?.[0]?.code || '');
       if (next.subscription?.billing_cycle) setCycle(next.subscription.billing_cycle);
     } catch (error) {
       Alert.alert('Kurye merkezi yüklenemedi', error instanceof Error ? error.message : 'Tekrar dene.');
@@ -76,13 +78,19 @@ export function CourierCenterV032({ initialTab = 'passes' }: { initialTab?: 'pas
   const selectedPlan = useMemo(() => center?.plans.find((plan) => plan.code === selected), [center, selected]);
   const hasCourierPackage = Boolean(
     center?.subscription
-      && ['active', 'trialing'].includes(center.subscription.status)
+      && ['active', 'trialing', 'cancelled'].includes(center.subscription.status)
       && center.effective_plan?.code !== 'courier_starter',
   );
 
   const dkdSelectPlan = (dkdPlanCode: string) => {
     setSelected(dkdPlanCode);
     setTimeout(() => dkdPackagesScrollRef.current?.scrollToEnd({ animated: true }), 180);
+  };
+
+  const dkdHandleVerified = (dkdInfo: GooglePlayVerifiedInfo) => {
+    setSelected(dkdInfo.planCode);
+    setCycle(dkdInfo.cycle);
+    void load(true);
   };
 
   return (
@@ -203,7 +211,7 @@ export function CourierCenterV032({ initialTab = 'passes' }: { initialTab?: 'pas
                 ))}
               </View>
 
-              {selectedPlan ? <GooglePlaySubscriptionButton plan={selectedPlan} cycle={cycle} scope="courier" onVerified={() => void load()} /> : null}
+              {selectedPlan ? <GooglePlaySubscriptionButton plan={selectedPlan} allPlans={center.plans} cycle={cycle} scope="courier" onVerified={dkdHandleVerified} /> : null}
 
               <Panel style={s.notice} gradient>
                 <Ionicons name="logo-google-playstore" size={28} color={colors.green} />
